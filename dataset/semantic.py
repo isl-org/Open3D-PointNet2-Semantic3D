@@ -7,7 +7,31 @@ import numpy as np
 import utils.pc_util as pc_util
 import utils.scene_util as scene_util
 
+# Dataset global parameters
+
 NUM_CLASSES = 9
+
+DATA_PATH = "dataset/semantic_data/"
+
+FILENAMES_TRAIN = [
+            "bildstein_station1_xyz_intensity_rgb",
+            "bildstein_station3_xyz_intensity_rgb",
+            "bildstein_station5_xyz_intensity_rgb",
+            "domfountain_station1_xyz_intensity_rgb",
+            "domfountain_station2_xyz_intensity_rgb",
+            "domfountain_station3_xyz_intensity_rgb",
+            "neugasse_station1_xyz_intensity_rgb",
+            "sg27_station1_intensity_rgb",
+            "sg27_station2_intensity_rgb"
+            ]
+FILENAMES_TEST = [
+            "sg27_station4_intensity_rgb",
+            "sg27_station5_intensity_rgb",
+            "sg27_station9_intensity_rgb",
+            "sg28_station4_intensity_rgb",
+            "untermaederbrunnen_station1_xyz_intensity_rgb",
+            "untermaederbrunnen_station3_xyz_intensity_rgb"
+            ]
 
 def coupageDeSceneEnN(point_set, labels, sceneIndex, verbose=False):
     """
@@ -47,46 +71,9 @@ class SemanticDataset():
         self.npoints = npoints
         self.root = root
         self.split = split
-        if split=='train':
-            filenames = [
-            "bildstein_station1_xyz_intensity_rgb",
-            "bildstein_station3_xyz_intensity_rgb",
-            "bildstein_station5_xyz_intensity_rgb",
-            "domfountain_station1_xyz_intensity_rgb",
-            "domfountain_station2_xyz_intensity_rgb",
-            "domfountain_station3_xyz_intensity_rgb",
-            "neugasse_station1_xyz_intensity_rgb",
-            "sg27_station1_intensity_rgb",
-            "sg27_station2_intensity_rgb"
-            ]
-        elif split=='test':
-            filenames = [
-            "sg27_station4_intensity_rgb",
-            "sg27_station5_intensity_rgb",
-            "sg27_station9_intensity_rgb",
-            "sg28_station4_intensity_rgb",
-            "untermaederbrunnen_station1_xyz_intensity_rgb",
-            "untermaederbrunnen_station3_xyz_intensity_rgb"
-            ]
-        # train on a small dataset to speed up computation
-        elif split=='train_short':
-            filenames = [
-            "bildstein_station1_xyz_intensity_rgb",
-            "bildstein_station3_xyz_intensity_rgb"
-            ]
-        elif split=='test_short':
-            filenames = [
-            "bildstein_station5_xyz_intensity_rgb"
-            ]
-        datapath = "dataset/semantic_data/"
-        self.data_filenames = [os.path.join(datapath, file) for file in filenames]
-        self.scene_points_list = list()
-        self.semantic_labels_list = list()
-        for filename in self.data_filenames:
-            data_points = np.load(filename + "_vertices.npz")
-            data_labels = np.load(filename + "_labels.npz")
-            self.scene_points_list.append(data_points[data_points.files[0]])
-            self.semantic_labels_list.append(data_labels[data_labels.files[0]])
+
+        # load the data
+        self.load_data()
         
         temp1 = list()
         temp2 = list()
@@ -97,7 +84,6 @@ class SemanticDataset():
         self.scene_points_list, self.semantic_labels_list = temp1, temp2
         
         if split=='train' or split=='train_short':
-
             # Compute the weights
             labelweights = np.zeros(9)
             # First, compute the histogram of each labels
@@ -109,16 +95,29 @@ class SemanticDataset():
             labelweights = labelweights.astype(np.float32)
             labelweights = labelweights/np.sum(labelweights)         
             self.labelweights = 1/np.log(1.2+labelweights)
-            #print(self.labelweights)
-
-            # HEURISTIQUE
-            # [ 5.48481369  3.40443397  2.54848027  3.10937095  4.99715662  2.35922575 4.92126751  5.05347443  5.35839796]
-            #self.labelweights = [ 5.48481369,  3.40443397,  2.54848027,  3.10937095,  4.99715662,  2.35922575, 4.92126751,  5.05347443,  5.35839796]
-            #self.labelweights = np.array([0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.1, 1.0])
-            #self.labelweights = np.ones(9)
             
         elif split=='test' or split=='test_short':
             self.labelweights = np.ones(9)
+
+    def load_data(self):
+        if self.split=='train':
+            filenames = FILENAMES_TRAIN
+        elif self.split=='test':
+            filenames = FILENAMES_TEST
+        # train on a smaller, easier dataset to speed up computation
+        elif self.split=='train_short':
+            filenames = FILENAMES_TRAIN[0:2]
+        elif self.split=='test_short':
+            filenames = FILENAMES_TRAIN[2:3]
+
+        self.data_filenames = [os.path.join(DATA_PATH, file) for file in filenames]
+        self.scene_points_list = list()
+        self.semantic_labels_list = list()
+        for filename in self.data_filenames:
+            data_points = np.load(filename + "_vertices.npz")
+            data_labels = np.load(filename + "_labels.npz")
+            self.scene_points_list.append(data_points[data_points.files[0]])
+            self.semantic_labels_list.append(data_labels[data_labels.files[0]])
 
     def __getitem__(self, index):
         """
@@ -163,8 +162,7 @@ class SemanticDataset():
 
         else:
             choice = np.random.choice(len(cur_semantic_seg), self.npoints, replace=True)
-            
-       
+              
         point_set = cur_point_set[choice] 
 
         #on selectionne aleatoirement npoints (8192 par defaut) points du voisinage du pointcentral
@@ -173,11 +171,6 @@ class SemanticDataset():
         #sample_weight = np.reshape(self.labelweights[semantic_seg], (1, -1))
         sample_weight = self.labelweights[semantic_seg]
         sample_weight *= mask # (NUM_POINTS,)
-        
-
-        # EXPERIMENTAL WEIGHTS : remove them
-        #sample_weight = np.ones(self.npoints)
-        #print(np.shape(sample_weight))
         
         # EXPERIMENTAL NORMALIZATION
         point_set = (point_set-np.mean(point_set,axis=0))/np.std(point_set,axis=0)
@@ -192,46 +185,9 @@ class SemanticDatasetWholeScene():
         self.npoints = npoints
         self.root = root
         self.split = split
-        if split=='train':
-            filenames = [
-            "bildstein_station1_xyz_intensity_rgb",
-            "bildstein_station3_xyz_intensity_rgb",
-            "bildstein_station5_xyz_intensity_rgb",
-            "domfountain_station1_xyz_intensity_rgb",
-            "domfountain_station2_xyz_intensity_rgb",
-            "domfountain_station3_xyz_intensity_rgb",
-            "neugasse_station1_xyz_intensity_rgb",
-            "sg27_station1_intensity_rgb",
-            "sg27_station2_intensity_rgb",
-            ]
-        elif split=='test':
-            filenames = [
-            "sg27_station4_intensity_rgb",
-            "sg27_station5_intensity_rgb",
-            "sg27_station9_intensity_rgb",
-            "sg28_station4_intensity_rgb",
-            "untermaederbrunnen_station1_xyz_intensity_rgb",
-            "untermaederbrunnen_station3_xyz_intensity_rgb"
-            ]
-        # train on a small dataset to speed up computation
-        elif split=='train_short':
-            filenames = [
-            "bildstein_station1_xyz_intensity_rgb",
-            "bildstein_station3_xyz_intensity_rgb"
-            ]
-        elif split=='test_short':
-            filenames = [
-            "bildstein_station5_xyz_intensity_rgb"
-            ]
-        datapath = "dataset/semantic_data/"
-        self.data_filenames = [os.path.join(datapath, file) for file in filenames]
-        self.scene_points_list = list()
-        self.semantic_labels_list = list()
-        for filename in self.data_filenames:
-            data_points = np.load(filename + "_vertices.npz")
-            data_labels = np.load(filename + "_labels.npz")
-            self.scene_points_list.append(data_points[data_points.files[0]])
-            self.semantic_labels_list.append(data_labels[data_labels.files[0]])
+
+        # load the data
+        self.load_data()
         
         temp1 = list()
         temp2 = list()
@@ -251,6 +207,26 @@ class SemanticDatasetWholeScene():
             self.labelweights = 1/np.log(1.2+labelweights)
         elif split=='test' or split=='test_short':
             self.labelweights = np.ones(9)
+
+    def load_data(self):
+        if self.split=='train':
+            filenames = FILENAMES_TRAIN
+        elif self.split=='test':
+            filenames = FILENAMES_TEST
+        # train on a smaller, easier dataset to speed up computation
+        elif self.split=='train_short':
+            filenames = FILENAMES_TRAIN[0:2]
+        elif self.split=='test_short':
+            filenames = FILENAMES_TRAIN[2:3]
+
+        self.data_filenames = [os.path.join(DATA_PATH, file) for file in filenames]
+        self.scene_points_list = list()
+        self.semantic_labels_list = list()
+        for filename in self.data_filenames:
+            data_points = np.load(filename + "_vertices.npz")
+            data_labels = np.load(filename + "_labels.npz")
+            self.scene_points_list.append(data_points[data_points.files[0]])
+            self.semantic_labels_list.append(data_labels[data_labels.files[0]])      
                 
     def __getitem__(self, index):
         point_set_ini = self.scene_points_list[index]

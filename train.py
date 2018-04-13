@@ -161,7 +161,7 @@ def train():
 
         # Init variables
         sess.run(tf.global_variables_initializer())
-        sess.run(tf.local_variables_initializer()) # fix for mIoU
+        sess.run(tf.local_variables_initializer()) # important for mIoU
 
         ops = {'pointclouds_pl': pointclouds_pl,
                'labels_pl': labels_pl,
@@ -176,12 +176,18 @@ def train():
                'update_iou': update_iou_op}
 
         best_acc = -1
+
+        # Train for MAX_EPOCH epochs
         for epoch in range(MAX_EPOCH):
             log_string('**** EPOCH %03d ****' % (epoch))
             sys.stdout.flush()
 
+            # Train one epoch
             train_one_epoch(sess, ops, train_writer)
+
+            # Evaluate, save, and compute the accuracy
             if epoch%5==0:
+                # Bad behaviour on Tensorboard !
                 #acc = eval_one_epoch(sess, ops, test_writer) 
                 acc = eval_whole_scene_one_epoch(sess, ops, test_writer) #it's too long
             if acc > best_acc:

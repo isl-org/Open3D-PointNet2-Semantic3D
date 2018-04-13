@@ -53,7 +53,7 @@ BN_DECAY_DECAY_RATE = 0.5
 BN_DECAY_DECAY_STEP = float(DECAY_STEP)
 BN_DECAY_CLIP = 0.99
 
-NUM_CLASSES = 9 # SHOULD NOT BE IN HERE
+NUM_CLASSES = data.NUM_CLASSES 
 
 TRAIN_DATASET = data.SemanticDataset(root="", npoints=NUM_POINT, split='train_short')
 TEST_DATASET = data.SemanticDataset(root="", npoints=NUM_POINT, split='test_short')
@@ -194,34 +194,39 @@ def train():
                 save_path = saver.save(sess, os.path.join(LOG_DIR, "model.ckpt"))
                 log_string("Model saved in file: %s" % save_path)
 
-def get_batch_wdp(dataset, idxs, start_idx, end_idx):
-    bsize = end_idx-start_idx             #=BATCH_SIZE (default : 32)
-    batch_data = np.zeros((bsize, NUM_POINT, 3))
-    batch_label = np.zeros((bsize, NUM_POINT), dtype=np.int32)
-    batch_smpw = np.zeros((bsize, NUM_POINT), dtype=np.float32)
-    for i in range(bsize):
-        ps,seg,smpw = dataset[idxs[i+start_idx]]#on parcourt un batch du dataset
-        batch_data[i,...] = ps
-        batch_label[i,:] = seg
-        batch_smpw[i,:] = smpw
+def get_batch(dataset, idxs, start_idx, end_idx, dropout=False, dropout_max=0.875):
+    """Compute one batch in a given dataset, with optional dropout.
+    
+    Args:
+        dataset (Dataset): the dataset
+        idxs (Numpy array): the indexes of the dataset [useless?]
+        start_idx (int): First index of the batch
+        end_idx (int): Last array of the batch
+        dropout (bool, optional): Defaults to False. Add input dropout
+        dropout_max (float, optional): Defaults to 0.875. The maximum percent of dropout
+    
+    Returns:
+        numpy array, numpy array, numpy array: batch data, batch labels, batch weights
+    """
 
-        dropout_ratio = np.random.random()*0.875 # 0-0.875
-        drop_idx = np.where(np.random.random((ps.shape[0]))<=dropout_ratio)[0]
-        batch_data[i,drop_idx,:] = batch_data[i,0,:]
-        batch_label[i,drop_idx] = batch_label[i,0]
-        batch_smpw[i,drop_idx] *= 0
-    return batch_data, batch_label, batch_smpw
-
-def get_batch(dataset, idxs, start_idx, end_idx):
     bsize = end_idx-start_idx
     batch_data = np.zeros((bsize, NUM_POINT, 3))
     batch_label = np.zeros((bsize, NUM_POINT), dtype=np.int32)
-    batch_smpw = np.zeros((bsize, NUM_POINT), dtype=np.float32)#sample weights
+    batch_smpw = np.zeros((bsize, NUM_POINT), dtype=np.float32) #sample weights
     for i in range(bsize):
         ps,seg,smpw = dataset[idxs[i+start_idx]]
         batch_data[i,...] = ps
         batch_label[i,:] = seg
         batch_smpw[i,:] = smpw
+
+        # Add dropout to the input, remove (by setting weights to 0) 
+        # between 0 and dropout_max (87.5% by default) of points 
+        if dropout:
+            dropout_ratio = np.random.random()*dropout_max
+            drop_idx = np.where(np.random.random((ps.shape[0]))<=dropout_ratio)[0]
+            batch_data[i,drop_idx,:] = batch_data[i,0,:]
+            batch_label[i,drop_idx] = batch_label[i,0]
+            batch_smpw[i,drop_idx] *= 0
     return batch_data, batch_label, batch_smpw
 
 def train_one_epoch(sess, ops, train_writer):
@@ -248,7 +253,7 @@ def train_one_epoch(sess, ops, train_writer):
     for batch_idx in range(num_batches):
         start_idx = batch_idx * BATCH_SIZE
         end_idx = (batch_idx+1) * BATCH_SIZE
-        batch_data, batch_label, batch_smpw = get_batch_wdp(TRAIN_DATASET, train_idxs, start_idx, end_idx)
+        batch_data, batch_label, batch_smpw = get_batch(TRAIN_DATASET, train_idxs, start_idx, end_idx, True)
         # Augment batched point clouds by rotation
         aug_data = provider.rotate_point_cloud(batch_data)
         feed_dict = {ops['pointclouds_pl']: aug_data,

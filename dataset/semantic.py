@@ -4,9 +4,10 @@ ROOT_DIR = os.path.abspath(os.path.pardir)
 sys.path.append(ROOT_DIR)
 
 import numpy as np
-import csv # useful ?
 import utils.pc_util as pc_util
 import utils.scene_util as scene_util
+
+NUM_CLASSES = 9
 
 def coupageDeSceneEnN(point_set, labels, sceneIndex, verbose=False):
     """

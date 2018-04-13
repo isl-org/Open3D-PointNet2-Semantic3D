@@ -1,0 +1,7 @@
+*.pyc
+dataset/semantic_data
+logs
+visu
+*.o
+*.so
+

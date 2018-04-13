@@ -66,6 +66,15 @@ def log_string(out_str):
     print(out_str)
 
 def get_learning_rate(batch):
+    """Compute the learning rate for a given batch size and global parameters
+    
+    Args:
+        batch (tf.Variable): the batch size
+    
+    Returns:
+        scalar tf.Tensor: the decayed learning rate
+    """
+
     learning_rate = tf.train.exponential_decay(
         BASE_LEARNING_RATE,  # Base learning rate.
         batch * BATCH_SIZE,  # Current index into the dataset.
@@ -76,6 +85,15 @@ def get_learning_rate(batch):
     return learning_rate
 
 def get_bn_decay(batch):
+    """Compute the batch normalisation exponential decay
+    
+    Args:
+        batch (tf.Variable): the batch size
+    
+    Returns:
+        scalar tf.Tensor: the batch norm decay
+    """
+    
     bn_momentum = tf.train.exponential_decay(
     BN_INIT_DECAY,
     batch*BATCH_SIZE,
@@ -86,6 +104,9 @@ def get_bn_decay(batch):
     return bn_decay
 
 def train():
+    """Train the model on the training dataset GPU, and evaluate it on the test dataset
+    """
+
     with tf.Graph().as_default():
         with tf.device('/gpu:'+str(GPU_INDEX)):
             pointclouds_pl, labels_pl, smpws_pl = MODEL.placeholder_inputs(BATCH_SIZE, NUM_POINT)
@@ -204,7 +225,14 @@ def get_batch(dataset, idxs, start_idx, end_idx):
     return batch_data, batch_label, batch_smpw
 
 def train_one_epoch(sess, ops, train_writer):
-    """ ops: dict mapping from string to tf ops """
+    """Train one epoch
+    
+    Args:
+        sess (tf.Session): the session to evaluate Tensors and ops
+        ops (dict of tf.Operation): contain multiple operation mapped with with strings
+        train_writer (tf.FileSaver): enable to log the training with TensorBoard
+    """
+
     is_training = True
 
     # Shuffle train samples
@@ -222,8 +250,6 @@ def train_one_epoch(sess, ops, train_writer):
         end_idx = (batch_idx+1) * BATCH_SIZE
         batch_data, batch_label, batch_smpw = get_batch_wdp(TRAIN_DATASET, train_idxs, start_idx, end_idx)
         # Augment batched point clouds by rotation
-        #aug_data = provider.rotate_point_cloud_z(batch_data)
-        #That function doesn't exist and I think it was supposed to do what this one does
         aug_data = provider.rotate_point_cloud(batch_data)
         feed_dict = {ops['pointclouds_pl']: aug_data,
                      ops['labels_pl']: batch_label,
@@ -247,11 +273,21 @@ def train_one_epoch(sess, ops, train_writer):
             total_seen = 0
             loss_sum = 0
 
-# evaluate on randomly chopped scenes
+
 def eval_one_epoch(sess, ops, test_writer):
-    """ ops: dict mapping from string to tf ops """
+    """Evaluate one epoch
+    
+    Args:
+        sess (tf.Session): the session to evaluate tensors and operations
+        ops (tf.Operation): the dict of operations
+        test_writer (tf.summary.FileWriter): enable to log the evaluation on TensorBoard
+    
+    Returns:
+        float: the accuracy computed on the test set
+    """
+
     global EPOCH_CNT
-#    hasPrinted = False
+
     is_training = False
     test_idxs = np.arange(0, len(TEST_DATASET))
     num_batches = len(TEST_DATASET)/BATCH_SIZE
@@ -277,8 +313,6 @@ def eval_one_epoch(sess, ops, test_writer):
         end_idx = (batch_idx+1) * BATCH_SIZE
         batch_data, batch_label, batch_smpw = get_batch(TEST_DATASET, test_idxs, start_idx, end_idx)
 
-        #aug_data = provider.rotate_point_cloud_z(batch_data)
-        #That function doesn't exist and I think it was supposed to do what this one does
         aug_data = provider.rotate_point_cloud(batch_data)
         
         feed_dict = {ops['pointclouds_pl']: aug_data,
@@ -316,10 +350,7 @@ def eval_one_epoch(sess, ops, test_writer):
     log_string('eval point accuracy: %f'% (total_correct / float(total_seen)))
     log_string('eval point avg class acc: %f' % (np.mean(np.array(total_correct_class[1:])/(np.array(total_seen_class[1:],dtype=np.float)+1e-6))))
     labelweights_vox = labelweights_vox[1:].astype(np.float32)/np.sum(labelweights_vox[1:].astype(np.float32))
-    #caliweights = np.array([0.388,0.357,0.038,0.033,0.017,0.02,0.016,0.025,0.002,0.002,0.002,0.007,0.006,0.022,0.004,0.0004,0.003,0.002,0.024,0.029])
-    #They hard-coded the fact there were 20 classes even here...
-    #Maybe someone could try to reimplement it...?
-    #log_string('eval point calibrated average acc: %f' % (np.average(np.array(total_correct_class[1:])/(np.array(total_seen_class[1:],dtype=np.float)+1e-6),weights=caliweights)))
+   
     log_string('eval point calibrated average acc: %f' % (np.average(np.array(total_correct_class[1:])/(np.array(total_seen_class[1:],dtype=np.float)+1e-6))))
     per_class_str = 'vox based --------'
     for l in range(1,NUM_CLASSES):
@@ -421,9 +452,7 @@ def eval_whole_scene_one_epoch(sess, ops, test_writer):
     log_string('eval whole scene point avg class acc: %f' % (np.mean(np.array(total_correct_class[1:])/(np.array(total_seen_class[1:],dtype=np.float)+1e-6))))
     labelweights = labelweights[1:].astype(np.float32)/np.sum(labelweights[1:].astype(np.float32))
     labelweights_vox = labelweights_vox[1:].astype(np.float32)/np.sum(labelweights_vox[1:].astype(np.float32))
-    #caliweights = np.array([0.388,0.357,0.038,0.033,0.017,0.02,0.016,0.025,0.002,0.002,0.002,0.007,0.006,0.022,0.004,0.0004,0.003,0.002,0.024,0.029])
-    #caliacc = np.average(np.array(total_correct_class_vox[1:])/(np.array(total_seen_class_vox[1:],dtype=np.float)+1e-6),weights=caliweights)
-    #see lines 330
+   
     caliacc = np.average(np.array(total_correct_class_vox[1:])/(np.array(total_seen_class_vox[1:],dtype=np.float)+1e-6))    
     log_string('eval whole scene point calibrated average acc vox: %f' % caliacc)
 

@@ -4,9 +4,9 @@ Predict the label
 import argparse
 import numpy as np
 import tensorflow as tf
+import importlib
 import os
 import sys
-import dataset.semantic as data
 import models.pointnet2_sem_seg as MODEL
 import utils.pc_util as pc_util
 
@@ -18,6 +18,7 @@ parser.add_argument('--ckpt', default='', help='Checkpoint file')
 parser.add_argument('--num_point', type=int, default=8192, help='Point Number [default: 8192]')
 parser.add_argument('--set', default="train", help='train or test [default: train]')
 parser.add_argument('--batch_size', type=int, default=1, help='Batch size [default: 1]') # LET DEFAULT FOR THE MOMENT!
+parser.add_argument('--dataset', default='semantic', help='Dataset [default: semantic]')
 
 
 FLAGS = parser.parse_args()
@@ -27,14 +28,15 @@ GPU_INDEX = FLAGS.gpu
 NUM_POINT = FLAGS.num_point
 SET = FLAGS.set
 BATCH_SIZE = FLAGS.batch_size
+DATASET_NAME = FLAGS.dataset
 
 # Import dataset
+data = importlib.import_module('dataset.' + DATASET_NAME)
+NUM_CLASSES = data.NUM_CLASSES
 
-NUM_CLASSES = 9
+DATASET = data.Dataset(npoints=NUM_POINT, split=SET)
 
-DATASET = data.SemanticDataset(root="", npoints=NUM_POINT, split=SET)
-
-LABELS_TEXT = ["unlabled", "man-made terrain", "natural terrain", "high vegetation", "low vegetation", "buildings", "hard scape", "scanning artefacts", "cars"]
+LABELS_TEXT = data.LABELS_NAMES
 
 # Outputs
 

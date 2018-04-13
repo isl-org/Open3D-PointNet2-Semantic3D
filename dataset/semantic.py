@@ -33,6 +33,8 @@ FILENAMES_TEST = [
             "untermaederbrunnen_station3_xyz_intensity_rgb"
             ]
 
+LABELS_NAMES = ['unlabeled', 'man-made terrain', 'natural terrain', 'high vegetation', 'low vegetation', 'buildings', 'hard scape', 'scanning artefacts', 'cars']
+
 def coupageDeSceneEnN(point_set, labels, sceneIndex, verbose=False):
     """
     point_cloud is an array contaning the 3D points, labels is an array containig the labels
@@ -61,15 +63,14 @@ def coupageDeSceneEnN(point_set, labels, sceneIndex, verbose=False):
     return point_cloud_scenes, label_scenes
 
    
-class SemanticDataset():
+class Dataset():
     """
     Intended to work as a container (array-like) for the dataset 
     scene_points_list : a list of arrays of size (nbPointsAfterVoxelisation, 3)
     semantic_labels_list : a list of arrays of shape (nbPointsAfterVoxelisation)
     """
-    def __init__(self, root, npoints=8192, split='train'):
+    def __init__(self, npoints=8192, split='train'):
         self.npoints = npoints
-        self.root = root
         self.split = split
 
         # load the data
@@ -180,10 +181,9 @@ class SemanticDataset():
     def __len__(self):
         return len(self.scene_points_list)
 
-class SemanticDatasetWholeScene():
-    def __init__(self, root, npoints=8192, split='train'):
+class DatasetWholeScene():
+    def __init__(self, npoints=8192, split='train'):
         self.npoints = npoints
-        self.root = root
         self.split = split
 
         # load the data

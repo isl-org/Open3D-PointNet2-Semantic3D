@@ -13,7 +13,8 @@ import sys
 import utils.provider as provider
 import utils.tf_util as tf_util
 import utils.pc_util as pc_util
-import dataset.semantic as data
+
+# Parser
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--gpu', type=int, default=0, help='GPU to use [default: GPU 0]')
@@ -27,9 +28,8 @@ parser.add_argument('--momentum', type=float, default=0.9, help='Initial learnin
 parser.add_argument('--optimizer', default='adam', help='adam or momentum [default: adam]')
 parser.add_argument('--decay_step', type=int, default=200000, help='Decay step for lr decay [default: 200000]')
 parser.add_argument('--decay_rate', type=float, default=0.7, help='Decay rate for lr decay [default: 0.7]')
+parser.add_argument('--dataset', default='semantic', help='Dataset [default: semantic]')
 FLAGS = parser.parse_args()
-
-EPOCH_CNT = 0
 
 BATCH_SIZE = FLAGS.batch_size
 NUM_POINT = FLAGS.num_point
@@ -40,24 +40,36 @@ MOMENTUM = FLAGS.momentum
 OPTIMIZER = FLAGS.optimizer
 DECAY_STEP = FLAGS.decay_step
 DECAY_RATE = FLAGS.decay_rate
+DATASET_NAME = FLAGS.dataset
+
+# Import model
 
 MODEL = importlib.import_module('models.'+FLAGS.model) # import network module
 LOG_DIR = "logs/"+FLAGS.logdir
 if not os.path.exists(LOG_DIR): os.mkdir(LOG_DIR)
 
-LOG_FOUT = open(os.path.join(LOG_DIR, 'log_train.txt'), 'w')
-LOG_FOUT.write(str(FLAGS)+'\n')
+# Batch normalisation
 
 BN_INIT_DECAY = 0.5
 BN_DECAY_DECAY_RATE = 0.5
 BN_DECAY_DECAY_STEP = float(DECAY_STEP)
 BN_DECAY_CLIP = 0.99
 
-NUM_CLASSES = data.NUM_CLASSES 
+# Import dataset
 
-TRAIN_DATASET = data.SemanticDataset(root="", npoints=NUM_POINT, split='train_short')
-TEST_DATASET = data.SemanticDataset(root="", npoints=NUM_POINT, split='test_short')
-TEST_DATASET_WHOLE_SCENE = data.SemanticDatasetWholeScene(root="", npoints=NUM_POINT, split='test_short')
+data = importlib.import_module('dataset.' + DATASET_NAME)
+
+NUM_CLASSES = data.NUM_CLASSES 
+TRAIN_DATASET = data.Dataset(npoints=NUM_POINT, split='train')
+TEST_DATASET = data.Dataset(npoints=NUM_POINT, split='test')
+TEST_DATASET_WHOLE_SCENE = data.DatasetWholeScene(npoints=NUM_POINT, split='test')
+
+# Start logging
+
+LOG_FOUT = open(os.path.join(LOG_DIR, 'log_train.txt'), 'w')
+LOG_FOUT.write(str(FLAGS)+'\n')
+
+EPOCH_CNT = 0
 
 
 def log_string(out_str):

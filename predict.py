@@ -20,7 +20,6 @@ parser.add_argument('--set', default="train", help='train or test [default: trai
 parser.add_argument('--batch_size', type=int, default=1, help='Batch size [default: 1]') # LET DEFAULT FOR THE MOMENT!
 parser.add_argument('--dataset', default='semantic', help='Dataset [default: semantic]')
 
-
 FLAGS = parser.parse_args()
 
 CHECKPOINT = FLAGS.ckpt

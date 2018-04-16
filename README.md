@@ -19,5 +19,4 @@ Get the preprocessed data :
 
 ## TODO
 - Use tensorflow Dataset API
-- Change/add metrics
-- Succeed in training Semantic
+- Succeed in training Semantic-8

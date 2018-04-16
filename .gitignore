@@ -6,3 +6,4 @@ visu
 *.o
 *.so
 
+.vscode

@@ -1,6 +1,7 @@
 *.pyc
 dataset/semantic_data
 dataset/scannet_data
+dataset/semantic_preprocess
 logs
 visu
 *.o

@@ -8,7 +8,7 @@ import utils.pc_util as pc_util
 # Parser
 parser = argparse.ArgumentParser()
 parser.add_argument('--set', default="train", help='train or test [default: train]')
-parser.add_argument('--n', type=int, default=-1, help='Number of batches you want [default : 1]')
+parser.add_argument('--n', type=int, default=1, help='Number of batches you want [default : 1]')
 parser.add_argument('--batch_size', type=int, default=32, help='Batch Size [default: 32]')
 parser.add_argument('--num_point', type=int, default=8192, help='Point Number [default: 8192]')
 parser.add_argument('--dataset', default='semantic_color', help='Dataset [default: semantic_color]')
@@ -41,15 +41,16 @@ if AUGMENT:
     print "Warning : rotation is on"
 
 for i in range(N):
-    data, labels, _ = DATA.next_batch(BATCH_SIZE, AUGMENT, DROPOUT)
-    if DROPOUT:
-        # Replicate the input dropout to see the effect of the decimation
-        drop_idx = np.where(np.random.random((xyz.shape[0]))<=DROPOUT_RATIO)[0]
-        data = np.delete(data,drop_idx, axis=0)
-        labels = np.delete(labels,drop_idx)
+    data, label_data, _ = DATA.next_batch(BATCH_SIZE, AUGMENT, DROPOUT)
 
     if (N > 1):
         print "Exporting batch number " + str(N)
-    for j, scene in enumerate(self.data):
+    for j, scene in enumerate(data):
+        labels = label_data[j]
+        if DROPOUT:
+            # Replicate the input dropout to see the effect of the decimation
+            drop_idx = np.where(np.random.random((scene.shape[0]))<=DROPOUT_RATIO)[0]
+            scene = np.delete(scene,drop_idx, axis=0)
+            labels = np.delete(labels,drop_idx)
         np.savetxt(OUTPUT_DIR+"/{}_{}_{}.obj".format(SET, "trueColors", j), scene, delimiter=" ")
-        pc_util.write_ply_color(data[], labels, OUTPUT_DIR+"/{}_{}_{}.obj".format(SET, "labelColors", j), NUM_CLASSES)
+        pc_util.write_ply_color(scene[:,0:3], labels, OUTPUT_DIR+"/{}_{}_{}.obj".format(SET, "labelColors", j), NUM_CLASSES)

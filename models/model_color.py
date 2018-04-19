@@ -20,10 +20,11 @@ def get_model(point_cloud, is_training, num_class, bn_decay=None):
     batch_size = point_cloud.get_shape()[0].value
     num_point = point_cloud.get_shape()[1].value
     end_points = {}
-    end_points['l0_xyz'] = l0_xyz # does'nt matter what we put in end_points, it's never used.
     
     l0_xyz = tf.slice(point_cloud, [0,0,0], [-1,-1,3])
     l0_points = tf.slice(point_cloud, [0,0,3], [-1,-1,3])
+    
+    end_points['l0_xyz'] = l0_xyz # does'nt matter what we put in end_points, it's never used.
 
     # Layer 1
     l1_xyz, l1_points, l1_indices = pointnet_sa_module(l0_xyz, l0_points, npoint=1024, radius=0.1, nsample=32, mlp=[32,32,64], mlp2=None, group_all=False, is_training=is_training, bn_decay=bn_decay, scope='layer1')

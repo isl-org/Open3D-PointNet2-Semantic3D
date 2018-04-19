@@ -10,13 +10,13 @@ To achieve that, we clean, document, refactor, and improve the original project.
 We will compare the same datasets later with SnapNet, another state-of-the-art semantic segmentation project.
 
 ## Dependancies and data
-We work on Ubuntu 16.04 with 3 GTX Titan Black and a GTX Titan X. On old GPU, as my GTX 860m, expect to lower the number of point and the batch size for the training.
-You have to install TensorFlow on GPU (we use TF 1.2, cuda 8.0, python 2.7, but it should work on newer versions with minor changes). Then, you have to compile the custom TensorFlow operators in the tf_ops subdirectories, with the sh files. You may have to install some Python modules.
+We work on Ubuntu 16.04 with 3 GTX Titan Black and a GTX Titan X. On older GPUs, like my GTX 860m, you can expect to lower the number of points and the batch size for the training, otherwise you will get a OutOfMemory from TensorFlow.
+You have to install TensorFlow on GPU (we use TF 1.2, cuda 8.0, python 2.7, but it should also work on newer versions with minor changes). Then, you have to compile the custom TensorFlow operators in the tf_ops subdirectories, with the .sh files. You may have to install some additionnal Python modules.
 
 Get the preprocessed data :
 - Scannet : https://onedrive.live.com/?authkey=%21AHEO5Ik8Hn4Ue2Y&cid=423FEBB4168FD396&id=423FEBB4168FD396%21136&parId=423FEBB4168FD396%21134&action=locate
-- Semantic : to do
+- Semantic : ask us
 
-## TODO
+## Roadmap
 - Use tensorflow Dataset API
-- Succeed in training Semantic-8
+- Tests on semantic-8 : sampling, add colors, more visualisations

@@ -99,7 +99,7 @@ class Dataset():
         """
         point_set = self.scene_points_list[index]       
         labels = self.semantic_labels_list[index].astype(np.int32)
-        colors = self.scene_colorslist[index]
+        colors = self.scene_colors_list[index]
         return point_set, labels, colors
 
     def next_batch(self,batch_size,augment=True,dropout=True):
@@ -203,15 +203,5 @@ class Dataset():
         return len(self.scene_points_list)
 
 if __name__ == '__main__':
-    # Run some tests
-    DATA_PATH = "semantic_data/"
-    data = Dataset(20000)
-    print "There are %i scenes" % (len(data))
-    input, labels, weights = data.next_input(False,False)
-    print input
-    print labels
-    print weights
-    print "Batch shape is " +str(np.shape(data.next_batch(30)[0]))
-    print "Total number of points %i" %(data.get_total_num_points())
-    print "Exemple num batch %i" %(int(data.get_total_num_points()/(32*20000)))
-    pc_util.write_ply_color(input, labels, "../visu/test6.obj")
+    pass
+    # TODO : write tests

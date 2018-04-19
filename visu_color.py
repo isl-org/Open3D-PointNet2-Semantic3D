@@ -52,5 +52,6 @@ for i in range(N):
             drop_idx = np.where(np.random.random((scene.shape[0]))<=DROPOUT_RATIO)[0]
             scene = np.delete(scene,drop_idx, axis=0)
             labels = np.delete(labels,drop_idx)
-        np.savetxt(OUTPUT_DIR+"/{}_{}_{}.obj".format(SET, "trueColors", j), scene, delimiter=" ")
+        #np.savetxt(OUTPUT_DIR+"/{}_{}_{}.obj".format(SET, "trueColors", j), scene, delimiter=" ")
+        pc_util.write_ply_true_color(scene[:,0:3], scene[:,3:6], OUTPUT_DIR+"/{}_{}_{}.obj".format(SET, "trueColors", j))
         pc_util.write_ply_color(scene[:,0:3], labels, OUTPUT_DIR+"/{}_{}_{}.obj".format(SET, "labelColors", j), NUM_CLASSES)

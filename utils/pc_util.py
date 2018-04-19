@@ -341,3 +341,12 @@ def write_ply_color(points, labels, out_filename, num_classes=None):
         c = [int(x*255) for x in c]
         fout.write('v %f %f %f %d %d %d\n' % (points[i,0],points[i,1],points[i,2],c[0],c[1],c[2]))
     fout.close()
+
+def write_ply_true_color(points, colors, out_filename):
+    """ Color (N,3) points with labels (N) within range 0 ~ num_classes-1 as OBJ file """
+    colors = colors.astype(int)
+    N = points.shape[0]
+    fout = open(out_filename, 'w')
+    for i in range(N):
+        fout.write('v %f %f %f %d %d %d\n' % (points[i,0],points[i,1],points[i,2],colors[i,0],colors[i,1],colors[i,2]))
+    fout.close()

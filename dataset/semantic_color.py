@@ -118,9 +118,9 @@ class Dataset():
         batch_label = np.array(batch_label)
         batch_weights = np.array(batch_weights)
 
-        # Optionnal batch augmentation
+        # Optional batch augmentation
         if augment:
-            batch_data = provider.rotate_point_cloud(batch_data)
+            batch_data = provider.rotate_colored_point_cloud(batch_data)
 
         return batch_data, batch_label, batch_weights
 

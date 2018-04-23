@@ -150,7 +150,7 @@ class Dataset():
         if sample:
             if len(Input) - self.npoints > 0:
                 trueArray = np.ones(self.npoints, dtype = bool)
-                falseArray = np.zeros(len(cur_point_set) - self.npoints, dtype = bool)
+                falseArray = np.zeros(len(Input) - self.npoints, dtype = bool)
                 sample_mask = np.concatenate((trueArray, falseArray), axis=0)
                 np.random.shuffle(sample_mask)
             else:

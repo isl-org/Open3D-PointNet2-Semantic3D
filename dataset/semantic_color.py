@@ -153,11 +153,21 @@ class Dataset():
             labels = scene_labels[scene_extract_mask]
             colors = scene_colors[scene_extract_mask]
 
-            if sample:
-                sample_mask = np.random.choice(len(Input), self.npoints, replace=True)
-                Input = Input[sample_mask]
-                labels = labels[sample_mask]
-                colors = colors[sample_mask]
+        if sample:
+            if len(Input) - self.npoints > 0:
+                trueArray = np.ones(self.npoints, dtype = bool)
+                falseArray = np.zeros(len(Input) - self.npoints, dtype = bool)
+                sample_mask = np.concatenate((trueArray, falseArray), axis=0)
+                np.random.shuffle(sample_mask)
+            else:
+                # not enough points, recopy the Input until enough points
+                sample_mask = np.arange(len(Input))
+                while (len(sample_mask) < self.npoints):
+                    sample_mask = np.concatenate((sample_mask, sample_mask), axis=0)
+                sample_mask = sample_mask[np.arange(self.npoints)]
+            Input = Input[sample_mask]
+            labels = labels[sample_mask]
+            colors = colors[sample_mask]
 
             # Compute the weights
             weights = self.labelweights[labels]

@@ -153,7 +153,7 @@ class Dataset():
             labels = scene_labels[scene_extract_mask]
             colors = scene_colors[scene_extract_mask]
 
-            if sample:
+        if sample:
             if len(Input) - self.npoints > 0:
                 trueArray = np.ones(self.npoints, dtype = bool)
                 falseArray = np.zeros(len(cur_point_set) - self.npoints, dtype = bool)
@@ -167,7 +167,7 @@ class Dataset():
                 sample_mask = sample_mask[np.arange(self.npoints)]
             Input = Input[sample_mask]
             labels = labels[sample_mask]
-
+            colors = colors[sample_mask]
 
             # Compute the weights
             weights = self.labelweights[labels]

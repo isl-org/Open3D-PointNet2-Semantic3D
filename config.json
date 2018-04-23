@@ -16,5 +16,21 @@
     
     "bn_init_decay": 0.5,
     "bn_decay_decay_rate": 0.5,
-    "bn_decay_clip": 0.99
+    "bn_decay_clip": 0.99,
+
+    "l1_radius": 0.1,
+    "l1_nsample": 32,
+    "l1_npoint": 2048,
+
+    "l2_radius": 0.3,
+    "l2_nsample": 32,
+    "l2_npoint": 512,
+
+    "l3_radius": 0.5,
+    "l3_nsample": 32,
+    "l3_npoint": 128,
+
+    "l4_radius": 1.0,
+    "l4_nsample": 32,
+    "l4_npoint": 16
 }

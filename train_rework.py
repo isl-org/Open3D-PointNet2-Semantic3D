@@ -19,30 +19,30 @@ parser.add_argument('--config', type=str, default="config.json", metavar='N',
 help='config file')
 args = parser.parse_args()
 json_data=open(args.config).read()
-config = json.loads(json_data)
+params = json.loads(json_data)
 
-BATCH_SIZE = config["batch_size"]
-NUM_POINT = config['num_point']
-MAX_EPOCH = config['max_epoch']
-BASE_LEARNING_RATE = config['learning_rate']
-GPU_INDEX = config['gpu']
-MOMENTUM = config['momentum']
-OPTIMIZER = config['optimizer']
-DECAY_STEP = config['decay_step']
-DECAY_RATE = config['learning_rate_decay_rate']
-DATASET_NAME = config['dataset']
-INPUT_DROPOUT = config['input_dropout'] 
+BATCH_SIZE = params["batch_size"]
+NUM_POINT = params['num_point']
+MAX_EPOCH = params['max_epoch']
+BASE_LEARNING_RATE = params['learning_rate']
+GPU_INDEX = params['gpu']
+MOMENTUM = params['momentum']
+OPTIMIZER = params['optimizer']
+DECAY_STEP = params['decay_step']
+DECAY_RATE = params['learning_rate_decay_rate']
+DATASET_NAME = params['dataset']
+INPUT_DROPOUT = params['input_dropout'] 
 
 # Import model
-MODEL = importlib.import_module('models.'+config['model'])
-LOG_DIR = config['logdir']
+MODEL = importlib.import_module('models.'+params['model'])
+LOG_DIR = params['logdir']
 if not os.path.exists(LOG_DIR): os.mkdir(LOG_DIR)
 
 # Batch normalisation
-BN_INIT_DECAY = config['bn_init_decay']
-BN_DECAY_DECAY_RATE = config['bn_decay_decay_rate']
+BN_INIT_DECAY = params['bn_init_decay']
+BN_DECAY_DECAY_RATE = params['bn_decay_decay_rate']
 BN_DECAY_DECAY_STEP = float(DECAY_STEP)
-BN_DECAY_CLIP = config['bn_decay_clip']
+BN_DECAY_CLIP = params['bn_decay_clip']
 
 # Import dataset
 data = importlib.import_module('dataset.' + DATASET_NAME)
@@ -116,7 +116,7 @@ def train():
 
             print "--- Get model and loss"
             # Get model and loss 
-            pred, end_points = MODEL.get_model(pointclouds_pl, is_training_pl, NUM_CLASSES, bn_decay=bn_decay)
+            pred, end_points = MODEL.get_model(pointclouds_pl, is_training_pl, NUM_CLASSES, hyperparams=params, bn_decay=bn_decay)
             loss = MODEL.get_loss(pred, labels_pl, smpws_pl, end_points)
             tf.summary.scalar('loss', loss)
 

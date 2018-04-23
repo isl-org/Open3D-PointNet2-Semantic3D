@@ -2,6 +2,7 @@
 Train
 """
 import argparse
+import json
 import math
 from datetime import datetime
 import numpy as np
@@ -9,50 +10,40 @@ import tensorflow as tf
 import importlib
 import os
 import sys
-
 import utils.provider as provider
 import utils.tf_util as tf_util
 import utils.pc_util as pc_util
 import utils.metric as metric
 
-# Parser
 parser = argparse.ArgumentParser()
-parser.add_argument('--gpu', type=int, default=0, help='GPU to use [default: GPU 0]')
-parser.add_argument('--model', default='pointnet2_sem_seg', help='Model name [default: pointnet2_sem_seg]')
-parser.add_argument('--logdir', default='log', help='Log name [default: log]')
-parser.add_argument('--num_point', type=int, default=8192, help='Point Number [default: 8192]')
-parser.add_argument('--max_epoch', type=int, default=201, help='Epoch to run [default: 201]')
-parser.add_argument('--batch_size', type=int, default=32, help='Batch Size during training [default: 32]')
-parser.add_argument('--learning_rate', type=float, default=0.001, help='Initial learning rate [default: 0.001]')
-parser.add_argument('--momentum', type=float, default=0.9, help='Initial learning rate [default: 0.9]')
-parser.add_argument('--optimizer', default='adam', help='adam or momentum [default: adam]')
-parser.add_argument('--decay_step', type=int, default=200000, help='Decay step for lr decay [default: 200000]')
-parser.add_argument('--decay_rate', type=float, default=0.7, help='Decay rate for lr decay [default: 0.7]')
-parser.add_argument('--dataset', default='semantic', help='Dataset [default: semantic]')
-FLAGS = parser.parse_args()
+parser.add_argument('--config', type=str, default="config.json", metavar='N',
+help='config file')
+args = parser.parse_args()
+json_data=open(args.config).read()
+params = json.loads(json_data)
 
-BATCH_SIZE = FLAGS.batch_size
-NUM_POINT = FLAGS.num_point
-MAX_EPOCH = FLAGS.max_epoch
-BASE_LEARNING_RATE = FLAGS.learning_rate
-GPU_INDEX = FLAGS.gpu
-MOMENTUM = FLAGS.momentum
-OPTIMIZER = FLAGS.optimizer
-DECAY_STEP = FLAGS.decay_step
-DECAY_RATE = FLAGS.decay_rate
-DATASET_NAME = FLAGS.dataset
-INPUT_DROPOUT = 0.875 # scannet 0.875
+BATCH_SIZE = params["batch_size"]
+NUM_POINT = params['num_point']
+MAX_EPOCH = params['max_epoch']
+BASE_LEARNING_RATE = params['learning_rate']
+GPU_INDEX = params['gpu']
+MOMENTUM = params['momentum']
+OPTIMIZER = params['optimizer']
+DECAY_STEP = params['decay_step']
+DECAY_RATE = params['learning_rate_decay_rate']
+DATASET_NAME = params['dataset']
+INPUT_DROPOUT = params['input_dropout'] 
 
 # Import model
-MODEL = importlib.import_module('models.'+FLAGS.model)
-LOG_DIR = "logs/"+FLAGS.logdir
+MODEL = importlib.import_module('models.'+params['model'])
+LOG_DIR = params['logdir']
 if not os.path.exists(LOG_DIR): os.mkdir(LOG_DIR)
 
 # Batch normalisation
-BN_INIT_DECAY = 0.5
-BN_DECAY_DECAY_RATE = 0.5
+BN_INIT_DECAY = params['bn_init_decay']
+BN_DECAY_DECAY_RATE = params['bn_decay_decay_rate']
 BN_DECAY_DECAY_STEP = float(DECAY_STEP)
-BN_DECAY_CLIP = 0.99
+BN_DECAY_CLIP = params['bn_decay_clip']
 
 # Import dataset
 data = importlib.import_module('dataset.' + DATASET_NAME)
@@ -63,7 +54,6 @@ TEST_DATASET = data.Dataset(npoints=NUM_POINT, split='test')
 
 # Start logging
 LOG_FOUT = open(os.path.join(LOG_DIR, 'log_train.txt'), 'w')
-LOG_FOUT.write(str(FLAGS)+'\n')
 
 EPOCH_CNT = 0
 

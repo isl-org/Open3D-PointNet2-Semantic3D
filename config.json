@@ -1,7 +1,7 @@
 {
     "gpu": 0,
     "logdir": "logs/log",
-    "dataset": "semantic",
+    "dataset": "semantic_rework",
     "model": "pointnet2_rework",
     "max_epoch": 201,
 

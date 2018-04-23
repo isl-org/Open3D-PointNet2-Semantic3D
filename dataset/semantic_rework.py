@@ -143,23 +143,34 @@ class Dataset():
                 #print "Initially, %i points in the box" %(np.sum(scene_extract_mask))
                 input_ok = True
 
-            input = scene[scene_extract_mask]
-            labels = scene_labels[scene_extract_mask]
+        Input = scene[scene_extract_mask]
+        labels = scene_labels[scene_extract_mask]
+        
+        
+        if sample:
+            if len(Input) - self.npoints > 0:
+                trueArray = np.ones(self.npoints, dtype = bool)
+                falseArray = np.zeros(len(cur_point_set) - self.npoints, dtype = bool)
+                sample_mask = np.concatenate((trueArray, falseArray), axis=0)
+                np.random.shuffle(sample_mask)
+            else:
+                # not enough points, recopy the Input until enough points
+                sample_mask = np.arange(len(Input))
+                while (len(sample_mask) < self.npoints):
+                    sample_mask = np.concatenate((sample_mask, sample_mask), axis=0)
+                sample_mask = sample_mask[np.arange(self.npoints)]
+            Input = Input[sample_mask]
+            labels = labels[sample_mask]
 
-            if sample:
-                sample_mask = np.random.choice(len(input), self.npoints, replace=True)
-                input = input[sample_mask]
-                labels = labels[sample_mask]
+        # Compute the weights
+        weights = self.labelweights[labels]  
 
-            # Compute the weights
-            weights = self.labelweights[labels]  
+        # Optional dropout
+        if dropout:
+            drop_index = self.Input_dropout(Input)
+            weights[drop_index] *= 0      
 
-            # Optionnal dropout
-            if dropout:
-                drop_index = self.input_dropout(input)
-                weights[drop_index] *= 0      
-
-        return input, labels, weights
+        return Input, labels, weights
 
     def extract_box(self,seed,scene):
         # 5 meters seems intuitivly to be a good value to understand the scene, we must test that
@@ -180,9 +191,9 @@ class Dataset():
         mask = np.sum((scene>=box_min)*(scene<=box_max),axis=1) == 3
         return mask
 
-    def input_dropout(self,input,dropout_max=0.875):
+    def input_dropout(self,Input,dropout_max=0.875):
         dropout_ratio = np.random.random()*dropout_max
-        drop_index = np.where(np.random.random((input.shape[0]))<=dropout_ratio)[0]
+        drop_index = np.where(np.random.random((Input.shape[0]))<=dropout_ratio)[0]
         return drop_index
     
     def get_total_num_points(self):
@@ -199,11 +210,11 @@ if __name__ == '__main__':
     DATA_PATH = "semantic_data/"
     data = Dataset(20000)
     print "There are %i scenes" % (len(data))
-    input, labels, weights = data.next_input(False,False)
-    print input
+    Input, labels, weights = data.next_input(False,False)
+    print Input
     print labels
     print weights
     print "Batch shape is " +str(np.shape(data.next_batch(30)[0]))
     print "Total number of points %i" %(data.get_total_num_points())
     print "Exemple num batch %i" %(int(data.get_total_num_points()/(32*20000)))
-    pc_util.write_ply_color(input, labels, "../visu/test6.obj")
+    pc_util.write_ply_color(Input, labels, "../visu/test6.obj")

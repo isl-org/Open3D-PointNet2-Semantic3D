@@ -176,7 +176,7 @@ class Dataset():
         # 5 meters seems intuitivly to be a good value to understand the scene, we must test that
         # We want to keep the terrain in most input, so we force to include it in, say, proba_terrain = 80% of the cases
         # on average
-        box_size = 15
+        box_size = 6
         proba_terrain = 0.8
 
         # Compute the min points of the scene

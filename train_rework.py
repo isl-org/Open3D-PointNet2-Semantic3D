@@ -1,55 +1,61 @@
 """
 Train rework
 """
+import os
+import sys
+import importlib
 import argparse
 import json
-import math
 from datetime import datetime
 import numpy as np
 import tensorflow as tf
-import importlib
-import os
-import sys
-
-import utils.tf_util as tf_util
 import utils.metric as metric
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--config', type=str, default="config.json", metavar='N',
-help='config file')
-args = parser.parse_args()
-json_data=open(args.config).read()
-params = json.loads(json_data)
+# Shut down useless TF warnings
+os.environ["TF_CPP_MIN_LOG_LEVEL"]="2"
 
-BATCH_SIZE = params["batch_size"]
-NUM_POINT = params['num_point']
-MAX_EPOCH = params['max_epoch']
-BASE_LEARNING_RATE = params['learning_rate']
-GPU_INDEX = params['gpu']
-MOMENTUM = params['momentum']
-OPTIMIZER = params['optimizer']
-DECAY_STEP = params['decay_step']
-DECAY_RATE = params['learning_rate_decay_rate']
-DATASET_NAME = params['dataset']
-INPUT_DROPOUT = params['input_dropout'] 
+PARSER = argparse.ArgumentParser()
+PARSER.add_argument('--config', type=str, default="config.json", metavar='N',
+                    help='config file')
+ARGS = PARSER.parse_args()
+JSON_DATA_CUSTOM = open(ARGS.config).read()
+CUSTOM = json.loads(JSON_DATA_CUSTOM)
+JSON_DATA = open('default.json').read()
+PARAMS = json.loads(JSON_DATA)
+
+PARAMS.update(CUSTOM)
+
+BATCH_SIZE = PARAMS['batch_size']
+NUM_POINT = PARAMS['num_point']
+MAX_EPOCH = PARAMS['max_epoch']
+BASE_LEARNING_RATE = PARAMS['learning_rate']
+GPU_INDEX = PARAMS['gpu']
+MOMENTUM = PARAMS['momentum']
+OPTIMIZER = PARAMS['optimizer']
+DECAY_STEP = PARAMS['decay_step']
+DECAY_RATE = PARAMS['learning_rate_decay_rate']
+DATASET_NAME = PARAMS['dataset']
+INPUT_DROPOUT = PARAMS['input_dropout']
+BOX_SIZE = PARAMS['box_size']
 
 # Import model
-MODEL = importlib.import_module('models.'+params['model'])
-LOG_DIR = params['logdir']
+MODEL = importlib.import_module('models.'+PARAMS['model'])
+LOG_DIR = PARAMS['logdir']
 if not os.path.exists(LOG_DIR): os.mkdir(LOG_DIR)
 
 # Batch normalisation
-BN_INIT_DECAY = params['bn_init_decay']
-BN_DECAY_DECAY_RATE = params['bn_decay_decay_rate']
+BN_INIT_DECAY = PARAMS['bn_init_decay']
+BN_DECAY_DECAY_RATE = PARAMS['bn_decay_decay_rate']
 BN_DECAY_DECAY_STEP = float(DECAY_STEP)
-BN_DECAY_CLIP = params['bn_decay_clip']
+BN_DECAY_CLIP = PARAMS['bn_decay_clip']
 
 # Import dataset
 data = importlib.import_module('dataset.' + DATASET_NAME)
-
-NUM_CLASSES = data.NUM_CLASSES 
-TRAIN_DATASET = data.Dataset(npoints=NUM_POINT, split='train')
-TEST_DATASET = data.Dataset(npoints=NUM_POINT, split='test')
+TRAIN_DATASET = data.Dataset(npoints=NUM_POINT, split='train', box_size=PARAMS['box_size'], use_color=PARAMS['use_color'],
+                             proba_terrain=PARAMS['proba_terrain'], dropout_max=PARAMS['dropout_max'], path=PARAMS['data_path'])
+TEST_DATASET = data.Dataset(npoints=NUM_POINT, split='test', box_size=PARAMS['box_size'], use_color=PARAMS['use_color'],
+                             proba_terrain=PARAMS['proba_terrain'], dropout_max=PARAMS['dropout_max'], path=PARAMS['data_path'])
+NUM_CLASSES = TRAIN_DATASET.num_classes
 
 # Start logging
 LOG_FOUT = open(os.path.join(LOG_DIR, 'log_train.txt'), 'w')
@@ -116,7 +122,7 @@ def train():
 
             print "--- Get model and loss"
             # Get model and loss 
-            pred, end_points = MODEL.get_model(pointclouds_pl, is_training_pl, NUM_CLASSES, hyperparams=params, bn_decay=bn_decay)
+            pred, end_points = MODEL.get_model(pointclouds_pl, is_training_pl, NUM_CLASSES, hyperparams=PARAMS, bn_decay=bn_decay)
             loss = MODEL.get_loss(pred, labels_pl, smpws_pl, end_points)
             tf.summary.scalar('loss', loss)
 
@@ -181,7 +187,7 @@ def train():
             train_one_epoch(sess, ops, train_writer)
 
             # Evaluate, save, and compute the accuracy
-            if epoch%5==0:
+            if epoch % 5 == 0:
                 acc = eval_one_epoch(sess, ops, test_writer) 
             if acc > best_acc:
                 best_acc = acc
@@ -204,7 +210,7 @@ def train_one_epoch(sess, ops, train_writer):
 
     is_training = True
 
-    num_batches = int(TRAIN_DATASET.get_total_num_points()/(BATCH_SIZE*NUM_POINT))*2
+    num_batches = TRAIN_DATASET.get_num_batches(BATCH_SIZE)
 
     log_string(str(datetime.now()))
 
@@ -216,7 +222,6 @@ def train_one_epoch(sess, ops, train_writer):
     for batch_idx in range(num_batches):
 
         batch_data, batch_label, batch_weights = TRAIN_DATASET.next_batch(BATCH_SIZE,True,False)
-        
 
         # Get predicted labels
         feed_dict = {ops['pointclouds_pl']: batch_data,
@@ -235,14 +240,14 @@ def train_one_epoch(sess, ops, train_writer):
         loss_sum += loss_val
 
         # Every 10 batches, print metrics and reset them
-        if (batch_idx+1)%10 == 0:
+        if (batch_idx+1)%1 == 0:
             log_string(' -- %03d / %03d --' % (batch_idx+1, num_batches))
             log_string('mean loss: %f' % (loss_sum / 10))
             log_string("Overall accuracy : %f" %(confusion_matrix.get_overall_accuracy()))
             log_string("Average IoU : %f" %(confusion_matrix.get_average_intersection_union()))
             iou_per_class = confusion_matrix.get_intersection_union_per_class()
             for i in range(1,NUM_CLASSES):
-                log_string("IoU of %s : %f" % (data.LABELS_NAMES[i],iou_per_class[i]))
+                log_string("IoU of %s : %f" % (TRAIN_DATASET.labels_names[i],iou_per_class[i]))
             loss_sum = 0   
             confusion_matrix = metric.ConfusionMatrix(NUM_CLASSES)
 
@@ -262,7 +267,7 @@ def eval_one_epoch(sess, ops, test_writer):
 
     is_training = False
 
-    num_batches = int(TRAIN_DATASET.get_total_num_points()/(BATCH_SIZE*NUM_POINT))*2
+    num_batches = TEST_DATASET.get_num_batches(BATCH_SIZE)
 
     # Reset metrics
     loss_sum = 0

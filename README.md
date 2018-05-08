@@ -19,4 +19,4 @@ Get the preprocessed data :
 
 ## Roadmap
 - Use tensorflow Dataset API
-- Tests on semantic-8 : sampling, add colors, more visualisations
+- Tests on semantic-8 : sampling, influence of colors, more visualisations

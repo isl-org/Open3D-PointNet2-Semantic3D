@@ -11,8 +11,8 @@ import numpy as np
 import tensorflow as tf
 import utils.metric as metric
 
-# Shut down useless TF warnings
-os.environ["TF_CPP_MIN_LOG_LEVEL"]="2"
+# Uncomment to shut down TF warnings
+# os.environ["TF_CPP_MIN_LOG_LEVEL"]="2"
 
 PARSER = argparse.ArgumentParser()
 PARSER.add_argument('--config', type=str, default="config.json", metavar='N',
@@ -110,7 +110,7 @@ def train():
     """
     with tf.Graph().as_default():
         with tf.device('/gpu:'+str(GPU_INDEX)):
-            pointclouds_pl, labels_pl, smpws_pl = MODEL.placeholder_inputs(BATCH_SIZE, NUM_POINT)
+            pointclouds_pl, labels_pl, smpws_pl = MODEL.placeholder_inputs(BATCH_SIZE, NUM_POINT, hyperparams=PARAMS)
             is_training_pl = tf.placeholder(tf.bool, shape=())
             print is_training_pl
 
@@ -240,7 +240,7 @@ def train_one_epoch(sess, ops, train_writer):
         loss_sum += loss_val
 
         # Every 10 batches, print metrics and reset them
-        if (batch_idx+1)%1 == 0:
+        if (batch_idx+1)%10 == 0:
             log_string(' -- %03d / %03d --' % (batch_idx+1, num_batches))
             log_string('mean loss: %f' % (loss_sum / 10))
             log_string("Overall accuracy : %f" %(confusion_matrix.get_overall_accuracy()))

@@ -1,15 +1,15 @@
 {
     "gpu": 0,
     "logdir": "logs/log",
-    "dataset": "semantic_color",
-    "model": "pointnet2_rework",
+    "dataset": "semantic",
+    "model": "model",
     "max_epoch": 201,
 
     "proba_terrain": 0.8,
     "use_color": 1,
     "data_path": "dataset/semantic_data/",
     "dropout_max": 0.875,
-    "box_size": 5,
+    "box_size": 10,
 
     "num_point": 8192,
     "batch_size": 32,
@@ -26,15 +26,15 @@
 
     "l1_radius": 0.1,
     "l1_nsample": 32,
-    "l1_npoint": 2048,
+    "l1_npoint": 1024,
 
     "l2_radius": 0.3,
     "l2_nsample": 32,
-    "l2_npoint": 512,
+    "l2_npoint": 256,
 
     "l3_radius": 0.5,
     "l3_nsample": 32,
-    "l3_npoint": 128,
+    "l3_npoint": 64,
 
     "l4_radius": 1.0,
     "l4_nsample": 32,

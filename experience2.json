@@ -1,36 +1,17 @@
 {
     "gpu": 0,
-    "logdir": "logs/experience1",
-    "dataset": "semantic_rework",
-    "model": "pointnet2_rework",
-    "max_epoch": 1500,
+    "logdir": "logs/experience2",
+    "dataset": "semantic",
+    "model": "model",
+    "max_epoch": 1000,
 
     "num_point": 8192,
     "batch_size": 32,
-    "optimizer": "adam",
-    "momentum": 0.9,
-    "learning_rate": 0.001,
-    "decay_step": 200000,
-    "learning_rate_decay_rate": 0.7,
     "input_dropout": 0.0,
-    
-    "bn_init_decay": 0.5,
-    "bn_decay_decay_rate": 0.5,
-    "bn_decay_clip": 0.99,
+    "use_color": 1,
 
     "l1_radius": 0.4,
-    "l1_nsample": 128,
-    "l1_npoint": 2048,
-
     "l2_radius": 0.8,
-    "l2_nsample": 128,
-    "l2_npoint": 512,
-
     "l3_radius": 1.6,
-    "l3_nsample": 128,
-    "l3_npoint": 128,
-
-    "l4_radius": 3.2,
-    "l4_nsample": 128,
-    "l4_npoint": 16
+    "l4_radius": 3.2
 }

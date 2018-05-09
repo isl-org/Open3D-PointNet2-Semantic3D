@@ -17,8 +17,6 @@ def placeholder_inputs(batch_size, num_point):
 
 def get_model(point_cloud, is_training, num_class, hyperparams=None, bn_decay=None):
     """ Semantic segmentation PointNet, input is BxNx3, output Bxnum_class """
-    batch_size = point_cloud.get_shape()[0].value
-    num_point = point_cloud.get_shape()[1].value
     end_points = {}
     
     l0_xyz = tf.slice(point_cloud, [0,0,0], [-1,-1,3])
@@ -27,10 +25,10 @@ def get_model(point_cloud, is_training, num_class, hyperparams=None, bn_decay=No
     end_points['l0_xyz'] = l0_xyz # does'nt matter what we put in end_points, it's never used.
 
     # Layer 1
-    l1_xyz, l1_points, l1_indices = pointnet_sa_module(l0_xyz, l0_points, npoint=1024, radius=0.1, nsample=32, mlp=[32,32,64], mlp2=None, group_all=False, is_training=is_training, bn_decay=bn_decay, scope='layer1')
-    l2_xyz, l2_points, l2_indices = pointnet_sa_module(l1_xyz, l1_points, npoint=256, radius=0.2, nsample=32, mlp=[64,64,128], mlp2=None, group_all=False, is_training=is_training, bn_decay=bn_decay, scope='layer2')
-    l3_xyz, l3_points, l3_indices = pointnet_sa_module(l2_xyz, l2_points, npoint=64, radius=0.4, nsample=32, mlp=[128,128,256], mlp2=None, group_all=False, is_training=is_training, bn_decay=bn_decay, scope='layer3')
-    l4_xyz, l4_points, l4_indices = pointnet_sa_module(l3_xyz, l3_points, npoint=16, radius=0.8, nsample=32, mlp=[256,256,512], mlp2=None, group_all=False, is_training=is_training, bn_decay=bn_decay, scope='layer4')
+    l1_xyz, l1_points, l1_indices = pointnet_sa_module(l0_xyz, l0_points, npoint=hyperparams['l1_npoint'], radius=hyperparams['l1_radius'], nsample=hyperparams['l1_nsample'], mlp=[32,32,64], mlp2=None, group_all=False, is_training=is_training, bn_decay=bn_decay, scope='layer1')
+    l2_xyz, l2_points, l2_indices = pointnet_sa_module(l1_xyz, l1_points, npoint=hyperparams['l2_npoint'], radius=hyperparams['l2_radius'], nsample=hyperparams['l2_nsample'], mlp=[64,64,128], mlp2=None, group_all=False, is_training=is_training, bn_decay=bn_decay, scope='layer2')
+    l3_xyz, l3_points, l3_indices = pointnet_sa_module(l2_xyz, l2_points, npoint=hyperparams['l3_npoint'], radius=hyperparams['l3_radius'], nsample=hyperparams['l3_nsample'], mlp=[128,128,256], mlp2=None, group_all=False, is_training=is_training, bn_decay=bn_decay, scope='layer3')
+    l4_xyz, l4_points, l4_indices = pointnet_sa_module(l3_xyz, l3_points, npoint=hyperparams['l4_npoint'], radius=hyperparams['l4_radius'], nsample=hyperparams['l4_nsample'], mlp=[256,256,512], mlp2=None, group_all=False, is_training=is_training, bn_decay=bn_decay, scope='layer4')
 
     # Feature Propagation layers
     l3_points = pointnet_fp_module(l3_xyz, l4_xyz, l3_points, l4_points, [256,256], is_training, bn_decay, scope='fa_layer1')

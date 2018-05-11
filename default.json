@@ -5,10 +5,9 @@
     "model": "model",
     "max_epoch": 201,
 
-    "proba_terrain": 0.8,
+    "proba_terrain": 0.0,
     "use_color": 1,
     "data_path": "dataset/semantic_data/",
-    "dropout_max": 0.875,
     "box_size": 10,
 
     "num_point": 8192,
@@ -19,6 +18,7 @@
     "decay_step": 200000,
     "learning_rate_decay_rate": 0.7,
     "input_dropout": 0.875,
+    "accept_rate": 1.0,
     
     "bn_init_decay": 0.5,
     "bn_decay_decay_rate": 0.5,

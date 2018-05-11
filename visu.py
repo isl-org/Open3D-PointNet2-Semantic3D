@@ -38,7 +38,7 @@ GROUP_BY_BATCHES = True
 # Import dataset
 data = importlib.import_module('dataset.' + DATASET_NAME)
 DATA = data.Dataset(npoints=NUM_POINT, split=SET, box_size=PARAMS['box_size'], use_color=PARAMS['use_color'],
-                             proba_terrain=PARAMS['proba_terrain'], dropout_max=PARAMS['dropout_max'], path=PARAMS['data_path'])
+                             proba_terrain=PARAMS['proba_terrain'], dropout_max=PARAMS['input_dropout'], path=PARAMS['data_path'], accept_rate=PARAMS['accept_rate'])
 NUM_CLASSES = DATA.num_classes
 # Outputs
 

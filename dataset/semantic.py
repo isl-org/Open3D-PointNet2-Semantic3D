@@ -7,8 +7,6 @@ ROOT_DIR = os.path.abspath(os.path.pardir)
 sys.path.append(ROOT_DIR)
 
 import numpy as np
-import utils.pc_util as pc_util
-import utils.scene_util as scene_util
 import utils.provider as provider
 
 class Dataset():
@@ -67,7 +65,7 @@ class Dataset():
             
             # Then, an heuristic gives the weights : 1/log(1.2 + probability of occurrence)
             labelweights = labelweights.astype(np.float32)
-            labelweights = labelweights/np.sum(labelweights)         
+            labelweights = labelweights/np.sum(labelweights)
             self.labelweights = 1/np.log(1.2+labelweights)
             
         elif split=='test' or split=='test_short':
@@ -82,7 +80,7 @@ class Dataset():
         elif self.split=='train_short':
             filenames = self.filenames_train[0:2]
         elif self.split=='test_short':
-            filenames = self.filenames_test[2:3]
+            filenames = self.filenames_train[2:3]
 
         self.data_filenames = [os.path.join(self.path, file) for file in filenames]
         self.scene_points_list = list()
@@ -136,7 +134,7 @@ class Dataset():
 
         return batch_data, batch_label, batch_weights
 
-    def next_input(self,dropout=False,sample=True, verbose=False):
+    def next_input(self,dropout=False,sample=True, verbose=False, stats=False):
         input_ok = False
         count_try = 0
 
@@ -157,12 +155,15 @@ class Dataset():
             # Verify there is enough points inside
             if np.sum(scene_extract_mask) < self.npoints:
                 if verbose:
-                    print "Warning : not enough point in the box (%i points), try=%i." %(np.sum(scene_extract_mask),count_try)
+                    print ("Warning : not enough point in the box (%i points), try=%i." %(np.sum(scene_extract_mask),count_try))
                 continue
             else:
                 if verbose:
-                    print "Initially, %i points in the box" %(np.sum(scene_extract_mask))
+                    print ("Initially, %i points in the box" %(np.sum(scene_extract_mask)))
                 input_ok = True
+                if stats:
+                    #return scene_extract_mask, np.unique(scene_labels[scene_extract_mask], return_counts = True)[1]
+                    return scene_extract_mask, np.histogram(scene_labels[scene_extract_mask], range(10))[0]
 
             data = scene[scene_extract_mask]
             labels = scene_labels[scene_extract_mask]
@@ -231,6 +232,26 @@ class Dataset():
 
     def __len__(self):
         return len(self.scene_points_list)
+    
+    def get_hist(self):
+        labelweights = np.zeros(9)
+            # First, compute the histogram of each labels
+        for seg in self.semantic_labels_list:
+            tmp,_ = np.histogram(seg,range(10))
+            labelweights += tmp
+        return labelweights
+    
+    def get_list_classes_str(self):
+        return 'unlabeled, man-made terrain, natural terrain, high vegetation, low vegetation, buildings, hard scape, scanning artefacts, cars'
+
+    def get_data_filenames(self):
+        return self.data_filenames
+        
+    def get_scene_shape(self, scene_index):
+        return self.scene_points_list[scene_index].shape
+        
+    def get_scene(self, scene_index):
+        return self.scene_points_list[scene_index]
 
 if __name__ == '__main__':
     pass

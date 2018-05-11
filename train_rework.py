@@ -302,7 +302,7 @@ def eval_one_epoch(sess, ops, test_writer):
     log_string("Overall accuracy : %f" %(confusion_matrix.get_overall_accuracy()))
     log_string("Average IoU : %f" %(confusion_matrix.get_average_intersection_union()))
     for i in range(1,NUM_CLASSES):
-        log_string("IoU of %s : %f" % (data.LABELS_NAMES[i],iou_per_class[i]))
+        log_string("IoU of %s : %f" % (TEST_DATASET.labels_names[i],iou_per_class[i]))
     
     EPOCH_CNT += 5
     return confusion_matrix.get_overall_accuracy()

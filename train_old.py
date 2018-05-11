@@ -1,61 +1,56 @@
 """
-Train rework
+Train
 """
-import os
-import sys
-import importlib
 import argparse
 import json
+import math
 from datetime import datetime
 import numpy as np
 import tensorflow as tf
+import importlib
+import os
+import sys
+import utils.provider as provider
+import utils.tf_util as tf_util
+import utils.pc_util as pc_util
 import utils.metric as metric
 
-# Uncomment to shut down TF warnings
-# os.environ["TF_CPP_MIN_LOG_LEVEL"]="2"
+parser = argparse.ArgumentParser()
+parser.add_argument('--config', type=str, default="config.json", metavar='N',
+help='config file')
+args = parser.parse_args()
+json_data=open(args.config).read()
+params = json.loads(json_data)
 
-PARSER = argparse.ArgumentParser()
-PARSER.add_argument('--config', type=str, default="config.json", metavar='N',
-                    help='config file')
-ARGS = PARSER.parse_args()
-JSON_DATA_CUSTOM = open(ARGS.config).read()
-CUSTOM = json.loads(JSON_DATA_CUSTOM)
-JSON_DATA = open('default.json').read()
-PARAMS = json.loads(JSON_DATA)
-
-PARAMS.update(CUSTOM)
-
-BATCH_SIZE = PARAMS['batch_size']
-NUM_POINT = PARAMS['num_point']
-MAX_EPOCH = PARAMS['max_epoch']
-BASE_LEARNING_RATE = PARAMS['learning_rate']
-GPU_INDEX = PARAMS['gpu']
-MOMENTUM = PARAMS['momentum']
-OPTIMIZER = PARAMS['optimizer']
-DECAY_STEP = PARAMS['decay_step']
-DECAY_RATE = PARAMS['learning_rate_decay_rate']
-DATASET_NAME = PARAMS['dataset']
-INPUT_DROPOUT = PARAMS['input_dropout']
-BOX_SIZE = PARAMS['box_size']
+BATCH_SIZE = params["batch_size"]
+NUM_POINT = params['num_point']
+MAX_EPOCH = params['max_epoch']
+BASE_LEARNING_RATE = params['learning_rate']
+GPU_INDEX = params['gpu']
+MOMENTUM = params['momentum']
+OPTIMIZER = params['optimizer']
+DECAY_STEP = params['decay_step']
+DECAY_RATE = params['learning_rate_decay_rate']
+DATASET_NAME = params['dataset']
+INPUT_DROPOUT = params['input_dropout'] 
 
 # Import model
-MODEL = importlib.import_module('models.'+PARAMS['model'])
-LOG_DIR = PARAMS['logdir']
+MODEL = importlib.import_module('models.'+params['model'])
+LOG_DIR = params['logdir']
 if not os.path.exists(LOG_DIR): os.mkdir(LOG_DIR)
 
 # Batch normalisation
-BN_INIT_DECAY = PARAMS['bn_init_decay']
-BN_DECAY_DECAY_RATE = PARAMS['bn_decay_decay_rate']
+BN_INIT_DECAY = params['bn_init_decay']
+BN_DECAY_DECAY_RATE = params['bn_decay_decay_rate']
 BN_DECAY_DECAY_STEP = float(DECAY_STEP)
-BN_DECAY_CLIP = PARAMS['bn_decay_clip']
+BN_DECAY_CLIP = params['bn_decay_clip']
 
 # Import dataset
 data = importlib.import_module('dataset.' + DATASET_NAME)
-TRAIN_DATASET = data.Dataset(npoints=NUM_POINT, split='train', box_size=PARAMS['box_size'], use_color=PARAMS['use_color'],
-                             proba_terrain=PARAMS['proba_terrain'], dropout_max=PARAMS['dropout_max'], path=PARAMS['data_path'])
-TEST_DATASET = data.Dataset(npoints=NUM_POINT, split='test', box_size=PARAMS['box_size'], use_color=PARAMS['use_color'],
-                             proba_terrain=PARAMS['proba_terrain'], dropout_max=PARAMS['dropout_max'], path=PARAMS['data_path'])
-NUM_CLASSES = TRAIN_DATASET.num_classes
+
+NUM_CLASSES = data.NUM_CLASSES 
+TRAIN_DATASET = data.Dataset(npoints=NUM_POINT, split='train')
+TEST_DATASET = data.Dataset(npoints=NUM_POINT, split='test')
 
 # Start logging
 LOG_FOUT = open(os.path.join(LOG_DIR, 'log_train.txt'), 'w')
@@ -110,9 +105,9 @@ def train():
     """
     with tf.Graph().as_default():
         with tf.device('/gpu:'+str(GPU_INDEX)):
-            pointclouds_pl, labels_pl, smpws_pl = MODEL.placeholder_inputs(BATCH_SIZE, NUM_POINT, hyperparams=PARAMS)
+            pointclouds_pl, labels_pl, smpws_pl = MODEL.placeholder_inputs(BATCH_SIZE, NUM_POINT)
             is_training_pl = tf.placeholder(tf.bool, shape=())
-            print (is_training_pl)
+            print is_training_pl
 
             # Note the global_step=batch parameter to minimize. 
             # That tells the optimizer to helpfully increment the 'batch' parameter for you every time it trains.
@@ -120,9 +115,9 @@ def train():
             bn_decay = get_bn_decay(batch)
             tf.summary.scalar('bn_decay', bn_decay)
 
-            print ("--- Get model and loss")
+            print "--- Get model and loss"
             # Get model and loss 
-            pred, end_points = MODEL.get_model(pointclouds_pl, is_training_pl, NUM_CLASSES, hyperparams=PARAMS, bn_decay=bn_decay)
+            pred, end_points = MODEL.get_model(pointclouds_pl, is_training_pl, NUM_CLASSES, bn_decay=bn_decay)
             loss = MODEL.get_loss(pred, labels_pl, smpws_pl, end_points)
             tf.summary.scalar('loss', loss)
 
@@ -135,7 +130,7 @@ def train():
             mean_intersection_over_union, update_iou_op = tf.metrics.mean_iou(tf.to_int32(labels_pl), tf.to_int32(tf.argmax(pred, 2)), NUM_CLASSES)
             tf.summary.scalar('mIoU', tf.to_float(mean_intersection_over_union))
 
-            print ("--- Get training operator")
+            print "--- Get training operator"
             # Get training operator
             learning_rate = get_learning_rate(batch)
             tf.summary.scalar('learning_rate', learning_rate)
@@ -187,7 +182,7 @@ def train():
             train_one_epoch(sess, ops, train_writer)
 
             # Evaluate, save, and compute the accuracy
-            if epoch % 5 == 0:
+            if epoch%5==0:
                 acc = eval_one_epoch(sess, ops, test_writer) 
             if acc > best_acc:
                 best_acc = acc
@@ -198,6 +193,41 @@ def train():
             if epoch % 10 == 0:
                 save_path = saver.save(sess, os.path.join(LOG_DIR, "model.ckpt"))
                 log_string("Model saved in file: %s" % save_path)
+
+def get_batch(dataset, idxs, start_idx, end_idx, dropout=False, dropout_max=0.875):
+    """Compute one batch in a given dataset, with optional dropout.
+    
+    Args:
+        dataset (Dataset): the dataset
+        idxs (Numpy array): the indexes of the dataset [useless?]
+        start_idx (int): First index of the batch
+        end_idx (int): Last array of the batch
+        dropout (bool, optional): Defaults to False. Add input dropout
+        dropout_max (float, optional): Defaults to 0.875. The maximum percent of dropout
+    
+    Returns:
+        numpy array, numpy array, numpy array: batch data, batch labels, batch weights
+    """
+
+    bsize = end_idx-start_idx
+    batch_data = np.zeros((bsize, NUM_POINT, 3))
+    batch_label = np.zeros((bsize, NUM_POINT), dtype=np.int32)
+    batch_smpw = np.zeros((bsize, NUM_POINT), dtype=np.float32) #sample weights
+    for i in range(bsize):
+        ps,seg,smpw = dataset[idxs[i+start_idx]]
+        batch_data[i,...] = ps
+        batch_label[i,:] = seg
+        batch_smpw[i,:] = smpw
+
+        # Add dropout to the input, remove (by setting weights to 0) 
+        # between 0 and dropout_max (87.5% by default) of points 
+        if dropout:
+            dropout_ratio = np.random.random()*dropout_max
+            drop_idx = np.where(np.random.random((ps.shape[0]))<=dropout_ratio)[0]
+            batch_data[i,drop_idx,:] = batch_data[i,0,:]
+            batch_label[i,drop_idx] = batch_label[i,0]
+            batch_smpw[i,drop_idx] *= 0
+    return batch_data, batch_label, batch_smpw
 
 def train_one_epoch(sess, ops, train_writer):
     """Train one epoch
@@ -210,7 +240,10 @@ def train_one_epoch(sess, ops, train_writer):
 
     is_training = True
 
-    num_batches = TRAIN_DATASET.get_num_batches(BATCH_SIZE)
+    # Shuffle train samples
+    train_idxs = np.arange(0, len(TRAIN_DATASET))
+    np.random.shuffle(train_idxs)
+    num_batches = len(TRAIN_DATASET)/BATCH_SIZE
 
     log_string(str(datetime.now()))
 
@@ -220,13 +253,17 @@ def train_one_epoch(sess, ops, train_writer):
 
     # Train over num_batches batches
     for batch_idx in range(num_batches):
-
-        batch_data, batch_label, batch_weights = TRAIN_DATASET.next_batch(BATCH_SIZE,True,False)
+        start_idx = batch_idx * BATCH_SIZE
+        end_idx = (batch_idx+1) * BATCH_SIZE
+        batch_data, batch_label, batch_smpw = get_batch(TRAIN_DATASET, train_idxs, start_idx, end_idx, True, INPUT_DROPOUT)
+        
+        # Augment batched point clouds by z-axis rotation
+        aug_data = provider.rotate_point_cloud(batch_data)
 
         # Get predicted labels
-        feed_dict = {ops['pointclouds_pl']: batch_data,
+        feed_dict = {ops['pointclouds_pl']: aug_data,
                      ops['labels_pl']: batch_label,
-                     ops['smpws_pl']: batch_weights,
+                     ops['smpws_pl']:batch_smpw,
                      ops['is_training_pl']: is_training,}
         summary, step, _, loss_val, pred_val, _ = sess.run([ops['merged'], ops['step'],
                                                          ops['train_op'], ops['loss'], ops['pred'], ops['update_iou']], feed_dict=feed_dict)
@@ -247,7 +284,7 @@ def train_one_epoch(sess, ops, train_writer):
             log_string("Average IoU : %f" %(confusion_matrix.get_average_intersection_union()))
             iou_per_class = confusion_matrix.get_intersection_union_per_class()
             for i in range(1,NUM_CLASSES):
-                log_string("IoU of %s : %f" % (TRAIN_DATASET.labels_names[i],iou_per_class[i]))
+                log_string("IoU of %s : %f" % (data.LABELS_NAMES[i],iou_per_class[i]))
             loss_sum = 0   
             confusion_matrix = metric.ConfusionMatrix(NUM_CLASSES)
 
@@ -266,8 +303,8 @@ def eval_one_epoch(sess, ops, test_writer):
     global EPOCH_CNT
 
     is_training = False
-
-    num_batches = TEST_DATASET.get_num_batches(BATCH_SIZE)
+    test_idxs = np.arange(0, len(TEST_DATASET))
+    num_batches = len(TEST_DATASET)/BATCH_SIZE
 
     # Reset metrics
     loss_sum = 0
@@ -276,12 +313,16 @@ def eval_one_epoch(sess, ops, test_writer):
     log_string(str(datetime.now()))
     log_string('---- EPOCH %03d EVALUATION ----'%(EPOCH_CNT))
 
-    for _ in range(num_batches):
-        batch_data, batch_label, batch_weights = TEST_DATASET.next_batch(BATCH_SIZE,False,False)
+    for batch_idx in range(num_batches):
+        start_idx = batch_idx * BATCH_SIZE
+        end_idx = (batch_idx+1) * BATCH_SIZE
+        batch_data, batch_label, batch_smpw = get_batch(TEST_DATASET, test_idxs, start_idx, end_idx)
+
+        aug_data = provider.rotate_point_cloud(batch_data)
         
-        feed_dict = {ops['pointclouds_pl']: batch_data,
+        feed_dict = {ops['pointclouds_pl']: aug_data,
                      ops['labels_pl']: batch_label,
-                     ops['smpws_pl']: batch_weights,
+                     ops['smpws_pl']: batch_smpw,
                      ops['is_training_pl']: is_training}
         summary, step, loss_val, pred_val = sess.run([ops['merged'], ops['step'],
                                                       ops['loss'], ops['pred']], feed_dict=feed_dict)
@@ -302,7 +343,7 @@ def eval_one_epoch(sess, ops, test_writer):
     log_string("Overall accuracy : %f" %(confusion_matrix.get_overall_accuracy()))
     log_string("Average IoU : %f" %(confusion_matrix.get_average_intersection_union()))
     for i in range(1,NUM_CLASSES):
-        log_string("IoU of %s : %f" % (TEST_DATASET.labels_names[i],iou_per_class[i]))
+        log_string("IoU of %s : %f" % (data.LABELS_NAMES[i],iou_per_class[i]))
     
     EPOCH_CNT += 5
     return confusion_matrix.get_overall_accuracy()

@@ -51,8 +51,9 @@ if STATS:
     compute an estimator of the probability of being selected when a scene is
     considered for input points, and we export of map of probability 
     (one per scene).
-    Moreover we export a map where point clouds that were chosen as seeds are
-    visible (one per scene).
+    Moreover we export with each point cloud a cloud containing the seeds. You
+    may visualise with CloudCompare by loading it separately from the cloud and
+    setting a big point size for the seeds.
     """
     OUTPUT_DIR = "visu/color_appearance_density"
     if not os.path.exists("visu"): os.mkdir("visu")
@@ -135,6 +136,7 @@ if STATS:
 if NBATCH > 0:
     OUTPUT_DIR3 = "visu/grouped_by_batches"
     if not os.path.exists(OUTPUT_DIR3): os.mkdir(OUTPUT_DIR3)
+    print("batch visualisation :")
 
 if DROPOUT:
     print("dropout is on, with ratio %f" %(DROPOUT_RATIO))

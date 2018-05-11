@@ -134,7 +134,7 @@ class Dataset():
 
         return batch_data, batch_label, batch_weights
 
-    def next_input(self,dropout=False,sample=True, verbose=False, stats=False):
+    def next_input(self,dropout=False,sample=True, verbose=False, visu=False):
         input_ok = False
         count_try = 0
 
@@ -161,9 +161,9 @@ class Dataset():
                 if verbose:
                     print ("Initially, %i points in the box" %(np.sum(scene_extract_mask)))
                 input_ok = True
-                if stats:
+                if visu:
                     #return scene_extract_mask, np.unique(scene_labels[scene_extract_mask], return_counts = True)[1]
-                    return scene_extract_mask, np.histogram(scene_labels[scene_extract_mask], range(10))[0]
+                    return scene_extract_mask, np.histogram(scene_labels[scene_extract_mask], range(10))[0], seed
 
             data = scene[scene_extract_mask]
             labels = scene_labels[scene_extract_mask]

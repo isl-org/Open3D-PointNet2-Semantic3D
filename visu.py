@@ -8,7 +8,7 @@ import utils.pc_util as pc_util
 # Parser
 parser = argparse.ArgumentParser()
 parser.add_argument('--set', default="train", help='train or test [default: train]')
-parser.add_argument('--n', type=int, default=1, help='Number of batches you want [default : 1]')
+parser.add_argument('--n', type=int, default=5, help='Number of batches you want [default : 1]')
 parser.add_argument('--batch_size', type=int, default=8, help='Batch Size [default: 32]')
 parser.add_argument('--num_point', type=int, default=4096, help='Point Number [default: 8192]')
 parser.add_argument('--dataset', default='semantic', help='Dataset [default: semantic_color]')
@@ -45,14 +45,20 @@ NUM_CLASSES = DATA.num_classes
 if STATS:
     """
     Here we want to get info about class representation in decimated data 
-    and in the data we feed to the network
+    and in the data we feed to the network.
     We also want to know whether the data is well fed by the sampling algorithm
-    because we don't want to focus too much on always the same points
+    because we don't want to focus too much on always the same points. Thus we
+    compute an estimator of the probability of being selected when a scene is
+    considered for input points, and we export of map of probability 
+    (one per scene).
+    Moreover we export a map where point clouds that were chosen as seeds are
+    visible (one per scene).
     """
     OUTPUT_DIR = "visu/color_appearance_density"
     if not os.path.exists("visu"): os.mkdir("visu")
     if not os.path.exists(OUTPUT_DIR): os.mkdir(OUTPUT_DIR)
-    
+    OUTPUT_DIR2 = "visu/seeds"
+    if not os.path.exists(OUTPUT_DIR2): os.mkdir(OUTPUT_DIR2)
     import matplotlib.pyplot as plt
     
     # the histogram of the decimated point cloud labels
@@ -73,17 +79,20 @@ if STATS:
     print("Generating {} inputs".format(STAT_INPUT_NB*len(filenames)))
     pc_shapes=list()
     hist_list = list()
+    seeds_list=list()
     label_hist = np.zeros(9)
     scene_counters = np.zeros(len(filenames))
     for f in range(len(filenames)):
         pc_shapes.append(DATA.get_scene_shape(f))
         hist_list.append(np.zeros(pc_shapes[f][0]))
+        seeds_list.append(list())
     for i in range(STAT_INPUT_NB*len(filenames)):
-        input_mask, input_label_hist = DATA.next_input(DROPOUT, True, False, True) 
+        input_mask, input_label_hist, seed_idx = DATA.next_input(DROPOUT, True, False, True) 
         for f in range(len(filenames)):
             if input_mask.shape[0]==pc_shapes[f][0]:
                 hist_list[f]+=input_mask
                 scene_counters[f]+=1
+                seeds_list[f].append(seed_idx)
         label_hist+=input_label_hist
     
     # the histogram of the input point cloud labels
@@ -111,7 +120,7 @@ if STATS:
             plt.draw()
         plt.show()
     
-    # exporting the density of appearance
+    # exporting the probability of being selected and the point seeds.
     print("exporting {} point clouds with densities".format(len(filenames)))
     for f, filename in enumerate(filenames):
         density = hist_list[f]/np.sum(hist_list[f])
@@ -121,10 +130,11 @@ if STATS:
         # this time with a mask removing points that weren't seen at all
         mask = density > 0
         np.savetxt(OUTPUT_DIR+"/{}_{}_{}.txt".format(SET, os.path.basename(filename), "appearance_density_cleaned"), np.hstack((point_cloud, density.reshape((-1,1))))[mask], delimiter=" ")
-    
+        # now the seeds
+        np.savetxt(OUTPUT_DIR2+"/{}_{}_{}.txt".format(SET, os.path.basename(filename), "seeds"), np.array(seeds_list[f]), delimiter=" ")
 if NBATCH > 0:
-    OUTPUT_DIR = "visu/grouped_by_batches"
-    if not os.path.exists(OUTPUT_DIR): os.mkdir(OUTPUT_DIR)
+    OUTPUT_DIR3 = "visu/grouped_by_batches"
+    if not os.path.exists(OUTPUT_DIR3): os.mkdir(OUTPUT_DIR3)
 
 if DROPOUT:
     print("dropout is on, with ratio %f" %(DROPOUT_RATIO))
@@ -137,9 +147,7 @@ if GROUP_BY_BATCHES and NBATCH > 0:
     where batches align themselves on the same x coordinates
     """
     data, _, _ = DATA.next_batch(BATCH_SIZE, AUGMENT, DROPOUT)
-    print(data.shape)
     data = data[0,:,0:3].reshape((-1,3))
-    print(data.shape)
     # get spatial dimension of input
     xmin, ymin, _ = np.min(data, axis=0)
     xmax, ymax, _ = np.max(data, axis=0)
@@ -151,8 +159,7 @@ if GROUP_BY_BATCHES and NBATCH > 0:
     
 for i in range(NBATCH):
     data, label_data, _ = DATA.next_batch(BATCH_SIZE, AUGMENT, DROPOUT)
-    if (NBATCH > 1):
-        print ("Processing batch number " + str(i))
+    print ("Processing batch number " + str(i))
         
     if GROUP_BY_BATCHES:
         positioned_data = list()
@@ -170,9 +177,10 @@ for i in range(NBATCH):
         for j, scene in enumerate(data):
             labels = label_data[j]
             #np.savetxt(OUTPUT_DIR+"/{}_{}_{}.obj".format(SET, "trueColors", j), scene, delimiter=" ")
-            pc_util.write_ply_true_color(scene[:,0:3], scene[:,3:6], OUTPUT_DIR+"/{}_{}_{}.txt".format(SET, "trueColors", j))
-            pc_util.write_ply_color(scene[:,0:3], labels, OUTPUT_DIR+"/{}_{}_{}.txt".format(SET, "labelColors", j), NUM_CLASSES)
+            pc_util.write_ply_true_color(scene[:,0:3], scene[:,3:6], OUTPUT_DIR3+"/{}_{}_{}.txt".format(SET, "trueColors", j))
+            pc_util.write_ply_color(scene[:,0:3], labels, OUTPUT_DIR3+"/{}_{}_{}.txt".format(SET, "labelColors", j), NUM_CLASSES)
             
 if GROUP_BY_BATCHES and NBATCH > 0:
-    pc_util.write_ply_true_color(visu_cloud[:,0:3], visu_cloud[:,3:6], OUTPUT_DIR+"/{}_{}.txt".format(SET, "trueColors"))
-    pc_util.write_ply_color(visu_cloud[:,0:3], visu_labels, OUTPUT_DIR+"/{}_{}.txt".format(SET, "labelColors"), NUM_CLASSES)
+    pc_util.write_ply_true_color(visu_cloud[:,0:3], visu_cloud[:,3:6], OUTPUT_DIR3+"/{}_{}.txt".format(SET, "trueColors"))
+    pc_util.write_ply_color(visu_cloud[:,0:3], visu_labels, OUTPUT_DIR3+"/{}_{}.txt".format(SET, "labelColors"), NUM_CLASSES)
+print("done")

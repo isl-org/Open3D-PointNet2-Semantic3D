@@ -276,7 +276,7 @@ def eval_one_epoch(sess, ops, test_writer):
     log_string(str(datetime.now()))
     log_string('---- EPOCH %03d EVALUATION ----'%(EPOCH_CNT))
 
-    for batch_idx in range(num_batches):
+    for _ in range(num_batches):
         batch_data, batch_label, batch_weights = TEST_DATASET.next_batch(BATCH_SIZE,False,False)
         
         feed_dict = {ops['pointclouds_pl']: batch_data,

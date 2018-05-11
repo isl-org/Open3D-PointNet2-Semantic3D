@@ -1,0 +1,18 @@
+{
+    "gpu": 0,
+    "logdir": "logs/experience3",
+    "dataset": "semantic",
+    "model": "model",
+    "data_path": "dataset/semantic_data_1m/",
+    "max_epoch": 200,
+
+    "num_point": 8192,
+    "batch_size": 32,
+    "input_dropout": 0.5,
+    "use_color": 1,
+
+    "l1_radius": 0.4,
+    "l2_radius": 0.8,
+    "l3_radius": 1.6,
+    "l4_radius": 3.2
+}

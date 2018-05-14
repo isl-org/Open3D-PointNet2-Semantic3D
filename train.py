@@ -52,10 +52,10 @@ BN_DECAY_CLIP = PARAMS['bn_decay_clip']
 # Import dataset
 data = importlib.import_module('dataset.' + DATASET_NAME)
 TRAIN_DATASET = data.Dataset(npoints=NUM_POINT, split='train', box_size=PARAMS['box_size'], use_color=PARAMS['use_color'],
-                             proba_terrain=PARAMS['proba_terrain'], dropout_max=INPUT_DROPOUT, path=PARAMS['data_path']
+                             dropout_max=INPUT_DROPOUT, path=PARAMS['data_path']
                              , accept_rate=PARAMS['accept_rate'])
 TEST_DATASET = data.Dataset(npoints=NUM_POINT, split='test', box_size=PARAMS['box_size'], use_color=PARAMS['use_color'],
-                             proba_terrain=PARAMS['proba_terrain'], dropout_max=INPUT_DROPOUT, path=PARAMS['data_path']
+                             dropout_max=INPUT_DROPOUT, path=PARAMS['data_path']
                              , accept_rate=PARAMS['accept_rate'])
 NUM_CLASSES = TRAIN_DATASET.num_classes
 

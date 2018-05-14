@@ -1,5 +1,7 @@
 """
-Predict the label
+DOESN'T WORK : NEED TO BE ADAPTED TO NEW MODELS AND DATASET
+
+Predict the labels
 """
 import argparse
 import numpy as np
@@ -7,7 +9,7 @@ import tensorflow as tf
 import importlib
 import os
 import sys
-import models.pointnet2_sem_seg as MODEL
+import models.model as MODEL
 import utils.pc_util as pc_util
 
 # Parser

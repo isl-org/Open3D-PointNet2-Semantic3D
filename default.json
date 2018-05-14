@@ -5,7 +5,6 @@
     "model": "model",
     "max_epoch": 201,
 
-    "proba_terrain": 0.0,
     "use_color": 1,
     "data_path": "dataset/semantic_data/",
     "box_size": 10,

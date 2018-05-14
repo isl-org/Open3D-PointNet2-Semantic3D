@@ -8,51 +8,46 @@ import pickle
 This file is a quick and dirty adaptation of scannet.py from pointnet2, 
 without scannet_whole_scene, meant to be compatible with visu.py of this
 pointnet2_semantic project and eventually train.py of same project
+
+use_color, box_size, dropout_max, accept_rate : not used !
 """
-# Dataset global parameters
-
-NUM_CLASSES = 21
-
-DATA_PATH = "dataset/scannet_data/"
-
-FILENAME_TRAIN = 'scannet_train.pickle'
-FILENAME_TEST = 'scannet_test.pickle'
-
-LABELS_NAMES = ['unannotated', 'wall', 'floor', 'chair', 'table', 'desk', 'bed', 
-'bookshelf', 'sofa', 'sink', 'bathtub', 'toilet', 'curtain', 'counter', 
-'door', 'window', 'shower curtain', 'refrigerator', 'picture', 'cabinet', 'otherfurniture']
 
 class Dataset():
     #def __init__(self, npoints=8192, split='train'):
-    def __init__(self, npoints, split, use_color, box_size, proba_terrain, path, dropout_max, accept_rate):
+    def __init__(self, npoints, split, use_color, box_size, path, dropout_max, accept_rate):
         if use_color:
-            print("WARNING : no color available on scannet dataset. Points will have only one color")
-        self.use_color = use_color
+            print("WARNING : no color available on scannet dataset. Setting use_color to false")
+            self.use_color = False
         self.npoints = npoints
         self.split = split
         self.num_classes = 21
+        self.labels_names = ['unannotated', 'wall', 'floor', 'chair', 'table', 'desk', 'bed', 
+                             'bookshelf', 'sofa', 'sink', 'bathtub', 'toilet', 'curtain', 'counter', 
+                             'door', 'window', 'shower curtain', 'refrigerator', 'picture', 'cabinet', 'otherfurniture']
+        self.filenames_test = 'scannet_test.pickle'
+        self.filenames_train = 'scannet_train.pickle'
+        self.path = path
 
         # Load data
-        print("loading scannet data")
         if split=='train':
-            self.data_filename = os.path.join(DATA_PATH, FILENAME_TRAIN)
+            self.data_filename = os.path.join(self.path, self.filenames_train)
         elif split=='test':
-            self.data_filename = os.path.join(DATA_PATH, FILENAME_TEST)
+            self.data_filename = os.path.join(self.path, self.filenames_test)
         with open(self.data_filename,'rb') as fp:
             self.scene_points_list = pickle.load(fp)
             self.semantic_labels_list = pickle.load(fp)
-        print("done")
+
         # Initialize weights
         if split=='train':
-            labelweights = np.zeros(21)
+            labelweights = np.zeros(self.num_classes)
             for seg in self.semantic_labels_list:
-                tmp,_ = np.histogram(seg,range(22))
+                tmp,_ = np.histogram(seg,range(self.num_classes+1))
                 labelweights += tmp
             labelweights = labelweights.astype(np.float32)
             labelweights = labelweights/np.sum(labelweights)
             self.labelweights = 1/np.log(1.2+labelweights)
         elif split=='test':
-            self.labelweights = np.ones(21)
+            self.labelweights = np.ones(self.num_classes)
     
     def __getitem__(self, index, visu=False):
         point_set = self.scene_points_list[index]
@@ -64,7 +59,7 @@ class Dataset():
         smpsz = np.minimum(coordmax-smpmin,[1.5,1.5,3.0])
         smpsz[2] = coordmax[2]-coordmin[2]
         isvalid = False
-        for i in range(10):
+        for _ in range(10):
             seed_idx = np.random.choice(len(semantic_seg),1)[0]
             curcenter = point_set[seed_idx,:]
             curmin = curcenter-[0.75,0.75,1.5]
@@ -105,11 +100,8 @@ class Dataset():
         batch_data = list()
         batch_label = list()
         batch_weights = list()
-        for i in range(batch_size):
-            print("one batch")
+        for _ in range(batch_size):
             pt_set, sem_seg, smpw = self.next_input(dropout, True, False, False)
-            if self.use_color:
-                pt_set = np.hstack((pt_set, np.zeros((len(pt_set), 3))))
             batch_data.append(pt_set)
             batch_label.append(sem_seg)
             batch_weights.append(smpw)
@@ -118,12 +110,15 @@ class Dataset():
             
     def __len__(self):
         return len(self.scene_points_list)
+
+    def get_num_batches(self, batch_size):
+        return len(self)/batch_size
         
     def get_hist(self):
-        labelweights = np.zeros(21)
+        labelweights = np.zeros(self.num_classes)
             # First, compute the histogram of each labels
         for seg in self.semantic_labels_list:
-            tmp,_ = np.histogram(seg,range(22))
+            tmp,_ = np.histogram(seg,range(self.num_classes+1))
             labelweights += tmp
         return labelweights
     

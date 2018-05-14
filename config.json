@@ -1,7 +1,0 @@
-{
-    "gpu": 0,
-    "logdir": "logs/log",
-    "model": "model_color",
-    "batch_size": 5,
-    "use_color": 1
-}

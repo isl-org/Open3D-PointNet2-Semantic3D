@@ -1,6 +1,6 @@
 {
     "gpu": 0,
-    "logdir": "logs/experience1",
+    "logdir": "logs/semantic",
     "dataset": "semantic",
     "model": "model",
     "max_epoch": 1000,
@@ -9,9 +9,10 @@
     "batch_size": 32,
     "input_dropout": 0.0,
     "use_color": 0,
+    "accept_rate": 0.1,
 
-    "l1_radius": 0.4,
-    "l2_radius": 0.8,
-    "l3_radius": 1.6,
-    "l4_radius": 3.2
+    "l1_radius": 0.5,
+    "l2_radius": 1.0,
+    "l3_radius": 2.0,
+    "l4_radius": 4.0
 }

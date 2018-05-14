@@ -164,8 +164,7 @@ class Dataset():
                     print ("Initially, %i points in the box" %(np.sum(scene_extract_mask)))
                 input_ok = True
                 if visu:
-                    #return scene_extract_mask, np.unique(scene_labels[scene_extract_mask], return_counts = True)[1]
-                    return scene_extract_mask, np.histogram(scene_labels[scene_extract_mask], range(10))[0], seed
+                    return scene_index, scene_extract_mask, np.histogram(scene_labels[scene_extract_mask], range(10))[0], seed
 
             data = scene[scene_extract_mask]
             labels = scene_labels[scene_extract_mask]

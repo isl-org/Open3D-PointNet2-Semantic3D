@@ -186,7 +186,10 @@ def train():
             sys.stdout.flush()
 
             # Train one epoch
-            train_one_epoch(sess, ops, train_writer)
+            if epoch % 5 == 0:
+                train_one_epoch(sess, ops, train_writer, True)
+            else:
+                train_one_epoch(sess, ops, train_writer, False)
 
             # Evaluate, save, and compute the accuracy
             if epoch % 5 == 0:
@@ -201,13 +204,14 @@ def train():
                 save_path = saver.save(sess, os.path.join(LOG_DIR, "model.ckpt"))
                 log_string("Model saved in file: %s" % save_path)
 
-def train_one_epoch(sess, ops, train_writer):
+def train_one_epoch(sess, ops, train_writer, compute_class_iou=False):
     """Train one epoch
     
     Args:
         sess (tf.Session): the session to evaluate Tensors and ops
         ops (dict of tf.Operation): contain multiple operation mapped with with strings
         train_writer (tf.FileSaver): enable to log the training with TensorBoard
+        compute_class_iou (bool): it takes time to compute the iou per class, so you can disable it here
     """
 
     is_training = True
@@ -218,7 +222,8 @@ def train_one_epoch(sess, ops, train_writer):
 
     # Reset metrics
     loss_sum = 0
-    confusion_matrix = metric.ConfusionMatrix(NUM_CLASSES)
+    if compute_class_iou:
+        confusion_matrix = metric.ConfusionMatrix(NUM_CLASSES)
 
     # Train over num_batches batches
     for batch_idx in range(num_batches):
@@ -236,22 +241,25 @@ def train_one_epoch(sess, ops, train_writer):
         pred_val = np.argmax(pred_val, 2)
         
         # Update metrics
-        for i in range(len(pred_val)):
-            for j in range(len(pred_val[i])):
-                confusion_matrix.count_predicted(batch_label[i][j], pred_val[i][j])
+        if compute_class_iou:
+            for i in range(len(pred_val)):
+                for j in range(len(pred_val[i])):
+                    confusion_matrix.count_predicted(batch_label[i][j], pred_val[i][j])
         loss_sum += loss_val
 
         # Every few batches, print metrics and reset them
-        if (batch_idx+1)%10 == 0:
+        if (batch_idx+1)%30 == 0:
             log_string(' -- %03d / %03d --' % (batch_idx+1, num_batches))
             log_string('mean loss: %f' % (loss_sum / 10))
             log_string("Overall accuracy : %f" %(confusion_matrix.get_overall_accuracy()))
             log_string("Average IoU : %f" %(confusion_matrix.get_average_intersection_union()))
-            iou_per_class = confusion_matrix.get_intersection_union_per_class()
-            for i in range(1,NUM_CLASSES):
-                log_string("IoU of %s : %f" % (TRAIN_DATASET.labels_names[i],iou_per_class[i]))
+            if compute_class_iou:
+                iou_per_class = confusion_matrix.get_intersection_union_per_class()
+                for i in range(1,NUM_CLASSES):
+                    log_string("IoU of %s : %f" % (TRAIN_DATASET.labels_names[i],iou_per_class[i]))
             loss_sum = 0   
-            confusion_matrix = metric.ConfusionMatrix(NUM_CLASSES)
+            if compute_class_iou:
+                confusion_matrix = metric.ConfusionMatrix(NUM_CLASSES)
 
 def eval_one_epoch(sess, ops, test_writer):
     """Evaluate one epoch

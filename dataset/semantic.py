@@ -139,7 +139,7 @@ class Dataset():
         input_ok = False
         count_try = 0
 
-        # While there is no input satisfying
+        # Try to find a non-empty cloud to process
         while not input_ok:     
             count_try += 1
             # Randomly choose a scene
@@ -151,16 +151,16 @@ class Dataset():
                 scene_colors = self.scene_colors_list[scene_index]
             seed_index = np.random.randint(0,len(scene))
             seed = scene[seed_index] # [x,y,z]
-            # Crop a box around that seed
-            scene_extract_mask = self.extract_box(seed,scene)
-            # Verify there is enough points inside
-            if np.sum(scene_extract_mask) < self.accept_rate*self.npoints:
+            # Crop a z-box around that seed
+            scene_extract_mask = self.extract_z_box(seed,scene)
+            # Verify the cloud is not empty
+            if np.sum(scene_extract_mask) > 0:
                 if verbose:
-                    print ("Warning : not enough point in the box (%i points), try=%i." %(np.sum(scene_extract_mask),count_try))
+                    print ("Warning : empty box")
                 continue
             else:
                 if verbose:
-                    print ("Initially, %i points in the box" %(np.sum(scene_extract_mask)))
+                    print ("There are %i points in the box" %(np.sum(scene_extract_mask)))
                 input_ok = True
                 if visu:
                     return scene_index, scene_extract_mask, np.histogram(scene_labels[scene_extract_mask], range(10))[0], seed
@@ -208,6 +208,17 @@ class Dataset():
         mask = np.sum((scene>=box_min)*(scene<=box_max),axis=1) == 3
         return mask
 
+    def extract_z_box(self,seed,scene):
+        # 2D crop, takes all the z axis
+        scene_max = np.max(scene,axis=0)
+        scene_min = np.min(scene,axis=0)
+        scene_z_size = scene_max[2]-scene_min[2]
+        box_min = seed - [self.box_size/2, self.box_size/2, scene_z_size]
+        box_max = seed + [self.box_size/2, self.box_size/2, scene_z_size]
+
+        mask = np.sum((scene>=box_min)*(scene<=box_max),axis=1) == 3
+        return mask
+
     def input_dropout(self,input):
         dropout_ratio = np.random.random()*self.dropout_max
         drop_index = np.where(np.random.random((input.shape[0]))<=dropout_ratio)[0]
@@ -220,7 +231,7 @@ class Dataset():
         return total
 
     def get_num_batches(self, batch_size):
-        return int(self.get_total_num_points()/(batch_size*self.npoints))*2
+        return int(self.get_total_num_points()/(batch_size*self.npoints))*4
 
     def __len__(self):
         return len(self.scene_points_list)

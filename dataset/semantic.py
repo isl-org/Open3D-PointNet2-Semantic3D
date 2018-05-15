@@ -149,8 +149,15 @@ class Dataset():
             scene_labels = self.semantic_labels_list[scene_index]
             if self.use_color:
                 scene_colors = self.scene_colors_list[scene_index]
-            seed_index = np.random.randint(0,len(scene))
-            seed = scene[seed_index] # [x,y,z]
+
+            # Random (on points)
+            #seed_index = np.random.randint(0,len(scene))
+            #seed = scene[seed_index] # [x,y,z]
+
+            # Random (space)
+            scene_max = np.max(scene,axis=0)
+            scene_min = np.min(scene,axis=0)
+            seed = np.random.uniform(scene_min,scene_max,3)
             # Crop a z-box around that seed
             scene_extract_mask = self.extract_z_box(seed,scene)
             # Verify the cloud is not empty

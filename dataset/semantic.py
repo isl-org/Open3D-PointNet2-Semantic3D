@@ -137,6 +137,7 @@ class Dataset():
     def next_input(self,dropout=False,sample=True, verbose=False, visu=False):
         input_ok = False
         count_try = 0
+        verbose = False
 
         # Try to find a non-empty cloud to process
         while not input_ok:     
@@ -153,7 +154,7 @@ class Dataset():
             # Crop a z-box around that seed
             scene_extract_mask = self.extract_z_box(seed,scene)
             # Verify the cloud is not empty
-            if np.sum(scene_extract_mask) > 0:
+            if np.sum(scene_extract_mask) == 0:
                 if verbose:
                     print ("Warning : empty box")
                 continue

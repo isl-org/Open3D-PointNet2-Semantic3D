@@ -3,6 +3,7 @@ dataset/semantic_data
 dataset/scannet_data
 dataset/semantic_color_data
 dataset/semantic_preprocess
+dataset/semantic_data_nocolor
 logs
 visu
 *.o

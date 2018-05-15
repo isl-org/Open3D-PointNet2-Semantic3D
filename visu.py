@@ -32,7 +32,7 @@ DROPOUT_RATIO = 0.875
 AUGMENT = False
 STATS = True
 DRAW_PLOTS = True
-STAT_INPUT_NB = 1000 # per scene of the dataset
+STAT_INPUT_NB = 10 # per scene of the dataset
 MAX_EXPORT = 20 # the maximum number of scenes to be exported
 GROUP_BY_BATCHES = True
 
@@ -175,10 +175,13 @@ if GROUP_BY_BATCHES and NBATCH > 0:
     # get spatial dimension of input
     xmin, ymin, _ = np.min(data, axis=0)
     xmax, ymax, _ = np.max(data, axis=0)
-    xsize = xmax - xmin + 5
-    ysize = ymax - ymin + 5
+    xsize = xmax - xmin + 8
+    ysize = ymax - ymin + 8
     # initialize cloud and labels
-    visu_cloud = np.array([0,0,0,0,0,0])
+    if PARAMS['use_color']:
+        visu_cloud = np.array([0,0,0,0,0,0])
+    else:
+        visu_cloud = np.array([0,0,0])
     visu_labels = np.array([0])
     
 for i in range(NBATCH):
@@ -191,7 +194,10 @@ for i in range(NBATCH):
             x = j*xsize
             y = i * ysize
             z = 0
-            positioned_data.append(scene + np.array([x,y,z,0,0,0]) - np.min(scene, axis=0)*np.array([1,1,1,0,0,0]))
+            if PARAMS['use_color']:
+                positioned_data.append(scene + np.array([x,y,z,0,0,0]) - np.min(scene, axis=0)*np.array([1,1,1,0,0,0]))      
+            else:
+                positioned_data.append(scene + np.array([x,y,z]) - np.min(scene, axis=0))  
         batch_points = np.vstack(positioned_data)
         visu_cloud = np.vstack((visu_cloud, batch_points))
         batch_labels = np.hstack(label_data)
@@ -200,11 +206,16 @@ for i in range(NBATCH):
     else:
         for j, scene in enumerate(data):
             labels = label_data[j]
-            #np.savetxt(OUTPUT_DIR+"/{}_{}_{}.obj".format(SET, "trueColors", j), scene, delimiter=" ")
-            pc_util.write_ply_true_color(scene[:,0:3], scene[:,3:6], OUTPUT_DIR_BATCHES+"/{}_{}_{}.txt".format(SET, "trueColors", j))
+            if PARAMS['use_color']:
+                pc_util.write_ply_true_color(scene[:,0:3], scene[:,3:6], OUTPUT_DIR_BATCHES+"/{}_{}_{}.txt".format(SET, "trueColors", j))
+            else:
+                pc_util.write_ply_true_color(scene[:,0:3], np.zeros(scene[:,0:3].shape), OUTPUT_DIR_BATCHES+"/{}_{}_{}.txt".format(SET, "trueColors", j))
             pc_util.write_ply_color(scene[:,0:3], labels, OUTPUT_DIR_BATCHES+"/{}_{}_{}.txt".format(SET, "labelColors", j), NUM_CLASSES)
             
 if GROUP_BY_BATCHES and NBATCH > 0:
-    pc_util.write_ply_true_color(visu_cloud[:,0:3], visu_cloud[:,3:6], OUTPUT_DIR_BATCHES+"/{}_{}.txt".format(SET, "trueColors"))
+    if PARAMS['use_color']:
+        pc_util.write_ply_true_color(visu_cloud[:,0:3], visu_cloud[:,3:6], OUTPUT_DIR_BATCHES+"/{}_{}.txt".format(SET, "trueColors"))
+    else:
+        pc_util.write_ply_true_color(visu_cloud[:,0:3], np.zeros(visu_cloud[:,0:3].shape), OUTPUT_DIR_BATCHES+"/{}_{}.txt".format(SET, "trueColors"))
     pc_util.write_ply_color(visu_cloud[:,0:3], visu_labels, OUTPUT_DIR_BATCHES+"/{}_{}.txt".format(SET, "labelColors"), NUM_CLASSES)
 print("done")

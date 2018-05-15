@@ -72,7 +72,7 @@ class Dataset():
             self.labelweights = np.ones(9)
 
     def load_data(self):
-        print("Loading scannet data...")
+        print("Loading semantic data...")
         if self.split=='train':
             filenames = self.filenames_train
         elif self.split=='test':

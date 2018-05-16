@@ -88,7 +88,7 @@ def update_progress(progress):
         progress = 1
         status = "Done...\r\n"
     block = int(round(barLength*progress))
-    text = "\rPercent: [{0}] {1}% {2}".format( "#"*block + "-"*(barLength-block), progress*100, status)
+    text = "\rProgress: [{0}] {1}% {2:.3f}".format( "#"*block + "-"*(barLength-block), progress*100, status)
     sys.stdout.write(text)
     sys.stdout.flush()
 
@@ -235,12 +235,12 @@ def train_one_epoch(sess, ops, train_writer):
     """
 
     is_training = True
-    update_progress(0)
+    
 
     num_batches = TRAIN_DATASET.get_num_batches(BATCH_SIZE)
 
     log_string(str(datetime.now()))
-
+    update_progress(0)
     # Reset metrics
     loss_sum = 0
     confusion_matrix = metric.ConfusionMatrix(NUM_CLASSES)

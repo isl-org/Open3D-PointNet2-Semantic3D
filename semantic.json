@@ -3,12 +3,12 @@
     "logdir": "logs/semantic",
     "dataset": "semantic",
     "model": "model",
-    "max_epoch": 1000,
+    "max_epoch": 200,
 
     "num_point": 8192,
     "batch_size": 32,
     "input_dropout": 0.0,
-    "use_color": 0,
+    "use_color": 1,
     "accept_rate": 0.1,
 
     "l1_radius": 0.5,

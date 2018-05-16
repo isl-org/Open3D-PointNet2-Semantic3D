@@ -226,7 +226,7 @@ def train_one_epoch(sess, ops, train_writer, compute_class_iou=False):
         confusion_matrix = metric.ConfusionMatrix(NUM_CLASSES)
 
     # Train over num_batches batches
-    for batch_idx in range(num_batches):
+    for _ in range(num_batches):
 
         batch_data, batch_label, batch_weights = TRAIN_DATASET.next_batch(BATCH_SIZE,True,True)
 
@@ -246,20 +246,14 @@ def train_one_epoch(sess, ops, train_writer, compute_class_iou=False):
                 for j in range(len(pred_val[i])):
                     confusion_matrix.count_predicted(batch_label[i][j], pred_val[i][j])
         loss_sum += loss_val
-
-        # Every few batches, print metrics and reset them
-        if (batch_idx+1)%30 == 0:
-            log_string(' -- %03d / %03d --' % (batch_idx+1, num_batches))
-            log_string('mean loss: %f' % (loss_sum / 10))
-            log_string("Overall accuracy : %f" %(confusion_matrix.get_overall_accuracy()))
-            log_string("Average IoU : %f" %(confusion_matrix.get_average_intersection_union()))
-            if compute_class_iou:
-                iou_per_class = confusion_matrix.get_intersection_union_per_class()
-                for i in range(1,NUM_CLASSES):
-                    log_string("IoU of %s : %f" % (TRAIN_DATASET.labels_names[i],iou_per_class[i]))
-            loss_sum = 0   
-            if compute_class_iou:
-                confusion_matrix = metric.ConfusionMatrix(NUM_CLASSES)
+        
+    log_string('mean loss: %f' % (loss_sum / float(num_batches)))
+    log_string("Overall accuracy : %f" %(confusion_matrix.get_overall_accuracy()))
+    log_string("Average IoU : %f" %(confusion_matrix.get_average_intersection_union()))
+    if compute_class_iou:
+        iou_per_class = confusion_matrix.get_intersection_union_per_class()
+        for i in range(1,NUM_CLASSES):
+            log_string("IoU of %s : %f" % (TRAIN_DATASET.labels_names[i],iou_per_class[i]))
 
 def eval_one_epoch(sess, ops, test_writer):
     """Evaluate one epoch

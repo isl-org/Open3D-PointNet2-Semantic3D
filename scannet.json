@@ -4,7 +4,7 @@
     "dataset": "scannet",
     "data_path": "dataset/scannet_data/",
     "model": "model",
-    "max_epoch": 1000,
+    "max_epoch": 200,
 
     "num_point": 8192,
     "batch_size": 32,

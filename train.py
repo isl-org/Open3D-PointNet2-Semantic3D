@@ -69,6 +69,29 @@ def log_string(out_str):
     LOG_FOUT.flush()
     print(out_str)
 
+# update_progress() : Displays or updates a console progress bar
+## Accepts a float between 0 and 1. Any int will be converted to a float.
+## A value under 0 represents a 'halt'.
+## A value at 1 or bigger represents 100%
+def update_progress(progress):
+    barLength = 10 # Modify this to change the length of the progress bar
+    status = ""
+    if isinstance(progress, int):
+        progress = float(progress)
+    if not isinstance(progress, float):
+        progress = 0
+        status = "error: progress var must be float\r\n"
+    if progress < 0:
+        progress = 0
+        status = "Halt...\r\n"
+    if progress >= 1:
+        progress = 1
+        status = "Done...\r\n"
+    block = int(round(barLength*progress))
+    text = "\rPercent: [{0}] {1}% {2}".format( "#"*block + "-"*(barLength-block), progress*100, status)
+    sys.stdout.write(text)
+    sys.stdout.flush()
+
 def get_learning_rate(batch):
     """Compute the learning rate for a given batch size and global parameters
     
@@ -186,10 +209,7 @@ def train():
             sys.stdout.flush()
 
             # Train one epoch
-            if epoch % 5 == 0:
-                train_one_epoch(sess, ops, train_writer, True)
-            else:
-                train_one_epoch(sess, ops, train_writer, False)
+            train_one_epoch(sess, ops, train_writer)
 
             # Evaluate, save, and compute the accuracy
             if epoch % 5 == 0:
@@ -204,7 +224,7 @@ def train():
                 save_path = saver.save(sess, os.path.join(LOG_DIR, "model.ckpt"))
                 log_string("Model saved in file: %s" % save_path)
 
-def train_one_epoch(sess, ops, train_writer, compute_class_iou=False):
+def train_one_epoch(sess, ops, train_writer):
     """Train one epoch
     
     Args:
@@ -215,6 +235,7 @@ def train_one_epoch(sess, ops, train_writer, compute_class_iou=False):
     """
 
     is_training = True
+    update_progress(0)
 
     num_batches = TRAIN_DATASET.get_num_batches(BATCH_SIZE)
 
@@ -222,12 +243,11 @@ def train_one_epoch(sess, ops, train_writer, compute_class_iou=False):
 
     # Reset metrics
     loss_sum = 0
-    if compute_class_iou:
-        confusion_matrix = metric.ConfusionMatrix(NUM_CLASSES)
+    confusion_matrix = metric.ConfusionMatrix(NUM_CLASSES)
 
     # Train over num_batches batches
-    for _ in range(num_batches):
-
+    for batch_idx in range(num_batches):
+        update_progress(float(batch_idx)/float(num_batches))
         batch_data, batch_label, batch_weights = TRAIN_DATASET.next_batch(BATCH_SIZE,True,True)
 
         # Get predicted labels
@@ -241,19 +261,17 @@ def train_one_epoch(sess, ops, train_writer, compute_class_iou=False):
         pred_val = np.argmax(pred_val, 2)
         
         # Update metrics
-        if compute_class_iou:
-            for i in range(len(pred_val)):
-                for j in range(len(pred_val[i])):
-                    confusion_matrix.count_predicted(batch_label[i][j], pred_val[i][j])
+        for i in range(len(pred_val)):
+            for j in range(len(pred_val[i])):
+                confusion_matrix.count_predicted(batch_label[i][j], pred_val[i][j])
         loss_sum += loss_val
-        
+    update_progress(1)    
     log_string('mean loss: %f' % (loss_sum / float(num_batches)))
     log_string("Overall accuracy : %f" %(confusion_matrix.get_overall_accuracy()))
     log_string("Average IoU : %f" %(confusion_matrix.get_average_intersection_union()))
-    if compute_class_iou:
-        iou_per_class = confusion_matrix.get_intersection_union_per_class()
-        for i in range(1,NUM_CLASSES):
-            log_string("IoU of %s : %f" % (TRAIN_DATASET.labels_names[i],iou_per_class[i]))
+    iou_per_class = confusion_matrix.get_intersection_union_per_class()
+    for i in range(1,NUM_CLASSES):
+        log_string("IoU of %s : %f" % (TRAIN_DATASET.labels_names[i],iou_per_class[i]))
 
 def eval_one_epoch(sess, ops, test_writer):
     """Evaluate one epoch
@@ -271,6 +289,8 @@ def eval_one_epoch(sess, ops, test_writer):
 
     is_training = False
 
+    update_progress(0)
+
     num_batches = TEST_DATASET.get_num_batches(BATCH_SIZE)
 
     # Reset metrics
@@ -280,7 +300,8 @@ def eval_one_epoch(sess, ops, test_writer):
     log_string(str(datetime.now()))
     log_string('---- EPOCH %03d EVALUATION ----'%(EPOCH_CNT))
 
-    for _ in range(num_batches):
+    for batch_idx in range(num_batches):
+        update_progress(float(batch_idx)/float(num_batches))
         batch_data, batch_label, batch_weights = TEST_DATASET.next_batch(BATCH_SIZE,False,False)
         
         feed_dict = {ops['pointclouds_pl']: batch_data,
@@ -299,6 +320,8 @@ def eval_one_epoch(sess, ops, test_writer):
                 confusion_matrix.count_predicted(batch_label[i][j], pred_val[i][j])
         loss_sum += loss_val
     
+    update_progress(1)
+
     iou_per_class = confusion_matrix.get_intersection_union_per_class()
 
     # Display metrics

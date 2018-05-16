@@ -247,7 +247,8 @@ def train_one_epoch(sess, ops, train_writer):
 
     # Train over num_batches batches
     for batch_idx in range(num_batches):
-        update_progress(float(batch_idx)/float(num_batches))
+        progress = float(batch_idx)/float(num_batches)
+        update_progress(round(progress,2))
         batch_data, batch_label, batch_weights = TRAIN_DATASET.next_batch(BATCH_SIZE,True,True)
 
         # Get predicted labels
@@ -289,8 +290,6 @@ def eval_one_epoch(sess, ops, test_writer):
 
     is_training = False
 
-    update_progress(0)
-
     num_batches = TEST_DATASET.get_num_batches(BATCH_SIZE)
 
     # Reset metrics
@@ -298,10 +297,14 @@ def eval_one_epoch(sess, ops, test_writer):
     confusion_matrix = metric.ConfusionMatrix(NUM_CLASSES)
 
     log_string(str(datetime.now()))
+
+    update_progress(0)
+
     log_string('---- EPOCH %03d EVALUATION ----'%(EPOCH_CNT))
 
     for batch_idx in range(num_batches):
-        update_progress(float(batch_idx)/float(num_batches))
+        progress = float(batch_idx)/float(num_batches)
+        update_progress(round(progress,2))
         batch_data, batch_label, batch_weights = TEST_DATASET.next_batch(BATCH_SIZE,False,False)
         
         feed_dict = {ops['pointclouds_pl']: batch_data,

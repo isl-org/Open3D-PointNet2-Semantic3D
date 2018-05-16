@@ -97,6 +97,11 @@ class Dataset():
             if self.use_color:
                 self.scene_colors_list.append(data_colors[data_colors.files[0]])
 
+        # Normalize RGB into 0-1
+        for i in range(len(self.scene_colors_list)):
+            self.scene_colors_list[i] = self.scene_colors_list[i].astype('float32')/255
+                    
+
     def __getitem__(self, index):
         """
         input : index of a scene

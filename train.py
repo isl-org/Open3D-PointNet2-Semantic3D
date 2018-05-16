@@ -298,9 +298,9 @@ def eval_one_epoch(sess, ops, test_writer):
 
     log_string(str(datetime.now()))
 
-    update_progress(0)
-
     log_string('---- EPOCH %03d EVALUATION ----'%(EPOCH_CNT))
+
+    update_progress(0)
 
     for batch_idx in range(num_batches):
         progress = float(batch_idx)/float(num_batches)

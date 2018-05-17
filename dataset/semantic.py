@@ -100,6 +100,10 @@ class Dataset():
         # Normalize RGB into 0-1
         for i in range(len(self.scene_colors_list)):
             self.scene_colors_list[i] = self.scene_colors_list[i].astype('float32')/255
+        
+        # Set min to (0,0,0)
+        for i in range(len(self.scene_points_list)):
+            self.scene_points_list[i] = self.scene_points_list[i]-np.min(self.scene_points_list[i], axis=0)
                     
 
     def __getitem__(self, index):
@@ -198,6 +202,10 @@ class Dataset():
                     sample_mask = np.concatenate((sample_mask, sample_mask), axis=0)
                 sample_mask = sample_mask[np.arange(self.npoints)]
             data = data[sample_mask]
+
+            # Center the box in 2D
+            data = self.center_box(data)
+
             labels = labels[sample_mask]
             if self.use_color:
                 colors = colors[sample_mask]
@@ -211,6 +219,12 @@ class Dataset():
                 weights[drop_index] *= 0
 
         return data, labels, colors, weights
+
+    def center_box(self,data):
+        # Shift the box so that z= 0 is the min and x=0 and y=0 is the center of the box horizontally
+        box_min = np.min(data, axis=0)
+        shift = np.array([box_min[0]+self.box_size/2, box_min[1]+self.box_size/2, box_min[2]]) 
+        return data-shift
 
     def extract_box(self,seed,scene):
         # 10 meters seems intuitivly to be a good value to understand the scene, we must test that
@@ -268,4 +282,8 @@ class Dataset():
         
     def get_scene(self, scene_index):
         return self.scene_points_list[scene_index]
+
+
+if __name__ == '__main__':
+    data = Dataset(8192,"train",True,10,"semantic_data", 0, 0)
 

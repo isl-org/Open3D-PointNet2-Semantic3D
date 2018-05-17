@@ -14,7 +14,8 @@ import utils.pc_util as pc_util
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--gpu', type=int, default=0, help='GPU to use [default: GPU 0]')
-parser.add_argument('--n', type=int, default=8, help='Number of scenes you want [default : 1]')
+parser.add_argument('--cloud', type=bool, default=False, help='whether you want full point clouds to be exported')
+parser.add_argument('--n', type=int, default=8, help='Number of scenes you want [default : 8]')
 parser.add_argument('--ckpt', default='', help='Checkpoint file')
 parser.add_argument('--num_point', type=int, default=8192, help='Point Number [default: 8192]')
 parser.add_argument('--set', default="train", help='train or test [default: train]')
@@ -29,17 +30,19 @@ JSON_DATA = open('default.json').read()
 PARAMS = json.loads(JSON_DATA)
 PARAMS.update(CUSTOM)
 
+EXPORT_FULL_POINT_CLOUDS = FLAGS.cloud
 CHECKPOINT = FLAGS.ckpt
 GPU_INDEX = FLAGS.gpu
 NUM_POINT = FLAGS.num_point
 SET = FLAGS.set
 BATCH_SIZE = FLAGS.batch_size
 DATASET_NAME = FLAGS.dataset
-NSCENES = FLAGS.n
+N = FLAGS.n
 
 DROPOUT = False
 DROPOUT_RATIO = 0.875
 AUGMENT = False
+MAX_EXPORT = 20 # the maximum number of scenes to be exported
 
 if DROPOUT:
     print("dropout is on, with ratio %f" %(DROPOUT_RATIO))
@@ -54,6 +57,8 @@ NUM_CLASSES = DATASET.num_classes
 
 LABELS_TEXT = DATASET.labels_names
 
+
+
 # Outputs
 
 OUTPUT_DIR = os.path.join("visu", DATASET_NAME+"_"+SET)
@@ -63,8 +68,6 @@ if not os.path.exists(OUTPUT_DIR): os.mkdir(OUTPUT_DIR)
 OUTPUT_DIR_GROUNDTRUTH = os.path.join(OUTPUT_DIR, "scenes_groundtruth_test")
 OUTPUT_DIR_PREDICTION = os.path.join(OUTPUT_DIR, "scenes_predictions_test")
 
-if not os.path.exists(OUTPUT_DIR_GROUNDTRUTH): os.mkdir(OUTPUT_DIR_GROUNDTRUTH)
-if not os.path.exists(OUTPUT_DIR_PREDICTION): os.mkdir(OUTPUT_DIR_PREDICTION)
 
 
 def predict():
@@ -100,12 +103,41 @@ def predict():
            'labels_pl': labels_pl,
            'is_training_pl': is_training_pl,
            'pred': pred}
+    
+    if EXPORT_FULL_POINT_CLOUDS:
+        OUTPUT_DIR_FULL_PC = os.path.join(OUTPUT_DIR, "full_scenes")
+        if not os.path.exists(OUTPUT_DIR_FULL_PC): os.mkdir(OUTPUT_DIR_FULL_PC)
+        nscenes = len(DATASET)
+        p = 6 if PARAMS['use_color'] else 3
+        scene_points     = [np.array([]).reshape((0,p)) for i in range(nscenes)]
+        ground_truth     = [np.array([]) for i in range(nscenes)]
+        predicted_labels = [np.array([]) for i in range(nscenes)]
+        for i in range(N*nscenes):
+            if i%100==0 and i>0:
+                print("{} inputs generated".format(i))
+            f, data, true_labels, _, _ = DATASET.next_input(DROPOUT, True, False, return_scene_idx=True)
+            pred_labels = predict_one_input(sess, ops, data)
+            scene_points[f] = np.vstack((scene_points[f], data))
+            ground_truth[f] = np.hstack((ground_truth[f], true_labels))
+            predicted_labels[f]  = np.hstack((predicted_labels[f], pred_labels))
+        filenames = DATASET.get_data_filenames()
+        filenamesForExport = filenames[0:min(len(filenames), MAX_EXPORT)]
+        print("{} point clouds to export".format(len(filenamesForExport)))
+        for f, filename in enumerate(filenamesForExport):
+            print("exporting file {} which has {} points".format(os.path.basename(filename), len(ground_truth[f])))
+            pc_util.write_ply_color(scene_points[f][:,0:3], ground_truth[f], OUTPUT_DIR_FULL_PC+"/groundtruth_{}.txt".format(os.path.basename(filename)), NUM_CLASSES)
+            pc_util.write_ply_color(scene_points[f][:,0:3], predicted_labels[f], OUTPUT_DIR_FULL_PC+"/predictions_{}.txt".format(os.path.basename(filename)), NUM_CLASSES)
+        print("done.")
+        return
+    
+    if not os.path.exists(OUTPUT_DIR_GROUNDTRUTH): os.mkdir(OUTPUT_DIR_GROUNDTRUTH)
+    if not os.path.exists(OUTPUT_DIR_PREDICTION): os.mkdir(OUTPUT_DIR_PREDICTION)
 
     # To add the histograms
     meta_hist_true = np.zeros(9)
     meta_hist_pred = np.zeros(9)
 
-    for idx in range(NSCENES):
+    for idx in range(N):
         data, true_labels, _, _ = DATASET.next_input(DROPOUT, True, False)
         # Ground truth
         print ("Exporting scene number " + str(idx))
@@ -138,7 +170,6 @@ def predict():
     print(LABELS_TEXT)
     print(meta_hist_true)
     print(meta_hist_pred)
-
 
 def predict_one_input(sess, ops, data):
     is_training = False

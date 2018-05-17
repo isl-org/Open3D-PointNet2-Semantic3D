@@ -135,7 +135,7 @@ class Dataset():
 
         return batch_data, batch_label, batch_weights
 
-    def next_input(self,dropout=False,sample=True, verbose=False, visu=False):
+    def next_input(self,dropout=False,sample=True, verbose=False, visu=False, return_scene_idx=False):
         input_ok = False
         count_try = 0
 
@@ -197,7 +197,10 @@ class Dataset():
                 drop_index = self.input_dropout(data)
                 weights[drop_index] *= 0
 
-        return data, labels, colors, weights
+        if return_scene_idx:
+            return scene_index, data, labels, colors, weights
+        else:
+            return data, labels, colors, weights
 
     def extract_box(self,seed,scene):
         # 10 meters seems intuitivly to be a good value to understand the scene, we must test that

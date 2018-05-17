@@ -38,6 +38,10 @@ DATASET_NAME = PARAMS['dataset']
 INPUT_DROPOUT = PARAMS['input_dropout']
 BOX_SIZE = PARAMS['box_size']
 
+# Fix GPU use
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
+os.environ["CUDA_VISIBLE_DEVICES"] = str(GPU_INDEX)
+
 # Import model
 MODEL = importlib.import_module('models.'+PARAMS['model'])
 LOG_DIR = PARAMS['logdir']

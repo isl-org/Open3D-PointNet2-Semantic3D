@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as np
 
 class ConfusionMatrix:
@@ -82,3 +83,38 @@ class ConfusionMatrix:
             continue
          self.confusion_matrix[label_gt - 1][label_cl - 1] += 1
          return 0
+
+  def print_cm(self, labels, hide_zeroes=False, hide_diagonal=False, hide_threshold=None):
+    """pretty print for confusion matrixes"""
+    cm = self.get_confusion_matrix()
+    columnwidth = max([len(x) for x in labels] + [5])  # 5 is value length
+    empty_cell = " " * columnwidth
+    # Print header
+    print("    " + empty_cell, end=" ")
+    for label in labels:
+      print("%{0}s".format(columnwidth) % label, end=" ")
+    print()
+    # Print rows
+    for i, label1 in enumerate(labels):
+      print("    %{0}s".format(columnwidth) % label1, end=" ")
+      for j in range(len(labels)):
+        cell = "%{0}.0f".format(columnwidth) % cm[i, j]
+        if hide_zeroes:
+          cell = cell if float(cm[i, j]) != 0 else empty_cell
+        if hide_diagonal:
+          cell = cell if i != j else empty_cell
+        if hide_threshold:
+          cell = cell if cm[i, j] > hide_threshold else empty_cell
+        print(cell, end=" ")
+      print()
+
+
+
+if __name__ == '__main__':
+  CM = ConfusionMatrix(3)
+  CM.count_predicted(0,0,3)
+  CM.count_predicted(1,1,4)
+  CM.count_predicted(2,2,2)
+  CM.count_predicted(0,1,1)
+  CM.count_predicted(2,0,1)
+  CM.print_cm(["test1","test2","test2"])

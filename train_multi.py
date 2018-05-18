@@ -40,8 +40,8 @@ BOX_SIZE = PARAMS['box_size']
 
 # Fix GPU use
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
-#os.environ["CUDA_VISIBLE_DEVICES"] = str(GPU_INDEX)
-NUM_GPUS = 1
+os.environ["CUDA_VISIBLE_DEVICES"] = str(GPU_INDEX)
+NUM_GPUS = len(GPU_INDEX.split(","))
 assert(BATCH_SIZE % NUM_GPUS == 0)
 DEVICE_BATCH_SIZE = BATCH_SIZE / NUM_GPUS
 

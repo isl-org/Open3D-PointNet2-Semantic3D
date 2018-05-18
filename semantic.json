@@ -1,5 +1,5 @@
 {
-    "gpu": 0,
+    "gpu": "0",
     "logdir": "logs/semantic",
     "dataset": "semantic",
     "model": "model",

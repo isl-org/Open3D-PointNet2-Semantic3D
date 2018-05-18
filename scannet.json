@@ -1,5 +1,5 @@
 {
-    "gpu": 0,
+    "gpu": "0",
     "logdir": "logs/scannet",
     "dataset": "scannet",
     "data_path": "dataset/scannet_data/",

@@ -72,6 +72,7 @@ class Dataset():
             self.labelweights = np.ones(9)
 
     def load_data(self):
+        print("Loading semantic data...")
         if self.split=='train':
             filenames = self.filenames_train
         elif self.split=='test':
@@ -143,7 +144,7 @@ class Dataset():
 
         return batch_data, batch_label, batch_weights
 
-    def next_input(self,dropout=False,sample=True, verbose=False, visu=False):
+    def next_input(self,dropout=False,sample=True, verbose=False, visu=False, return_scene_idx=False):
         input_ok = False
         count_try = 0
         verbose = False
@@ -218,7 +219,10 @@ class Dataset():
                 drop_index = self.input_dropout(data)
                 weights[drop_index] *= 0
 
-        return data, labels, colors, weights
+        if return_scene_idx:
+            return scene_index, data, labels, colors, weights
+        else:
+            return data, labels, colors, weights
 
     def center_box(self,data):
         # Shift the box so that z= 0 is the min and x=0 and y=0 is the center of the box horizontally

@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+#-*- coding: utf-8 -*-
 """
 Unified semantic with color support and many options
 """
@@ -26,10 +28,10 @@ class Dataset():
         self.split = split
         self.use_color = use_color
         self.box_size = box_size
-        self.dropout_max = dropout_max
+        self.dropout_max = dropout_max # USELESS CURRENTLY
         self.num_classes = 9
         self.path = path
-        self.accept_rate = accept_rate
+        self.accept_rate = accept_rate # USELESS CURRENTLY
         self.labels_names = ['unlabeled', 'man-made terrain', 'natural terrain', 'high vegetation', 'low vegetation', 'buildings', 'hard scape', 'scanning artefacts', 'cars']
         self.filenames_test = [
             "sg27_station4_intensity_rgb",
@@ -53,6 +55,9 @@ class Dataset():
 
         # Load the data
         self.load_data()
+
+        # Precompute the random scene probabilities
+        self.compute_random_scene_index_proba()
         
         # Prepare the points weights if it is a training set
         if split=='train' or split=='train_short':
@@ -152,8 +157,9 @@ class Dataset():
         # Try to find a non-empty cloud to process
         while not input_ok:     
             count_try += 1
-            # Randomly choose a scene
-            scene_index = np.random.randint(0,len(self.scene_points_list))
+            # Randomly choose a scene, taking account that some scenes contains more points than others
+            scene_index = self.get_random_scene_index()
+            
             # Randomly choose a seed
             scene = self.scene_points_list[scene_index] # [[x,y,z],...[x,y,z]]
             scene_labels = self.semantic_labels_list[scene_index]
@@ -224,6 +230,23 @@ class Dataset():
         else:
             return data, labels, colors, weights
 
+    def get_random_scene_index(self):
+        #return np.random.randint(0,len(self.scene_points_list)) # Does not take into account the scene number of points
+        return np.random.choice(np.arange(0, len(self.scene_points_list)), p=self.scenes_proba)
+                
+
+    def compute_random_scene_index_proba(self):
+        # Precompute the probability of picking a point
+        # in a given scene. This is useful to compute the scene index later,
+        # in order to pick more seeds in bigger scenes
+        self.scenes_proba = []
+        total = self.get_total_num_points()
+        proba = 0
+        for scene_index in range(len(self)):
+            proba = float(len(self.scene_points_list[scene_index]))/float(total)
+            self.scenes_proba.append(proba)
+
+    
     def center_box(self,data):
         # Shift the box so that z= 0 is the min and x=0 and y=0 is the center of the box horizontally
         box_min = np.min(data, axis=0)

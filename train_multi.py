@@ -186,7 +186,9 @@ def train():
 
             # Note the global_step=batch parameter to minimize. 
             # That tells the optimizer to helpfully increment the 'batch' parameter for you every time it trains.
-            batch = tf.Variable(0)
+            #batch = tf.Variable(0)
+            batch = tf.get_variable('batch', [],
+                initializer=tf.constant_initializer(0), trainable=False)
             bn_decay = get_bn_decay(batch)
             tf.summary.scalar('bn_decay', bn_decay)
 
@@ -218,12 +220,12 @@ def train():
                         pc_batch = tf.slice(pointclouds_pl,
                             [i*DEVICE_BATCH_SIZE,0,0], [DEVICE_BATCH_SIZE,-1,-1])
                         label_batch = tf.slice(labels_pl,
-                            [i*DEVICE_BATCH_SIZE], [DEVICE_BATCH_SIZE])
+                            [i*DEVICE_BATCH_SIZE,0], [DEVICE_BATCH_SIZE,-1])
+                        smpws_batch = tf.slice(smpws_pl,
+                            [i*DEVICE_BATCH_SIZE,0], [DEVICE_BATCH_SIZE,-1])
+                        pred, end_points = MODEL.get_model(pc_batch, is_training_pl, NUM_CLASSES, hyperparams=PARAMS, bn_decay=bn_decay)
 
-                        pred, end_points = MODEL.get_model(pc_batch,
-                            is_training=is_training_pl, bn_decay=bn_decay)
-
-                        MODEL.get_loss(pred, label_batch, end_points)
+                        MODEL.get_loss(pred, label_batch, smpws_batch, end_points)
                         losses = tf.get_collection('losses', scope)
                         total_loss = tf.add_n(losses, name='total_loss')
                         for l in losses + [total_loss]:
@@ -235,6 +237,7 @@ def train():
                         pred_gpu.append(pred)
                         total_loss_gpu.append(total_loss)
             
+            #print(tower_grads)
             # Merge pred and losses from multiple GPUs
             pred = tf.concat(pred_gpu, 0)
             total_loss = tf.reduce_mean(total_loss_gpu)
@@ -244,7 +247,7 @@ def train():
             train_op = optimizer.apply_gradients(grads, global_step=batch)
 
             # Compute accuracy
-            correct = tf.equal(tf.argmax(pred, 1), tf.to_int64(labels_pl))
+            correct = tf.equal(tf.argmax(pred, 2), tf.to_int64(labels_pl))
             accuracy = tf.reduce_sum(tf.cast(correct, tf.float32)) / float(BATCH_SIZE)
             tf.summary.scalar('accuracy', accuracy)
 
@@ -276,7 +279,7 @@ def train():
                'smpws_pl': smpws_pl,
                'is_training_pl': is_training_pl,
                'pred': pred,
-               'loss': loss,
+               'loss': total_loss,
                'train_op': train_op,
                'merged': merged,
                'step': batch,

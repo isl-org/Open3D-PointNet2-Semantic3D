@@ -63,8 +63,3 @@ def get_loss(pred, label, smpw, end_points):
     tf.add_to_collection('losses', classify_loss)
     return classify_loss
 
-if __name__=='__main__':
-    with tf.Graph().as_default():
-        inputs = tf.zeros((32,2048,3))
-        net, _ = get_model(inputs, tf.constant(True), 10)
-        print(net)

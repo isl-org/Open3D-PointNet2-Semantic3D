@@ -357,7 +357,13 @@ if __name__ == '__main__':
         prepare_one_epoch(batch_size, augment, dropout, batch_stack)
         end = time.time()
         print("Stacking: " + str(end-start))
-    test()
+    # test()
+    def test_no_mp():
+        for i in range(10):
+            get_batch(batch_size, augment, dropout)
+    test_no_mp()
+    print("temps pour 10 batchs :")
+    print(time.time()-start)
     """start = time.time()
     for _ in range(len(batch_stack)):
         batch = batch_stack.pop()

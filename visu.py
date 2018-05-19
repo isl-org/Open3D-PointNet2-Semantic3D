@@ -30,7 +30,7 @@ DATASET_NAME = FLAGS.dataset
 DROPOUT = False
 DROPOUT_RATIO = 0.875
 AUGMENT = False
-STATS = True
+STATS = False
 DRAW_PLOTS = True
 STAT_INPUT_NB = 10 # per scene of the dataset
 MAX_EXPORT = 20 # the maximum number of scenes to be exported
@@ -175,8 +175,8 @@ if GROUP_BY_BATCHES and NBATCH > 0:
     # get spatial dimension of input
     xmin, ymin, _ = np.min(data, axis=0)
     xmax, ymax, _ = np.max(data, axis=0)
-    xsize = xmax - xmin + 8
-    ysize = ymax - ymin + 8
+    xsize = xmax - xmin + 15
+    ysize = ymax - ymin + 15
     # initialize cloud and labels
     if PARAMS['use_color']:
         visu_cloud = np.array([0,0,0,0,0,0])

@@ -23,6 +23,7 @@ class Dataset():
             dropout_max (float): Defaults to 0.875. Maximum dropout to apply on the inputs.
             accept_rate (float): Minimum rate (between 0.0 and 1.0) of points in the box to accept it. E.g : npoints = 100, then you need at least 50 points.
         """
+        self.z_feature = 0
         # Dataset parameters
         self.npoints = npoints
         self.split = split
@@ -56,8 +57,9 @@ class Dataset():
         # Load the data
         self.load_data()
 
-        # Precompute the random scene probabilities
+        # Precompute the random scene probabilities, and zmax
         self.compute_random_scene_index_proba()
+        self.set_pc_zmax_zmin()
         
         # Prepare the points weights if it is a training set
         if split=='train' or split=='train_short':
@@ -129,11 +131,20 @@ class Dataset():
         batch_data = []
         batch_label = []
         batch_weights = []
-
+        feature_size = 0
         for _ in range(batch_size):
-            data, label, colors, weights = self.next_input()
-            if self.use_color:
-                data = np.hstack((data, colors))
+            if not self.z_feature:
+                data, label, colors, weights = self.next_input(dropout)
+                if self.use_color:
+                    feature_size = 3
+                    data = np.hstack((data, colors))
+            else:
+                feature_size = 1
+                data, z_norm, label, colors, weights = self.next_input(dropout)
+                if self.use_color:
+                    feature_size = 4
+                    data = np.hstack((data, colors))
+                data = np.hstack((data, z_norm))
             batch_data.append(data)
             batch_label.append(label)
             batch_weights.append(weights)
@@ -143,9 +154,9 @@ class Dataset():
         batch_weights = np.array(batch_weights)
 
         # Optional batch augmentation
-        if augment and self.use_color:
-            batch_data = provider.rotate_colored_point_cloud(batch_data)
-        if augment and not self.use_color:
+        if augment and feature_size:
+            batch_data = provider.rotate_feature_point_cloud(batch_data, feature_size)
+        if augment and not feature_size:
             batch_data = provider.rotate_point_cloud(batch_data)
 
         return batch_data, batch_label, batch_weights
@@ -226,10 +237,26 @@ class Dataset():
                 drop_index = self.input_dropout(data)
                 weights[drop_index] *= 0
 
+            if self.z_feature:
+                # Rotion is not a problem as it is done along z-axis
+                # z_feature is a new experimental feature
+                z_norm = (data[:,2]-self.pc_zmin[scene_index])/(self.pc_zmax[scene_index]-self.pc_zmin[scene_index])
+                z_norm = z_norm.reshape(self.npoints,1)
+
         if return_scene_idx:
             return scene_index, data, labels, colors, weights
         else:
+            if self.z_feature:
+                return data, z_norm, labels, colors, weights
+
             return data, labels, colors, weights
+
+    def set_pc_zmax_zmin(self):
+        self.pc_zmin = []
+        self.pc_zmax = []
+        for scene_index in range(len(self)):
+            self.pc_zmin.append(np.min(self.scene_points_list[scene_index],axis=0)[2])
+            self.pc_zmax.append(np.max(self.scene_points_list[scene_index],axis=0)[2])
 
     def get_random_scene_index(self):
         #return np.random.randint(0,len(self.scene_points_list)) # Does not take into account the scene number of points
@@ -320,7 +347,7 @@ if __name__ == '__main__':
     data = Dataset(8192,"train",True,10,"semantic_data", 0, 0)
 
     start = time.time()
-    batch_stack = []
+    """batch_stack = []
     batch_size = 32
     augment = True
     dropout = False
@@ -341,14 +368,5 @@ if __name__ == '__main__':
         end = time.time()
         print("Stacking: " + str(end-start))
     test()
-    """start = time.time()
-    for _ in range(len(batch_stack)):
-        batch = batch_stack.pop()
+    """
     end = time.time()
-    print("Unstacking: ",end-start)"""
-
-    
-    
-    
-        
-

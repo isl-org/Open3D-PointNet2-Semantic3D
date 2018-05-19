@@ -118,8 +118,12 @@ class Dataset():
             self.scene_colors_list[i] = self.scene_colors_list[i].astype('float32')/255
         
         # Set min to (0,0,0)
+        self.scene_max_list = list()
+        self.scene_min_list = list()
         for i in range(len(self.scene_points_list)):
             self.scene_points_list[i] = self.scene_points_list[i]-np.min(self.scene_points_list[i], axis=0)
+            self.scene_max_list.append(np.max(self.scene_points_list[i],axis=0))
+            self.scene_min_list.append(np.min(self.scene_points_list[i],axis=0))
                     
 
     def __getitem__(self, index):
@@ -187,7 +191,7 @@ class Dataset():
             #seed = np.random.uniform(scene_min,scene_max,3)
 
             # Crop a z-box around that seed
-            scene_extract_mask = self.extract_z_box(seed,scene)
+            scene_extract_mask = self.extract_z_box(seed, scene, scene_index)
             # Verify the cloud is not empty
             if np.sum(scene_extract_mask) == 0:
                 if verbose:
@@ -277,12 +281,12 @@ class Dataset():
         print(mask.shape)
         return mask
 
-    def extract_z_box(self,seed,scene):
+    def extract_z_box(self,seed,scene, scene_idx):
         ## TAKES LOT OF TIME !! THINK OF AN ALTERNATIVE !
         # 2D crop, takes all the z axis
 
-        scene_max = np.max(scene,axis=0)
-        scene_min = np.min(scene,axis=0)
+        scene_max = self.scene_max_list[scene_idx]
+        scene_min = self.scene_min_list[scene_idx]
         scene_z_size = scene_max[2]-scene_min[2]
         box_min = seed - [self.box_size/2, self.box_size/2, scene_z_size]
         box_max = seed + [self.box_size/2, self.box_size/2, scene_z_size]
@@ -291,6 +295,8 @@ class Dataset():
         i_max = np.searchsorted(scene[:,0], box_max[0])
         mask = np.sum((scene[i_min:i_max,:] >= box_min)*(scene[i_min:i_max,:] <= box_max),axis=1) == 3
         mask = np.hstack((np.zeros(i_min, dtype=bool), mask, np.zeros(len(scene)-i_max, dtype=bool)))
+
+        #mask = np.sum((scene>=box_min)*(scene<=box_max),axis=1) == 3
         return mask
 
     def input_dropout(self,input):

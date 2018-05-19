@@ -29,10 +29,10 @@ class Dataset():
         self.split = split
         self.use_color = use_color
         self.box_size = box_size
-        self.dropout_max = dropout_max # USELESS CURRENTLY
+        self.dropout_max = dropout_max # USELESS CURRENTLY
         self.num_classes = 9
         self.path = path
-        self.accept_rate = accept_rate # USELESS CURRENTLY
+        self.accept_rate = accept_rate # USELESS CURRENTLY
         self.labels_names = ['unlabeled', 'man-made terrain', 'natural terrain', 'high vegetation', 'low vegetation', 'buildings', 'hard scape', 'scanning artefacts', 'cars']
         self.filenames_test = [
             "sg27_station4_intensity_rgb",
@@ -100,10 +100,20 @@ class Dataset():
             data_labels = np.load(filename + "_labels.npz")
             if self.use_color:
                 data_colors = np.load(filename + "_colors.npz")
-            self.scene_points_list.append(data_points[data_points.files[0]])
-            self.semantic_labels_list.append(data_labels[data_labels.files[0]])
+            # sort according to x to speed up computation of boxes and z-boxes
+            data_points = data_points[data_points.files[0]]
+            data_labels = data_labels[data_labels.files[0]]
             if self.use_color:
-                self.scene_colors_list.append(data_colors[data_colors.files[0]])
+                data_colors = data_colors[data_colors.files[0]]
+            sort_idx = np.argsort(data_points[:,0])
+            data_points = data_points[sort_idx]
+            data_labels = data_labels[sort_idx]
+            if self.use_color:
+                data_colors = data_colors[sort_idx]
+            self.scene_points_list.append(data_points)
+            self.semantic_labels_list.append(data_labels)
+            if self.use_color:
+                self.scene_colors_list.append(data_colors)
 
         # Normalize RGB into 0-1
         for i in range(len(self.scene_colors_list)):
@@ -282,12 +292,16 @@ class Dataset():
         return data-shift
 
     def extract_box(self,seed,scene):
-        # 10 meters seems intuitivly to be a good value to understand the scene, we must test that
+        # 10 meters seems intuitively to be a good value to understand the scene, we must test that
 
         box_min = seed - [self.box_size/2, self.box_size/2, self.box_size/2]
         box_max = seed + [self.box_size/2, self.box_size/2, self.box_size/2]
-
-        mask = np.sum((scene>=box_min)*(scene<=box_max),axis=1) == 3
+        
+        i_min = np.searchsorted(scene[:,0], box_min[0])
+        i_max = np.searchsorted(scene[:,0], box_max[0])
+        mask = np.sum((scene[i_min[0]:i_max,:] >= box_min)*(scene[i_min[0]:i_max,:] <= box_max),axis=1) == 3
+        mask = np.hstack((np.zeros(i_min, dtype=bool), mask, np.zeros(len(scene)-i_max, dtype=bool)))
+        print(mask.shape)
         return mask
 
     def extract_z_box(self,seed,scene):
@@ -300,7 +314,10 @@ class Dataset():
         box_min = seed - [self.box_size/2, self.box_size/2, scene_z_size]
         box_max = seed + [self.box_size/2, self.box_size/2, scene_z_size]
 
-        mask = np.sum((scene>=box_min)*(scene<=box_max),axis=1) == 3
+        i_min = np.searchsorted(scene[:,0], box_min[0])
+        i_max = np.searchsorted(scene[:,0], box_max[0])
+        mask = np.sum((scene[i_min:i_max,:] >= box_min)*(scene[i_min:i_max,:] <= box_max),axis=1) == 3
+        mask = np.hstack((np.zeros(i_min, dtype=bool), mask, np.zeros(len(scene)-i_max, dtype=bool)))
         return mask
 
     def input_dropout(self,input):

@@ -332,7 +332,7 @@ class Dataset():
         return total
 
     def get_num_batches(self, batch_size):
-        return int(self.get_total_num_points()/(batch_size*self.npoints))*2
+        return int(self.get_total_num_points()/(batch_size*self.npoints))
 
     def __len__(self):
         return len(self.scene_points_list)
@@ -364,7 +364,7 @@ if __name__ == '__main__':
     data = Dataset(8192,"train",True,10,"semantic_data", 0, 0)
 
     start = time.time()
-    """batch_stack = []
+    batch_stack = []
     batch_size = 32
     augment = True
     dropout = False
@@ -372,18 +372,23 @@ if __name__ == '__main__':
             np.random.seed()
             return data.next_batch(batch_size,augment,dropout)
 
-    def prepare_one_epoch(batch_size, augment, dropout, batch_stack):
+    def fill_queue(batch_size, augment, dropout, stack):
         # Warning : about 5-6 go memory usage with 120x32  
         pool = mp.Pool(processes=mp.cpu_count())
         results = [pool.apply_async(get_batch, args=(batch_size, augment, dropout)) for _ in range(0,8)]  
         for p in results:
-            batch_stack.append(p.get())
+            stack.put(p.get())
     
     def test():
         # Stacking
-        prepare_one_epoch(batch_size, augment, dropout, batch_stack)
-        end = time.time()
-        print("Stacking: " + str(end-start))
+        stack_train = mp.Queue(data.get_num_batches(32))
+        stacker = mp.Process(target=fill_queue, args=(batch_size, augment, dropout, stack_train))
+        stacker.start()
+        for _ in range(300):
+            time.sleep(0.25)
+            print(stack.qsize())
+        
+        
     test()
-    """
+    
     end = time.time()

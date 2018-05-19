@@ -62,6 +62,8 @@ TRAIN_DATASET = data.Dataset(npoints=NUM_POINT, split='train', box_size=PARAMS['
 TEST_DATASET = data.Dataset(npoints=NUM_POINT, split='test', box_size=PARAMS['box_size'], use_color=PARAMS['use_color'],
                              dropout_max=INPUT_DROPOUT, path=PARAMS['data_path']
                              , accept_rate=PARAMS['accept_rate'])
+TRAIN_DATASET.z_feature = PARAMS['use_z_feature']
+TEST_DATASET.z_feature = PARAMS['use_z_feature']
 NUM_CLASSES = TRAIN_DATASET.num_classes
 
 # Start logging

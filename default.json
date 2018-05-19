@@ -6,6 +6,7 @@
     "max_epoch": 201,
 
     "use_color": 1,
+    "use_z_feature": 0,
     "data_path": "dataset/semantic_data/",
     "box_size": 10,
 

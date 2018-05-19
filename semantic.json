@@ -9,6 +9,7 @@
     "batch_size": 32,
     "input_dropout": 0.0,
     "use_color": 1,
+    "use_z_feature": 1,
     "accept_rate": 0.1,
 
     "l1_radius": 0.5,

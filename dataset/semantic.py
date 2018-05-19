@@ -134,6 +134,7 @@ class Dataset():
             return point_set, labels, colors
         return point_set, labels
 
+
     def next_batch(self,batch_size,augment=True,dropout=True):
         batch_data = []
         batch_label = []
@@ -277,7 +278,9 @@ class Dataset():
         return mask
 
     def extract_z_box(self,seed,scene):
+        ## TAKES LOT OF TIME !! THINK OF AN ALTERNATIVE !
         # 2D crop, takes all the z axis
+
         scene_max = np.max(scene,axis=0)
         scene_min = np.min(scene,axis=0)
         scene_z_size = scene_max[2]-scene_min[2]
@@ -329,5 +332,40 @@ class Dataset():
 
 
 if __name__ == '__main__':
+    import multiprocessing as mp
+    import time
     data = Dataset(8192,"train",True,10,"semantic_data", 0, 0)
+
+    start = time.time()
+    batch_stack = []
+    batch_size = 32
+    augment = True
+    dropout = False
+    def get_batch(batch_size,augment,dropout):
+            np.random.seed()
+            return data.next_batch(batch_size,augment,dropout)
+
+    def prepare_one_epoch(batch_size, augment, dropout, batch_stack):
+        # Warning : about 5-6 go memory usage with 120x32  
+        pool = mp.Pool(processes=mp.cpu_count())
+        results = [pool.apply_async(get_batch, args=(batch_size, augment, dropout)) for _ in range(0,8)]  
+        for p in results:
+            batch_stack.append(p.get())
+    
+    def test():
+        # Stacking
+        prepare_one_epoch(batch_size, augment, dropout, batch_stack)
+        end = time.time()
+        print("Stacking: " + str(end-start))
+    test()
+    """start = time.time()
+    for _ in range(len(batch_stack)):
+        batch = batch_stack.pop()
+    end = time.time()
+    print("Unstacking: ",end-start)"""
+
+    
+    
+    
+        
 

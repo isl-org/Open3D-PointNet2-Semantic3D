@@ -10,3 +10,4 @@ visu
 *.so
 .vscode
 TODO.md
+local_test.json

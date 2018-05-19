@@ -10,6 +10,7 @@ from datetime import datetime
 import numpy as np
 import tensorflow as tf
 import utils.metric as metric
+import multiprocessing as mp
 
 # Uncomment to shut down TF warnings
 # os.environ["TF_CPP_MIN_LOG_LEVEL"]="2"
@@ -228,6 +229,26 @@ def train():
                 save_path = saver.save(sess, os.path.join(LOG_DIR, "model.ckpt"))
                 log_string("Model saved in file: %s" % save_path)
 
+
+# Stacking. Don't try to put this as Dataset member, or inside a function, it has to be outside for Pickling.
+def get_train_batch():
+    np.random.seed()
+    return TRAIN_DATASET.next_batch(BATCH_SIZE,True,True)
+
+def get_test_batch():
+    np.random.seed()
+    return TEST_DATASET.next_batch(BATCH_SIZE,False,False)
+
+def prepare_many_batches(n_batches,batches_stack,split):
+    # Warning : careful with the memory/CPU use ! 
+    pool = mp.Pool(processes=mp.cpu_count())
+    if split=="train":
+        results = [pool.apply_async(get_train_batch) for _ in range(0,TRAIN_DATASET.get_num_batches(BATCH_SIZE))]
+    else:
+        results = [pool.apply_async(get_test_batch) for _ in range(0,TEST_DATASET.get_num_batches(BATCH_SIZE))]
+    for p in results:
+        batches_stack.append(p.get())
+
 def train_one_epoch(sess, ops, train_writer):
     """Train one epoch
     
@@ -239,9 +260,11 @@ def train_one_epoch(sess, ops, train_writer):
     """
 
     is_training = True
-    
 
     num_batches = TRAIN_DATASET.get_num_batches(BATCH_SIZE)
+    
+    # Contain several batches in advance
+    batches_stack = []
 
     log_string(str(datetime.now()))
     update_progress(0)
@@ -251,9 +274,12 @@ def train_one_epoch(sess, ops, train_writer):
 
     # Train over num_batches batches
     for batch_idx in range(num_batches):
+        # Refill more batches if empty
+        if(len(batches_stack)==0):
+            prepare_many_batches(40, batches_stack,"train")
         progress = float(batch_idx)/float(num_batches)
         update_progress(round(progress,2))
-        batch_data, batch_label, batch_weights = TRAIN_DATASET.next_batch(BATCH_SIZE,True,True)
+        batch_data, batch_label, batch_weights = batches_stack.pop()
 
         # Get predicted labels
         feed_dict = {ops['pointclouds_pl']: batch_data,
@@ -296,6 +322,9 @@ def eval_one_epoch(sess, ops, test_writer):
 
     num_batches = TEST_DATASET.get_num_batches(BATCH_SIZE)
 
+    # Contain several batches in advance
+    batches_stack = []
+
     # Reset metrics
     loss_sum = 0
     confusion_matrix = metric.ConfusionMatrix(NUM_CLASSES)
@@ -307,9 +336,12 @@ def eval_one_epoch(sess, ops, test_writer):
     update_progress(0)
 
     for batch_idx in range(num_batches):
+        # Refill more batches if empty
+        if(len(batches_stack)==0):
+            prepare_many_batches(40, batches_stack,"test")
         progress = float(batch_idx)/float(num_batches)
         update_progress(round(progress,2))
-        batch_data, batch_label, batch_weights = TEST_DATASET.next_batch(BATCH_SIZE,False,False)
+        batch_data, batch_label, batch_weights = batches_stack.pop()
         
         feed_dict = {ops['pointclouds_pl']: batch_data,
                      ops['labels_pl']: batch_label,

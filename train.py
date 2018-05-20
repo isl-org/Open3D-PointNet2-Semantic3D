@@ -172,7 +172,7 @@ def fill_test_queue(stack,maxsize):
     # Launch as much as n
     while True:
         if stack.qsize()+launched<maxsize:
-            results.append(pool.apply_async(get_train_batch))
+            results.append(pool.apply_async(get_test_batch))
             launched += 1
         for p in results:
             if p.ready():

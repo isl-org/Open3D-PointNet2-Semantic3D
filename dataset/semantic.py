@@ -370,10 +370,11 @@ if __name__ == '__main__':
     data = Dataset(8192,"train",True,10,"semantic_data", 0, 0)
 
     start = time.time()
-    """batch_stack = []
+    batch_stack = []
     batch_size = 32
     augment = True
     dropout = False
+    """
     def get_batch(batch_size,augment,dropout):
             np.random.seed()
             return data.next_batch(batch_size,augment,dropout)
@@ -392,4 +393,10 @@ if __name__ == '__main__':
         print("Stacking: " + str(end-start))
     test()
     """
+    def test_no_mp():
+        for i in range(10):
+            data.next_batch(batch_size, augment, dropout)
+    test_no_mp()
+    print("temps pour 10 batchs :")
+    print(time.time()-start)
     end = time.time()

@@ -11,6 +11,7 @@ import numpy as np
 import tensorflow as tf
 import utils.metric as metric
 import multiprocessing as mp
+import time
 
 # Uncomment to shut down TF warnings
 # os.environ["TF_CPP_MIN_LOG_LEVEL"]="2"
@@ -137,6 +138,51 @@ def get_bn_decay(batch):
     bn_decay = tf.minimum(BN_DECAY_CLIP, 1 - bn_momentum)
     return bn_decay
 
+# Stacking. Don't try to put this as Dataset member, or inside a function, it has to be outside for Pickling.
+def get_train_batch():
+    np.random.seed()
+    return TRAIN_DATASET.next_batch(BATCH_SIZE,True,True)
+
+def get_test_batch():
+    np.random.seed()
+    return TEST_DATASET.next_batch(BATCH_SIZE,False,False)
+
+def fill_train_queue(stack,maxsize):
+    pool = mp.Pool(processes=mp.cpu_count()-1)
+    launched = 0
+    results = []
+    # Launch as much as n
+    while True:
+        if stack.qsize()+launched<maxsize:
+            results.append(pool.apply_async(get_train_batch))
+            launched += 1
+        for p in results:
+            if p.ready():
+                stack.put(p.get())
+                results.remove(p)
+                launched -= 1
+        else:
+            # Stability
+            time.sleep(0.05)
+
+def fill_test_queue(stack,maxsize):
+    pool = mp.Pool(processes=1)
+    launched = 0
+    results = []
+    # Launch as much as n
+    while True:
+        if stack.qsize()+launched<maxsize:
+            results.append(pool.apply_async(get_train_batch))
+            launched += 1
+        for p in results:
+            if p.ready():
+                stack.put(p.get())
+                results.remove(p)
+                launched -= 1
+        else:
+            # Stability
+            time.sleep(0.05)
+
 def train():
     """Train the model on the training dataset GPU, and evaluate it on the test dataset
     """
@@ -210,48 +256,48 @@ def train():
 
         best_acc = -1
 
+        # Queues that contain several batches in advance
+        num_train_batches = TRAIN_DATASET.get_num_batches(BATCH_SIZE)
+        stack_train = mp.Queue(num_train_batches)
+        stacker_train = mp.Process(target=fill_train_queue, args=(stack_train,num_train_batches))
+        stacker_train.start()
+        
+        num_test_batches = TEST_DATASET.get_num_batches(BATCH_SIZE)
+        stack_test = mp.Queue(num_test_batches)
+        stacker_test = mp.Process(target=fill_test_queue, args=(stack_test,num_test_batches))
+        stacker_test.start()
+        
+
         # Train for MAX_EPOCH epochs
-        for epoch in range(MAX_EPOCH):
-            log_string('**** EPOCH %03d ****' % (epoch))
-            sys.stdout.flush()
+        try:
+            for epoch in range(MAX_EPOCH):
+                log_string('**** EPOCH %03d ****' % (epoch))
+                sys.stdout.flush()
 
-            # Train one epoch
-            train_one_epoch(sess, ops, train_writer)
+                # Train one epoch
+                train_one_epoch(sess, ops, train_writer, stack_train)
 
-            # Evaluate, save, and compute the accuracy
-            if epoch % 5 == 0:
-                acc = eval_one_epoch(sess, ops, test_writer) 
-            if acc > best_acc:
-                best_acc = acc
-                save_path = saver.save(sess, os.path.join(LOG_DIR, "best_model_epoch_%03d.ckpt"%(epoch)))
-                log_string("Model saved in file: %s" % save_path)
+                # Evaluate, save, and compute the accuracy
+                if epoch % 5 == 0:
+                    acc = eval_one_epoch(sess, ops, test_writer, stack_test) 
+                if acc > best_acc:
+                    best_acc = acc
+                    save_path = saver.save(sess, os.path.join(LOG_DIR, "best_model_epoch_%03d.ckpt"%(epoch)))
+                    log_string("Model saved in file: %s" % save_path)
 
-            # Save the variables to disk.
-            if epoch % 10 == 0:
-                save_path = saver.save(sess, os.path.join(LOG_DIR, "model.ckpt"))
-                log_string("Model saved in file: %s" % save_path)
+                # Save the variables to disk.
+                if epoch % 10 == 0:
+                    save_path = saver.save(sess, os.path.join(LOG_DIR, "model.ckpt"))
+                    log_string("Model saved in file: %s" % save_path)
+        except KeyboardInterrupt:
+            stacker_train.terminate()
+            stacker_test.terminate()
+            LOG_FOUT.close()
+            sys.exit()
 
 
-# Stacking. Don't try to put this as Dataset member, or inside a function, it has to be outside for Pickling.
-def get_train_batch():
-    np.random.seed()
-    return TRAIN_DATASET.next_batch(BATCH_SIZE,True,True)
 
-def get_test_batch():
-    np.random.seed()
-    return TEST_DATASET.next_batch(BATCH_SIZE,False,False)
-
-def prepare_many_batches(n_batches,batches_stack,split):
-    # Warning : careful with the memory/CPU use ! 
-    pool = mp.Pool(processes=mp.cpu_count())
-    if split=="train":
-        results = [pool.apply_async(get_train_batch) for _ in range(0,TRAIN_DATASET.get_num_batches(BATCH_SIZE))]
-    else:
-        results = [pool.apply_async(get_test_batch) for _ in range(0,TEST_DATASET.get_num_batches(BATCH_SIZE))]
-    for p in results:
-        batches_stack.append(p.get())
-
-def train_one_epoch(sess, ops, train_writer):
+def train_one_epoch(sess, ops, train_writer, stack):
     """Train one epoch
     
     Args:
@@ -264,9 +310,6 @@ def train_one_epoch(sess, ops, train_writer):
     is_training = True
 
     num_batches = TRAIN_DATASET.get_num_batches(BATCH_SIZE)
-    
-    # Contain several batches in advance
-    batches_stack = []
 
     log_string(str(datetime.now()))
     update_progress(0)
@@ -277,11 +320,9 @@ def train_one_epoch(sess, ops, train_writer):
     # Train over num_batches batches
     for batch_idx in range(num_batches):
         # Refill more batches if empty
-        if(len(batches_stack)==0):
-            prepare_many_batches(40, batches_stack,"train")
         progress = float(batch_idx)/float(num_batches)
         update_progress(round(progress,2))
-        batch_data, batch_label, batch_weights = batches_stack.pop()
+        batch_data, batch_label, batch_weights = stack.get()
 
         # Get predicted labels
         feed_dict = {ops['pointclouds_pl']: batch_data,
@@ -306,7 +347,7 @@ def train_one_epoch(sess, ops, train_writer):
     for i in range(1,NUM_CLASSES):
         log_string("IoU of %s : %f" % (TRAIN_DATASET.labels_names[i],iou_per_class[i]))
 
-def eval_one_epoch(sess, ops, test_writer):
+def eval_one_epoch(sess, ops, test_writer, stack):
     """Evaluate one epoch
     
     Args:
@@ -324,9 +365,6 @@ def eval_one_epoch(sess, ops, test_writer):
 
     num_batches = TEST_DATASET.get_num_batches(BATCH_SIZE)
 
-    # Contain several batches in advance
-    batches_stack = []
-
     # Reset metrics
     loss_sum = 0
     confusion_matrix = metric.ConfusionMatrix(NUM_CLASSES)
@@ -338,12 +376,9 @@ def eval_one_epoch(sess, ops, test_writer):
     update_progress(0)
 
     for batch_idx in range(num_batches):
-        # Refill more batches if empty
-        if(len(batches_stack)==0):
-            prepare_many_batches(40, batches_stack,"test")
         progress = float(batch_idx)/float(num_batches)
         update_progress(round(progress,2))
-        batch_data, batch_label, batch_weights = batches_stack.pop()
+        batch_data, batch_label, batch_weights = stack.get()
         
         feed_dict = {ops['pointclouds_pl']: batch_data,
                      ops['labels_pl']: batch_label,

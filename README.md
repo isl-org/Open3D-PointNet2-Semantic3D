@@ -6,7 +6,7 @@ This project is a student fork of PointNet2, by Charles R. Qi, Li (Eric) Yi, Hao
 You can refer to the original PointNet2 paper and code (https://github.com/charlesq34/pointnet2) for details.
 
 This fork focused on semantic segmentation, with the goal of comparing three datasets : Scannet, Semantic-8 and Bertrand Le Saux aerial LIDAR dataset.
-To achieve that, we clean, document, refactor, and improve the original project. 
+To achieve that, we clean, document, refactor, and improve the original project.
 We will compare the same datasets later with SnapNet, another state-of-the-art semantic segmentation project.
 
 ## Dependancies and data
@@ -15,8 +15,4 @@ You have to install TensorFlow on GPU (we use TF 1.2, cuda 8.0, python 2.7, but 
 
 Get the preprocessed data :
 - Scannet : https://onedrive.live.com/?authkey=%21AHEO5Ik8Hn4Ue2Y&cid=423FEBB4168FD396&id=423FEBB4168FD396%21136&parId=423FEBB4168FD396%21134&action=locate
-- Semantic : ask us
-
-## Roadmap
-- Use tensorflow Dataset API
-- Tests on semantic-8 : sampling, influence of colors, more visualisations
+- Semantic : https://drive.google.com/file/d/1-l2h3yh1xBAzR2JhqPz-YIzM4vtEOf4W/view?usp=sharing

@@ -13,7 +13,7 @@ import utils.provider as provider
 
 class Dataset():
 
-    def __init__(self, npoints, split, use_color, box_size, path, dropout_max, accept_rate):
+    def __init__(self, npoints, split, use_color, box_size, path, dropout_max, z_feature):
         """Create a dataset holder
             npoints (int): Defaults to 8192. The number of point in each input
             split (str): Defaults to 'train'. The selected part of the data (train, test, reduced...)
@@ -23,16 +23,15 @@ class Dataset():
             dropout_max (float): Defaults to 0.875. Maximum dropout to apply on the inputs.
             accept_rate (float): Minimum rate (between 0.0 and 1.0) of points in the box to accept it. E.g : npoints = 100, then you need at least 50 points.
         """
-        self.z_feature = 0
+        self.z_feature = z_feature
         # Dataset parameters
         self.npoints = npoints
         self.split = split
         self.use_color = use_color
         self.box_size = box_size
-        self.dropout_max = dropout_max # USELESS CURRENTLY
+        self.dropout_max = dropout_max
         self.num_classes = 9
         self.path = path
-        self.accept_rate = accept_rate # USELESS CURRENTLY
         self.labels_names = ['unlabeled', 'man-made terrain', 'natural terrain', 'high vegetation', 'low vegetation', 'buildings', 'hard scape', 'scanning artefacts', 'cars']
         self.filenames_test = [
             "sg27_station4_intensity_rgb",
@@ -111,13 +110,14 @@ class Dataset():
             if self.use_color:
                 data_colors = data_colors[sort_idx]
             self.scene_points_list.append(data_points)
-            self.semantic_labels_list.append(data_labels)
+            self.semantic_labels_list.append(data_labels.astype(np.int8))
             if self.use_color:
                 self.scene_colors_list.append(data_colors)
 
-        # Normalize RGB into 0-1
+        # Normalize RGB
         for i in range(len(self.scene_colors_list)):
             self.scene_colors_list[i] = self.scene_colors_list[i].astype('float32')/255
+            #self.scene_colors_list[i] = (self.scene_colors_list[i]-np.mean(self.scene_colors_list[i], axis=0))/np.std(self.scene_colors_list[i], axis=0)
         
         # Set min to (0,0,0)
         self.scene_max_list = list()
@@ -367,34 +367,4 @@ class Dataset():
 if __name__ == '__main__':
     import multiprocessing as mp
     import time
-    data = Dataset(8192,"train",True,10,"semantic_data", 0, 0)
-
-    start = time.time()
-    batch_stack = []
-    batch_size = 32
-    augment = True
-    dropout = False
-    def get_batch(batch_size,augment,dropout):
-            np.random.seed()
-            return data.next_batch(batch_size,augment,dropout)
-
-    def fill_queue(batch_size, augment, dropout, stack):
-        # Warning : about 5-6 go memory usage with 120x32  
-        pool = mp.Pool(processes=mp.cpu_count())
-        results = [pool.apply_async(get_batch, args=(batch_size, augment, dropout)) for _ in range(0,8)]  
-        for p in results:
-            stack.put(p.get())
-    
-    def test():
-        # Stacking
-        stack_train = mp.Queue(data.get_num_batches(32))
-        stacker = mp.Process(target=fill_queue, args=(batch_size, augment, dropout, stack_train))
-        stacker.start()
-        for _ in range(300):
-            time.sleep(0.25)
-            print(stack.qsize())
-        
-        
-    test()
-    
-    end = time.time()
+    data = Dataset(8192,"train",True,10,"semantic_data", 0,0)

@@ -1,3 +1,31 @@
+"""
+This file has two main functionalities : statistics (stats) and batch visualisation
+
+Stats (call python visu.py --stats=true) will first give you statistics on the
+class repartition of points (i.e. 10% for class 1, etc.) in the clouds resulting from
+preprocessing. Then it produces some inputs from those clouds according to the dataset accessor
+you are using, and computes their own class repartition, which is different from before because
+some points are favored over others: sometimes because we want them to, and sometimes because we
+can't help it. (In fact, the inputs that are generated are usually undersampled to fit into the 
+nb of points the network can process, but here we skip that step because it's a uniform sampling).
+Then those inputs that were generated are used to give you other information : per point probability
+of being taken as input when the point's scene is considered. A histogram of these probabilities is
+saved and be plotted unless using the option --draw=False. Then all these points are exported with 
+their probabilities as one point cloud per scene for visualisation in CloudCompare for example. The seeds
+(points around which a box is computed and the final input points are sampled in that box) are also
+provided in a separate point cloud and may be visualised in CloudCompare for example by giving them
+a large radius. In all, stats is a powerful tools that allows you to check that the sampling you're using
+fully explores your point clouds.
+
+Batch visualisation will draw batches exactly as they are fed into the network and it will align them on
+one horizontal grid. This way you can quickly check whether the input of the network is distinguishable
+by humans. You can set the number of batches you want with the --n option (set it to zero if you are not
+interested by this functionalities).
+
+This file is of course compatible with both semantic.py and scannet.py. Since scannet.py implements the way
+the scannet dataset was fed into the network by the creators of pointnet2, to excellent results,
+it is a good idea to compare with it.
+"""
 import argparse
 import numpy as np
 import os
@@ -8,7 +36,10 @@ import utils.pc_util as pc_util
 # Parser
 parser = argparse.ArgumentParser()
 parser.add_argument('--set', default="train", help='train or test [default: train]')
-parser.add_argument('--n', type=int, default=8, help='Number of batches you want [default : 1]')
+parser.add_argument('--stats', type=bool, default=False, help='Stats visualisation on inputs [default: False]')
+parser.add_argument('--draw', type=bool, default=True, help='Plots in stats visualisation [default: True]')
+parser.add_argument('--n', type=int, default=8, help='Number of batches you want to visualise [default : 1]')
+parser.add_argument('--nps', type=int, default=100, help='Number of inputs per scene when doing stats [default : 100]')
 parser.add_argument('--batch_size', type=int, default=8, help='Batch Size [default: 32]')
 parser.add_argument('--num_point', type=int, default=4096, help='Point Number [default: 8192]')
 parser.add_argument('--dataset', default='semantic', help='Dataset [default: semantic_color]')
@@ -26,13 +57,13 @@ NBATCH = FLAGS.n
 BATCH_SIZE = FLAGS.batch_size
 NUM_POINT = FLAGS.num_point
 DATASET_NAME = FLAGS.dataset
+STATS = FLAGS.stats
+DRAW_PLOTS = FLAGS.draw
+STAT_INPUT_NB = FLAGS.nps # per scene of the dataset
 
 DROPOUT = False
 DROPOUT_RATIO = 0.875
 AUGMENT = False
-STATS = False
-DRAW_PLOTS = True
-STAT_INPUT_NB = 10 # per scene of the dataset
 MAX_EXPORT = 20 # the maximum number of scenes to be exported
 GROUP_BY_BATCHES = True
 

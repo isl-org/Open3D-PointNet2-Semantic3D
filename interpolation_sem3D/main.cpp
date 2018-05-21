@@ -1,6 +1,9 @@
 /*
- *code inspired by  https://github.com/aboulch/snapnet
- */#include  <iostream>
+ * code inspired by  https://github.com/aboulch/snapnet
+ * The IoUs (per class and average) and the accuracy are computed for each scene that is in the folder passed as argument,
+ * and then the global IoUs and global accuracy are computed and saved. More information below. 
+ */
+#include  <iostream>
 #include  <fstream>
 #include  <string>
 #include  <sstream>
@@ -41,6 +44,19 @@ std::pair<int, std::pair<std::vector<int>, std::vector<int> > > interpolate_labe
                                                                                                  const std::string& output_dir,
                                                                                                  const std::string& filename,
                                                                                                  const float& voxel_size) {
+    /*
+     * The pointnet2 network only takes up to a few thousand points at a time, so we do not have the real results yet
+     * But we can get results on a sparser point cloud (after decimation, and after we dynamically sample inputs on
+     * the decimated point clouds.
+     * The job of this function is to take a very sparse point cloud (a few hundred thousand points) with predictions
+     * by the network and to interpolate the results to the much denser raw point clouds.
+     * This is achieved by a division of the space into a voxel grid, implemented as a map called voxels.
+     * First the sparse point cloud is iterated and the map is constructed. We store for each voxel and each label
+     * the nb of points from the sparse cloud and with the right label was in the voxel.
+     * Then we assign to each voxel the label which got the most points.
+     * And finally we can iterate the dense point cloud and dynamically assign labels according to the voxels.
+     * IoU per class and accuracy are calculated at the end.
+     */
     std::string filename_sparse =input_sparse_dir + "/" + filename + "_aggregated.txt";
     std::string filename_labels_sparse =input_sparse_dir + "/" + filename + "_pred.txt";
     std::string filename_dense =input_dense_dir + "/" + filename + ".txt";
@@ -127,7 +143,7 @@ std::pair<int, std::pair<std::vector<int>, std::vector<int> > > interpolate_labe
 
         Eigen::Vector3i vox(x_id, y_id, z_id);
         if (voxels.count(vox)==0) {
-            label = 0; // pour l'instant
+            label = 0; // TODO : improve this
         }
         else{
             label = voxels[vox].get_label();
@@ -185,6 +201,7 @@ int main (int argc, char** argv) {
     PossibleFileNames[12] = "sg28_station4_intensity_rgb";
     PossibleFileNames[13] = "untermaederbrunnen_station1_xyz_intensity_rgb";
     PossibleFileNames[14] = "untermaederbrunnen_station3_xyz_intensity_rgb";
+    // we try to open the files one by one in order to know which ones are present in the folder
     std::vector<std::string> fileNames;
     for (unsigned int i=0;i<PossibleFileNames.size(); i++) {
         std::string filename_labels_sparse =std::string(argv[2]) + "/prediction_" + PossibleFileNames[i] + ".txt";
@@ -193,6 +210,7 @@ int main (int argc, char** argv) {
             fileNames.push_back(PossibleFileNames[i]);
             std::cout << "Found " + PossibleFileNames[i] << std::endl;
         }
+        ifs.close();
     }
     std::vector<int> unions (9,0);
     std::vector<int> successes (9,0);

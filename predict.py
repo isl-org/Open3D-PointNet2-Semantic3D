@@ -1,5 +1,12 @@
 """
-Predict the labels
+This file predicts the labels with the weights calculated by train.py or train_multi.py.
+You need to give as parameter the ckpt you want to use. A certain number of inputs is generated.
+A prediction is made on each of these inputs, to be compared to the ground truth, also exported.
+If you set --cloud=False (which is the default usage), each input is saved in a different point
+cloud, and there will be n inputs. If you set --cloud=True, they will be aggregated into scenes
+and there will be n inputs per scene. These aggregated point clouds is the basis upon which
+interpolation is made to give predictions on the full raw point clouds and to truly evaluate
+the network's performances.
 """
 import argparse
 import numpy as np
@@ -15,11 +22,10 @@ import utils.pc_util as pc_util
 parser = argparse.ArgumentParser()
 parser.add_argument('--gpu', type=int, default=0, help='GPU to use [default: GPU 0]')
 parser.add_argument('--cloud', type=bool, default=False, help='whether you want full point clouds to be exported')
-parser.add_argument('--n', type=int, default=8, help='Number of scenes you want [default : 8]')
+parser.add_argument('--n', type=int, default=8, help='Number of inputs you want [default : 8]')
 parser.add_argument('--ckpt', default='', help='Checkpoint file')
 parser.add_argument('--num_point', type=int, default=8192, help='Point Number [default: 8192]')
 parser.add_argument('--set', default="train", help='train or test [default: train]')
-parser.add_argument('--batch_size', type=int, default=1, help='Batch size [default: 1]') # LET DEFAULT FOR THE MOMENT!
 parser.add_argument('--dataset', default='semantic', help='Dataset [default: semantic]')
 parser.add_argument('--config', type=str, default="config.json", metavar='N', help='config file')
 FLAGS = parser.parse_args()
@@ -35,7 +41,6 @@ CHECKPOINT = FLAGS.ckpt
 GPU_INDEX = FLAGS.gpu
 NUM_POINT = FLAGS.num_point
 SET = FLAGS.set
-BATCH_SIZE = FLAGS.batch_size
 DATASET_NAME = FLAGS.dataset
 N = FLAGS.n
 
@@ -82,7 +87,7 @@ def predict():
     and helps to debug the network
     """
     with tf.device('/gpu:'+str(GPU_INDEX)):
-        pointclouds_pl, labels_pl, _ = MODEL.placeholder_inputs(BATCH_SIZE, NUM_POINT, hyperparams=PARAMS)
+        pointclouds_pl, labels_pl, _ = MODEL.placeholder_inputs(1, NUM_POINT, hyperparams=PARAMS)
         print (tf.shape(pointclouds_pl))
         is_training_pl = tf.placeholder(tf.bool, shape=())
 

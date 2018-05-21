@@ -49,5 +49,14 @@ fi
 
 ./convert_folder_to_npz.sh tmp_storage/ $2
 
-rm -r tmp_storage
+if [ "$(ls -A $tmp_storage)" ]; then
+  if  ! [ "$(ls -A $2)" ]; then
+    echo "Something went wrong with the conversion from .txt to .npz, but you have your files in tmp_storage in .txt"
+  else
+    rm -r tmp_storage
+  fi
+else
+  rm -r tmp_storage
+fi
+
 

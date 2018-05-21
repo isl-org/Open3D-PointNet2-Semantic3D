@@ -39,6 +39,10 @@ BATCH_SIZE = FLAGS.batch_size
 DATASET_NAME = FLAGS.dataset
 N = FLAGS.n
 
+# Fix GPU use
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
+os.environ["CUDA_VISIBLE_DEVICES"] = str(GPU_INDEX)
+
 DROPOUT = False
 DROPOUT_RATIO = 0.875
 AUGMENT = False
@@ -105,7 +109,7 @@ def predict():
            'pred': pred}
     
     if EXPORT_FULL_POINT_CLOUDS:
-        OUTPUT_DIR_FULL_PC = os.path.join(OUTPUT_DIR, "full_scenes")
+        OUTPUT_DIR_FULL_PC = os.path.join(OUTPUT_DIR, "full_scenes_predictions")
         if not os.path.exists(OUTPUT_DIR_FULL_PC): os.mkdir(OUTPUT_DIR_FULL_PC)
         nscenes = len(DATASET)
         p = 6 if PARAMS['use_color'] else 3
@@ -125,8 +129,9 @@ def predict():
         print("{} point clouds to export".format(len(filenamesForExport)))
         for f, filename in enumerate(filenamesForExport):
             print("exporting file {} which has {} points".format(os.path.basename(filename), len(ground_truth[f])))
-            pc_util.write_ply_color(scene_points[f][:,0:3], ground_truth[f], OUTPUT_DIR_FULL_PC+"/groundtruth_{}.txt".format(os.path.basename(filename)), NUM_CLASSES)
-            pc_util.write_ply_color(scene_points[f][:,0:3], predicted_labels[f], OUTPUT_DIR_FULL_PC+"/predictions_{}.txt".format(os.path.basename(filename)), NUM_CLASSES)
+            pc_util.write_ply_color(scene_points[f][:,0:3], ground_truth[f], OUTPUT_DIR_FULL_PC+"/{}_groundtruth.txt".format(os.path.basename(filename)), NUM_CLASSES)
+            pc_util.write_ply_color(scene_points[f][:,0:3], predicted_labels[f], OUTPUT_DIR_FULL_PC+"/{}_aggregated.txt".format(os.path.basename(filename)), NUM_CLASSES)
+            np.savetxt(OUTPUT_DIR_FULL_PC+"/{}_pred.txt".format(os.path.basename(filename)), predicted_labels[f].reshape((-1,1)), delimiter=" ")
         print("done.")
         return
     

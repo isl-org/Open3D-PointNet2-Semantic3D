@@ -36,18 +36,19 @@ struct Vector3icomp {
 };
 
 
-std::pair<int, std::pair<std::vector<int>, std::vector<int>>> interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
+std::pair<int, std::pair<std::vector<int>, std::vector<int> > > interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
                                                                                                  const std::string& input_sparse_dir,
+                                                                                                 const std::string& output_dir,
                                                                                                  const std::string& filename,
                                                                                                  const float& voxel_size) {
-    std::string filename_sparse =input_sparse_dir + filename + "_agregated.txt";
-    std::string filename_labels_sparse =input_sparse_dir + filename + "_pred.txt";
-    std::string filename_dense =input_dense_dir + filename + ".txt";
-    std::string filename_labels_dense =input_sparse_dir + filename + ".labels";
+    std::string filename_sparse =input_sparse_dir + "/" + filename + "_aggregated.txt";
+    std::string filename_labels_sparse =input_sparse_dir + "/" + filename + "_pred.txt";
+    std::string filename_dense =input_dense_dir + "/" + filename + ".txt";
+    std::string filename_labels_dense =input_dense_dir + "/" + filename + ".labels";
     std::ifstream ifs(filename_sparse.c_str());
-    if (ifs.fail()) std::cout << "filename for agregated point cloud not found" << std::endl;
+    if (ifs.fail()) std::cerr << filename_sparse <<" not found" << std::endl;
     std::ifstream ifs_labels(filename_labels_sparse.c_str());
-    if (ifs_labels.fail()) std::cout << "filename for agregated point cloud labels not found" << std::endl;
+    if (ifs_labels.fail()) std::cerr << filename_labels_sparse << " not found" << std::endl;
     std::string line;
     std::string line_labels;
     int pt_id = 0;
@@ -94,9 +95,9 @@ std::pair<int, std::pair<std::vector<int>, std::vector<int>>> interpolate_labels
     // now we move on to the dense cloud
     std::cout << "processing point cloud" << std::endl;
     std::ifstream ifs2 (filename_dense.c_str());
-    if (ifs2.fail()) std::cout << "filename for dense point cloud not found" << std::endl;
+    if (ifs2.fail()) std::cerr << filename_dense << " not found" << std::endl;
     std::ifstream ifs_labels2 (filename_labels_dense.c_str());
-    if (ifs_labels2.fail()) std::cout << "filename for point cloud labels not found" << std::endl;
+    if (ifs_labels2.fail()) std::cerr << filename_labels_dense << " not found" << std::endl;
     pt_id = 0;
     int nb_labeled_pts = 0;
     std::vector<int> successes(9, 0);
@@ -142,7 +143,7 @@ std::pair<int, std::pair<std::vector<int>, std::vector<int>>> interpolate_labels
         }
 
     }
-    std::string perf_filename  = input_sparse_dir + filename + "_perf.txt";
+    std::string perf_filename  = output_dir + "/" + filename + "_perf.txt";
     std::ofstream output(perf_filename.c_str());
     output << "Performances of " + filename << std::endl;
     std::string classes [9] = {"unlabeled", "man-made terrain", "natural terrain", "high vegetation", "low vegetation", "buildings", "hard scape", "scanning artefacts", "cars"};
@@ -163,33 +164,42 @@ std::pair<int, std::pair<std::vector<int>, std::vector<int>>> interpolate_labels
 }
 
 int main (int argc, char** argv) {
-    if (argc < 3) {
-        std::cerr << "USAGE : " << argv[0] << " path/to/raw/point/clouds  path/to/agregated/point/clouds" << std::endl;
+    if (argc < 5) {
+        std::cerr << "USAGE : " << argv[0] << " path/to/raw/point/clouds/  path/to/agregated/point/clouds/" "path/for/results/" << std::endl;
         exit(1);
     }
-    float voxel_size = 0.07;
-    std::vector<std::string> filenames(15);
-    filenames[0] = "bildstein_station1_xyz_intensity_rgb";
-    filenames[1] = "bildstein_station3_xyz_intensity_rgb";
-    filenames[2] = "bildstein_station5_xyz_intensity_rgb";
-    filenames[3] = "domfountain_station1_xyz_intensity_rgb";
-    filenames[4] = "domfountain_station2_xyz_intensity_rgb";
-    filenames[5] = "domfountain_station3_xyz_intensity_rgb";
-    filenames[6] = "neugasse_station1_xyz_intensity_rgb";
-    filenames[7] = "sg27_station1_intensity_rgb";
-    filenames[8] = "sg27_station2_intensity_rgb";
-    filenames[9] = "sg27_station4_intensity_rgb";
-    filenames[10] = "sg27_station5_intensity_rgb";
-    filenames[11] = "sg27_station9_intensity_rgb";
-    filenames[12] = "sg28_station4_intensity_rgb";
-    filenames[13] = "untermaederbrunnen_station1_xyz_intensity_rgb";
-    filenames[14] = "untermaederbrunnen_station3_xyz_intensity_rgb";
+    float voxel_size = strtof(argv[4], NULL);
+    std::vector<std::string> PossibleFileNames(15);
+    PossibleFileNames[0] = "bildstein_station1_xyz_intensity_rgb";
+    PossibleFileNames[1] = "bildstein_station3_xyz_intensity_rgb";
+    PossibleFileNames[2] = "bildstein_station5_xyz_intensity_rgb";
+    PossibleFileNames[3] = "domfountain_station1_xyz_intensity_rgb";
+    PossibleFileNames[4] = "domfountain_station2_xyz_intensity_rgb";
+    PossibleFileNames[5] = "domfountain_station3_xyz_intensity_rgb";
+    PossibleFileNames[6] = "neugasse_station1_xyz_intensity_rgb";
+    PossibleFileNames[7] = "sg27_station1_intensity_rgb";
+    PossibleFileNames[8] = "sg27_station2_intensity_rgb";
+    PossibleFileNames[9] = "sg27_station4_intensity_rgb";
+    PossibleFileNames[10] = "sg27_station5_intensity_rgb";
+    PossibleFileNames[11] = "sg27_station9_intensity_rgb";
+    PossibleFileNames[12] = "sg28_station4_intensity_rgb";
+    PossibleFileNames[13] = "untermaederbrunnen_station1_xyz_intensity_rgb";
+    PossibleFileNames[14] = "untermaederbrunnen_station3_xyz_intensity_rgb";
+    std::vector<std::string> fileNames;
+    for (unsigned int i=0;i<PossibleFileNames.size(); i++) {
+        std::string filename_labels_sparse =std::string(argv[2]) + "/prediction_" + PossibleFileNames[i] + ".txt";
+        std::ifstream ifs(filename_labels_sparse.c_str());
+        if (!ifs.fail()) {
+            fileNames.push_back(PossibleFileNames[i]);
+            std::cout << "Found " + PossibleFileNames[i] << std::endl;
+        }
+    }
     std::vector<int> unions (9,0);
     std::vector<int> successes (9,0);
     int total_nb_labeled_pts = 0;
-    for (int i = /*9*/ 13;i < 15; i++) {
-        std::cout << "interpolation for " + filenames[i] << std::endl;
-        std::pair< int, std::pair< std::vector<int>, std::vector<int> > > scene_perfs = interpolate_labels_one_point_cloud(argv[1], argv[2], filenames[i], voxel_size);
+    for (unsigned int i=0;i < fileNames.size(); i++) {
+        std::cout << "interpolation for " + fileNames[i] << std::endl;
+        std::pair< int, std::pair< std::vector<int>, std::vector<int> > > scene_perfs = interpolate_labels_one_point_cloud(argv[1], argv[2], argv[3], fileNames[i], voxel_size);
         for (int j=0; j<9; j++){
             successes[j]+= scene_perfs.second.first[j];
             unions[j]+= scene_perfs.second.second[j];
@@ -199,8 +209,16 @@ int main (int argc, char** argv) {
 
     // now we agregate this data on the point clouds that were processed and we write it into a file
 
-    std::string perf_filename  = std::string(argv[2]) + "global_perf.txt";
-    std::ofstream output(perf_filename.c_str());
+    if (fileNames.size()==0){
+        std::cout << "no file found" << std::endl;
+        return 0;
+    }
+    std::string perf_filename  = std::string(argv[3]) + "global_perf.txt";
+    std::ofstream output(("/"+perf_filename).c_str());
+    output << "Global performances on files ";
+    for (unsigned int i=0; i<fileNames.size();i++)
+        output << fileNames[i] << " ";
+    output << std::endl;
     std::string classes [9] = {"unlabeled", "man-made terrain", "natural terrain", "high vegetation", "low vegetation", "buildings", "hard scape", "scanning artefacts", "cars"};
     int total_nb_of_successes = 0;
     float sum_IoUs = 0;

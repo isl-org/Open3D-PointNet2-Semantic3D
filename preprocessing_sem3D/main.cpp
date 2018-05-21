@@ -108,9 +108,15 @@ void adaptive_sampling(const std::string& raw_dir, const std::string& out_dir, s
     std::string labels_filename = raw_dir + filename + ".labels";
     std::string output_filename = out_dir + filename + "_all.txt";
     std::ifstream ifs(data_filename.c_str());
-    if (ifs.fail()) std::cout << "filename for raw point cloud data not found" << std::endl;
+    if (ifs.fail()) {
+        std::cout << "filename for raw point cloud data not found" << std::endl;
+        return;
+    }
     std::ifstream ifs_labels(labels_filename.c_str());
-    if (ifs_labels.fail()) std::cout << "filename for raw point cloud labels not found" << std::endl;
+    if (ifs_labels.fail()) {
+        std::cout << "filename for raw point cloud labels not found" << std::endl;
+        return;
+    }
     std::string line;
     std::string line_labels;
     int pt_id =0;

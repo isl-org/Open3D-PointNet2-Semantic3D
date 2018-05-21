@@ -25,6 +25,10 @@ interested by this functionalities).
 This file is of course compatible with both semantic.py and scannet.py. Since scannet.py implements the way
 the scannet dataset was fed into the network by the creators of pointnet2, to excellent results,
 it is a good idea to compare with it.
+
+edit: in fact right now it is not compatible with scannet anymore because of the dataset initialisation
+which takes specific keyword arguments. maybe it should be a json that's given to the dataset... or
+we should stick to general keyword arguments.
 """
 import argparse
 import numpy as np
@@ -76,7 +80,8 @@ if AUGMENT:
 # Import dataset
 data = importlib.import_module('dataset.' + DATASET_NAME)
 DATA = data.Dataset(npoints=NUM_POINT, split=SET, box_size=PARAMS['box_size'], use_color=PARAMS['use_color'],
-                             dropout_max=PARAMS['input_dropout'], path=PARAMS['data_path'], accept_rate=PARAMS['accept_rate'])
+                             dropout_max=PARAMS['input_dropout'], path=PARAMS['data_path']
+                             , z_feature=PARAMS['use_z_feature'])
 NUM_CLASSES = DATA.num_classes
 # Outputs
 
@@ -96,9 +101,9 @@ if STATS:
     We also want to know whether the data is well fed by the sampling algorithm
     because we don't want to focus too much on always the same points. Thus we
     compute an estimator of the probability of being selected when a scene is
-    considered for input points, and we export of map of probability 
+    considered for input points, and we export the map of probability 
     (one per scene).
-    Moreover we export with each point cloud a cloud containing the seeds. You
+    Moreover we export with each point cloud a cloud containing only the seeds. You
     may visualise with CloudCompare by loading it separately from the cloud and
     setting a big point size for the seeds.
     """
@@ -109,13 +114,17 @@ if STATS:
     
     # the histogram of the decimated point cloud labels
     if DRAW_PLOTS:
+        fig, ax = plt.subplots()
+        ax.set_xlim(-0.5, NUM_CLASSES + 0.5)
+        plt.xticks(range(NUM_CLASSES))
+        xtickNames = plt.setp(ax, xticklabels=DATA.labels_names)
+        plt.setp(xtickNames, rotation=45, fontsize=8)
         label_hist = DATA.get_hist()
         label_hist = np.array(label_hist)
         density_hist = label_hist/np.sum(label_hist)
         plt.bar(range(NUM_CLASSES), density_hist, color='green')
         #plt.yscale('log')
-        plt.xlabel('Classes : {}'.format(DATA.get_list_classes_str()))
-        plt.xticks(range(NUM_CLASSES))
+        #plt.xlabel('Classes : {}'.format(DATA.get_list_classes_str()))
         plt.ylabel('Proportion')
         plt.title('Histogram of class repartition in decimated point clouds of set {}'.format(SET))
         plt.draw()
@@ -147,11 +156,13 @@ if STATS:
     # the histogram of the input point cloud labels
     label_hist = np.array(label_hist)
     density_hist = label_hist/np.sum(label_hist)
-    plt.figure(2)
-    plt.bar(range(NUM_CLASSES), density_hist, color='green')
-    #plt.yscale('log')
-    plt.xlabel('Classes : {}'.format(DATA.get_list_classes_str()))
+    #fig, ax = plt.figure(2)
+    fig, ax = plt.subplots()
+    ax.set_xlim(-0.5, NUM_CLASSES + 0.5)
     plt.xticks(range(NUM_CLASSES))
+    xtickNames = plt.setp(ax, xticklabels=DATA.labels_names)
+    plt.setp(xtickNames, rotation=45, fontsize=8)
+    plt.bar(range(NUM_CLASSES), density_hist, color='green')
     plt.ylabel('Proportion')
     plt.title('Histogram of class repartition in input point clouds of set {}'.format(SET))
     plt.draw()        
@@ -169,12 +180,12 @@ if STATS:
         density = 100*hist_list[f]/scene_counters[f]
         plt.hist(density, bins=20, color='green')
         plt.yscale('log')
-        plt.xlabel(r'Probability of occurence in %10^{-2}')
+        plt.xlabel(r'Probability of occurence in %')
         plt.ylabel('Proportion')
         plt.title('Histogram of selection likelihood in scene {} of set {}'.format(filename, SET))
         plt.draw()
         plt.savefig(os.path.join(OUTPUT_DIR_HIST,"proba_scene_"+str(f)+".png"))
-    if DRAW_PLOTS and len(filenames) < 4:
+    if DRAW_PLOTS:
         plt.show()
     
     # exporting the probability of being selected and the point seeds.

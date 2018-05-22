@@ -204,7 +204,7 @@ int main (int argc, char** argv) {
     // we try to open the files one by one in order to know which ones are present in the folder
     std::vector<std::string> fileNames;
     for (unsigned int i=0;i<PossibleFileNames.size(); i++) {
-        std::string filename_labels_sparse =std::string(argv[2]) + "/prediction_" + PossibleFileNames[i] + ".txt";
+        std::string filename_labels_sparse =std::string(argv[2]) + "/" + PossibleFileNames[i] + "_pred.txt";
         std::ifstream ifs(filename_labels_sparse.c_str());
         if (!ifs.fail()) {
             fileNames.push_back(PossibleFileNames[i]);

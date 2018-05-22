@@ -111,14 +111,20 @@ if STATS:
     if not os.path.exists(OUTPUT_DIR_STATS): os.mkdir(OUTPUT_DIR_STATS)
     if not os.path.exists(OUTPUT_DIR_SEEDS): os.mkdir(OUTPUT_DIR_SEEDS)
     import matplotlib.pyplot as plt
+    import matplotlib
     
     # the histogram of the decimated point cloud labels
     if DRAW_PLOTS:
+        font = {'family' : 'normal',
+        'weight' : 'bold',
+        'size'   : 22}
+
+        matplotlib.rc('font', **font)
         fig, ax = plt.subplots()
         ax.set_xlim(-0.5, NUM_CLASSES + 0.5)
         plt.xticks(range(NUM_CLASSES))
-        xtickNames = plt.setp(ax, xticklabels=DATA.labels_names)
-        plt.setp(xtickNames, rotation=45, fontsize=8)
+        xtickNames = plt.setp(ax, xticklabels=DATA.short_labels_names)
+        plt.setp(xtickNames, rotation=25, fontsize=16)
         label_hist = DATA.get_hist()
         label_hist = np.array(label_hist)
         density_hist = label_hist/np.sum(label_hist)
@@ -126,7 +132,7 @@ if STATS:
         #plt.yscale('log')
         #plt.xlabel('Classes : {}'.format(DATA.get_list_classes_str()))
         plt.ylabel('Proportion')
-        plt.title('Histogram of class repartition in decimated point clouds of set {}'.format(SET))
+        #plt.title('Histogram of class repartition in decimated point clouds of set {}'.format(SET))
         plt.draw()
         plt.savefig(os.path.join(OUTPUT_DIR_HIST,"dec.png"))
     
@@ -160,11 +166,11 @@ if STATS:
     fig, ax = plt.subplots()
     ax.set_xlim(-0.5, NUM_CLASSES + 0.5)
     plt.xticks(range(NUM_CLASSES))
-    xtickNames = plt.setp(ax, xticklabels=DATA.labels_names)
-    plt.setp(xtickNames, rotation=45, fontsize=8)
+    xtickNames = plt.setp(ax, xticklabels=DATA.short_labels_names)
+    plt.setp(xtickNames, rotation=25, fontsize=16)
     plt.bar(range(NUM_CLASSES), density_hist, color='green')
     plt.ylabel('Proportion')
-    plt.title('Histogram of class repartition in input point clouds of set {}'.format(SET))
+    #plt.title('Histogram of class repartition in input point clouds of set {}'.format(SET))
     plt.draw()        
     plt.savefig(os.path.join(OUTPUT_DIR_HIST,"input.png"))
 

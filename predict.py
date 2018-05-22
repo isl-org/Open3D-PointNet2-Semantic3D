@@ -61,7 +61,8 @@ if AUGMENT:
 # Import dataset
 data = importlib.import_module('dataset.' + DATASET_NAME)
 DATASET = data.Dataset(npoints=NUM_POINT, split=SET, box_size=PARAMS['box_size'], use_color=PARAMS['use_color'],
-                             dropout_max=PARAMS['input_dropout'], path=PARAMS['data_path'], accept_rate=PARAMS['accept_rate'])
+                             dropout_max=PARAMS['input_dropout'], path=PARAMS['data_path']
+                             , z_feature=PARAMS['use_z_feature'])
 NUM_CLASSES = DATASET.num_classes
 
 LABELS_TEXT = DATASET.labels_names
@@ -124,7 +125,9 @@ def predict():
         for i in range(N*nscenes):
             if i%100==0 and i>0:
                 print("{} inputs generated".format(i))
-            f, data, true_labels, _, _ = DATASET.next_input(DROPOUT, True, False, return_scene_idx=True)
+            f, data, true_labels, col, _ = DATASET.next_input(DROPOUT, True, False, return_scene_idx=True)
+            if p==6:
+                data = np.hstack((data, col))
             pred_labels = predict_one_input(sess, ops, data)
             scene_points[f] = np.vstack((scene_points[f], data))
             ground_truth[f] = np.hstack((ground_truth[f], true_labels))

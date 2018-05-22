@@ -33,6 +33,7 @@ class Dataset():
         self.num_classes = 9
         self.path = path
         self.labels_names = ['unlabeled', 'man-made terrain', 'natural terrain', 'high vegetation', 'low vegetation', 'buildings', 'hard scape', 'scanning artefacts', 'cars']
+        self.short_labels_names = ['unlbld', 'm-m. terr.', 'nat. terr.', 'high veg.', 'low veg.', 'buildings', 'hard scape', 'scan. art.', 'cars']
         self.filenames_test = [
             "sg27_station4_intensity_rgb",
             "sg27_station5_intensity_rgb",

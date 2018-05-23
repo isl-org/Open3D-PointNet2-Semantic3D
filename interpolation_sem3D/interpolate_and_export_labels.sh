@@ -47,5 +47,5 @@ if [  $# -le 3 ]
                 voxel_size=$4
 	fi 
 
-./build/interpolate $1 $2 $3 $voxel_size 0
+./build/interpolate $1 $2 $3 $voxel_size 1
 

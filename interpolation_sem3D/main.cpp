@@ -43,7 +43,9 @@ std::pair<int, std::pair<std::vector<int>, std::vector<int> > > interpolate_labe
                                                                                                  const std::string& input_sparse_dir,
                                                                                                  const std::string& output_dir,
                                                                                                  const std::string& filename,
-                                                                                                 const float& voxel_size) {
+                                                                                                 const float& voxel_size,
+                                                                                                 const bool& export_labels)
+{
     /*
      * The pointnet2 network only takes up to a few thousand points at a time, so we do not have the real results yet
      * But we can get results on a sparser point cloud (after decimation, and after we dynamically sample inputs on
@@ -109,6 +111,9 @@ std::pair<int, std::pair<std::vector<int>, std::vector<int> > > interpolate_labe
     std::cout << "nombre de voxels enregistres : " << j << std::endl;
 
     // now we move on to the dense cloud
+    // don't know how to open only when necessary
+    std::string out_label_filename  = output_dir + "/" + filename + ".labels";
+    std::ofstream out_label (out_label_filename.c_str());
     std::cout << "labeling raw point cloud" << std::endl;
     std::ifstream ifs2 (filename_dense.c_str());
     if (ifs2.fail()) std::cerr << filename_dense << " not found" << std::endl;
@@ -149,6 +154,7 @@ std::pair<int, std::pair<std::vector<int>, std::vector<int> > > interpolate_labe
         else{
             label = voxels[vox].get_label();
         }
+        if (export_labels) out_label << label << std::endl;
       //if((pt_id+1)%1000000==0){
       //    std::cout << voxels.count(vox) << " " << ground_truth << " " << x << " " << y << " " << z << " " << " "  << x_id << " " << y_id << " " << z_id << std::endl;
       //}
@@ -161,6 +167,8 @@ std::pair<int, std::pair<std::vector<int>, std::vector<int> > > interpolate_labe
         }
 
     }
+    out_label.close();
+
     std::string perf_filename  = output_dir + "/" + filename + "_perf.txt";
     std::ofstream output(perf_filename.c_str());
     output << "Performances of " + filename << std::endl;
@@ -182,8 +190,8 @@ std::pair<int, std::pair<std::vector<int>, std::vector<int> > > interpolate_labe
 }
 
 int main (int argc, char** argv) {
-    if (argc < 5) {
-        std::cerr << "USAGE : " << argv[0] << " path/to/raw/point/clouds/  path/to/agregated/point/clouds/" "path/for/results/" << std::endl;
+    if (argc < 6) {
+        std::cerr << "USAGE : " << argv[0] << " path/to/raw/point/clouds/  path/to/agregated/point/clouds/  path/for/results/   export_labels" << std::endl;
         exit(1);
     }
     float voxel_size = strtof(argv[4], NULL);
@@ -203,6 +211,21 @@ int main (int argc, char** argv) {
     PossibleFileNames[12] = "sg28_station4_intensity_rgb";
     PossibleFileNames[13] = "untermaederbrunnen_station1_xyz_intensity_rgb";
     PossibleFileNames[14] = "untermaederbrunnen_station3_xyz_intensity_rgb";
+    PossibleFileNames[15] = "birdfountain_station1_xyz_intensity_rgb";
+    PossibleFileNames[16] = "castleblatten_station1_intensity_rgb";
+    PossibleFileNames[17] = "castleblatten_station5_intensity_rgb";
+    PossibleFileNames[18] = "marketplacefeldkirch_station1_intensity_rgb";
+    PossibleFileNames[19] = "marketplacefeldkirch_station4_intensity_rgb";
+    PossibleFileNames[20] = "marketplacefeldkirch_station7_intensity_rgb";
+    PossibleFileNames[21] = "sg27_station10_intensity_rgb";
+    PossibleFileNames[22] = "sg27_station3_intensity_rgb";
+    PossibleFileNames[23] = "sg27_station6_intensity_rgb";
+    PossibleFileNames[24] = "sg27_station8_intensity_rgb";
+    PossibleFileNames[25] = "sg28_station2_intensity_rgb";
+    PossibleFileNames[26] = "sg28_station5_intensity_rgb";
+    PossibleFileNames[27] = "stgallencathedral_station1_intensity_rgb";
+    PossibleFileNames[28] = "stgallencathedral_station3_intensity_rgb";
+    PossibleFileNames[29] = "stgallencathedral_station6_intensity_rgb";
     // we try to open the files one by one in order to know which ones are present in the folder
     std::vector<std::string> fileNames;
     for (unsigned int i=0;i<PossibleFileNames.size(); i++) {
@@ -219,7 +242,8 @@ int main (int argc, char** argv) {
     int total_nb_labeled_pts = 0;
     for (unsigned int i=0;i < fileNames.size(); i++) {
         std::cout << "interpolation for " + fileNames[i] << std::endl;
-        std::pair< int, std::pair< std::vector<int>, std::vector<int> > > scene_perfs = interpolate_labels_one_point_cloud(argv[1], argv[2], argv[3], fileNames[i], voxel_size);
+        std::pair< int, std::pair< std::vector<int>, std::vector<int> > > scene_perfs
+                = interpolate_labels_one_point_cloud(argv[1], argv[2], argv[3], fileNames[i], voxel_size, argv[5]=="1");
         for (int j=0; j<9; j++){
             successes[j]+= scene_perfs.second.first[j];
             unions[j]+= scene_perfs.second.second[j];

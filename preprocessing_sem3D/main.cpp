@@ -237,7 +237,7 @@ int main (int argc, char** argv) {
     PossibleFileNames[14] = "untermaederbrunnen_station3_xyz_intensity_rgb";
     PossibleFileNames[15] = "birdfountain_station1_xyz_intensity_rgb";
     PossibleFileNames[16] = "castleblatten_station1_intensity_rgb";
-    PossibleFileNames[17] = "castleblatten_station5_intensity_rgb";
+    PossibleFileNames[17] = "castleblatten_station5_xyz_intensity_rgb";
     PossibleFileNames[18] = "marketplacefeldkirch_station1_intensity_rgb";
     PossibleFileNames[19] = "marketplacefeldkirch_station4_intensity_rgb";
     PossibleFileNames[20] = "marketplacefeldkirch_station7_intensity_rgb";
@@ -246,14 +246,14 @@ int main (int argc, char** argv) {
     PossibleFileNames[23] = "sg27_station6_intensity_rgb";
     PossibleFileNames[24] = "sg27_station8_intensity_rgb";
     PossibleFileNames[25] = "sg28_station2_intensity_rgb";
-    PossibleFileNames[26] = "sg28_station5_intensity_rgb";
+    PossibleFileNames[26] = "sg28_station5_xyz_intensity_rgb";
     PossibleFileNames[27] = "stgallencathedral_station1_intensity_rgb";
     PossibleFileNames[28] = "stgallencathedral_station3_intensity_rgb";
     PossibleFileNames[29] = "stgallencathedral_station6_intensity_rgb";
     // we try to open the files one by one in order to know which ones are present in the folder
     std::vector<std::string> fileNames;
     for (unsigned int i=0;i<PossibleFileNames.size(); i++) {
-        std::string filename_labels_sparse =std::string(argv[2]) + "/" + PossibleFileNames[i] + "_pred.txt";
+        std::string filename_labels_sparse =std::string(argv[1]) + "/" + PossibleFileNames[i] + ".txt";
         std::ifstream ifs(filename_labels_sparse.c_str());
         if (!ifs.fail()) {
             fileNames.push_back(PossibleFileNames[i]);
@@ -265,4 +265,5 @@ int main (int argc, char** argv) {
         std::cout << "adaptive sampling for " + fileNames[i] << std::endl;
         adaptive_sampling(argv[1], argv[2], fileNames[i], voxel_size);
     }
+    if (fileNames.size()==0) std::cout << "not a single file was found in folder " + std::string(argv[1]) + "/" << std::endl;
 }

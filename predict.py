@@ -125,11 +125,12 @@ def predict():
         for i in range(N*nscenes):
             if i%100==0 and i>0:
                 print("{} inputs generated".format(i))
-            f, data, true_labels, col, _ = DATASET.next_input(DROPOUT, True, False, return_scene_idx=True)
+            f, data, raw_data, true_labels, col, _ = DATASET.next_input(DROPOUT, True, False, predicting=True)
             if p==6:
+                raw_data = np.hstack((raw_data, col))
                 data = np.hstack((data, col))
             pred_labels = predict_one_input(sess, ops, data)
-            scene_points[f] = np.vstack((scene_points[f], data))
+            scene_points[f] = np.vstack((scene_points[f], raw_data))
             ground_truth[f] = np.hstack((ground_truth[f], true_labels))
             predicted_labels[f]  = np.hstack((predicted_labels[f], pred_labels))
         filenames = DATASET.get_data_filenames()

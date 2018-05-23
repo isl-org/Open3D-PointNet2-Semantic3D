@@ -85,14 +85,14 @@ std::pair<int, std::pair<std::vector<int>, std::vector<int> > > interpolate_labe
         int r, g, b;
         std::string v;
         sstr >> v >> x >> y >> z >> r >> g >> b;
-        if ((pt_id + 1) % 1000000 == 0) {
-            std::cout << v << " " << x << " " << y << " " << z << " " << r << " " << g << " " << b << std::endl;
-        }
         int x_id = std::floor(x / voxel_size) + 0.5; // + 0.5, centre du voxel (k1*res, k2*res)
         int y_id = std::floor(y / voxel_size) + 0.5;
         int z_id = std::floor(z / voxel_size) + 0.5;
-
         Eigen::Vector3i vox(x_id, y_id, z_id);
+
+      //if((pt_id+1)%100000==0){
+      //    std::cout << voxels.count(vox)  << " " << x << " " << y << " " << z << " " << " "  << x_id << " " << y_id << " " << z_id << std::endl;
+      //}
 
         if (voxels.count(vox) == 0) {
             Interpolation_labels_container ilc;
@@ -100,6 +100,7 @@ std::pair<int, std::pair<std::vector<int>, std::vector<int> > > interpolate_labe
         }
         voxels[vox].add_label(label);
     }
+
     int j = 0;
     for (std::map<Eigen::Vector3i, Interpolation_labels_container>::iterator it = voxels.begin();
          it != voxels.end(); it++, j++) {
@@ -107,9 +108,8 @@ std::pair<int, std::pair<std::vector<int>, std::vector<int> > > interpolate_labe
     }
     std::cout << "nombre de voxels enregistres : " << j << std::endl;
 
-
     // now we move on to the dense cloud
-    std::cout << "processing point cloud" << std::endl;
+    std::cout << "labeling raw point cloud" << std::endl;
     std::ifstream ifs2 (filename_dense.c_str());
     if (ifs2.fail()) std::cerr << filename_dense << " not found" << std::endl;
     std::ifstream ifs_labels2 (filename_labels_dense.c_str());
@@ -135,7 +135,8 @@ std::pair<int, std::pair<std::vector<int>, std::vector<int> > > interpolate_labe
         nb_labeled_pts++;
         std::stringstream sstr(line);
         float x,y,z;
-        sstr >> x >> y >> z;
+        int intensity, r, g, b;
+        sstr >> x >> y >> z >> intensity >> r >> g >> b;
 
         int x_id = std::floor(x/voxel_size) + 0.5; // + 0.5, centre du voxel (k1*res, k2*res)
         int y_id = std::floor(y/voxel_size) + 0.5;
@@ -148,14 +149,15 @@ std::pair<int, std::pair<std::vector<int>, std::vector<int> > > interpolate_labe
         else{
             label = voxels[vox].get_label();
         }
+      //if((pt_id+1)%1000000==0){
+      //    std::cout << voxels.count(vox) << " " << ground_truth << " " << x << " " << y << " " << z << " " << " "  << x_id << " " << y_id << " " << z_id << std::endl;
+      //}
 
         if (label == ground_truth){
             successes[label]++;
-            unions[label]++;
         }
         else{
             unions[label]++;
-            unions[ground_truth]++;
         }
 
     }
@@ -231,8 +233,8 @@ int main (int argc, char** argv) {
         std::cout << "no file found" << std::endl;
         return 0;
     }
-    std::string perf_filename  = std::string(argv[3]) + "global_perf.txt";
-    std::ofstream output(("/"+perf_filename).c_str());
+    std::string perf_filename  = std::string(argv[3]) + "/global_perf.txt";
+    std::ofstream output((perf_filename).c_str());
     output << "Global performances on files ";
     for (unsigned int i=0; i<fileNames.size();i++)
         output << fileNames[i] << " ";

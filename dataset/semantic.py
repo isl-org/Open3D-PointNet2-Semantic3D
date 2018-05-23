@@ -33,7 +33,6 @@ class Dataset():
         self.num_classes = 9
         self.path = path
         self.labels_names = ['unlabeled', 'man-made terrain', 'natural terrain', 'high vegetation', 'low vegetation', 'buildings', 'hard scape', 'scanning artefacts', 'cars']
-        self.short_labels_names = ['unlbld', 'm-m. terr.', 'nat. terr.', 'high veg.', 'low veg.', 'buildings', 'hard scape', 'scan. art.', 'cars']
         self.filenames_test = [
             "sg27_station4_intensity_rgb",
             "sg27_station5_intensity_rgb",
@@ -123,7 +122,9 @@ class Dataset():
         # Set min to (0,0,0)
         self.scene_max_list = list()
         self.scene_min_list = list()
+        self.raw_scene_min_list = list()
         for i in range(len(self.scene_points_list)):
+            self.raw_scene_min_list.append(np.min(self.scene_points_list[i],axis=0))
             self.scene_points_list[i] = self.scene_points_list[i]-np.min(self.scene_points_list[i], axis=0)
             self.scene_max_list.append(np.max(self.scene_points_list[i],axis=0))
             self.scene_min_list.append(np.min(self.scene_points_list[i],axis=0))
@@ -176,7 +177,7 @@ class Dataset():
 
         return batch_data, batch_label, batch_weights
 
-    def next_input(self,dropout=False,sample=True, verbose=False, visu=False, return_scene_idx=False):
+    def next_input(self,dropout=False,sample=True, verbose=False, visu=False, predicting=False):
         input_ok = False
         count_try = 0
         verbose = False
@@ -235,10 +236,10 @@ class Dataset():
                 while (len(sample_mask) < self.npoints):
                     sample_mask = np.concatenate((sample_mask, sample_mask), axis=0)
                 sample_mask = sample_mask[np.arange(self.npoints)]
-            data = data[sample_mask]
+            raw_data = data[sample_mask]
 
             # Center the box in 2D
-            data = self.center_box(data)
+            data = self.center_box(raw_data)
 
             labels = labels[sample_mask]
             if self.use_color:
@@ -258,8 +259,8 @@ class Dataset():
                 z_norm = (data[:,2]-self.pc_zmin[scene_index])/(self.pc_zmax[scene_index]-self.pc_zmin[scene_index])
                 z_norm = z_norm.reshape(self.npoints,1)
 
-        if return_scene_idx:
-            return scene_index, data, labels, colors, weights
+        if predicting:
+            return scene_index, data, raw_data+self.raw_scene_min_list[scene_index], labels, colors, weights
         else:
             if self.z_feature:
                 return data, z_norm, labels, colors, weights

@@ -61,7 +61,7 @@ class Dataset():
         self.set_pc_zmax_zmin()
         
         # Prepare the points weights if it is a training set
-        if split=='train' or split=='train_short':
+        if split=='train' or split=='train_short' or split=='full':
             # Compute the weights
             labelweights = np.zeros(9)
             # First, compute the histogram of each labels

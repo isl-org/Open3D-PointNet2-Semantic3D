@@ -113,9 +113,9 @@ void adaptive_sampling(const std::string& raw_dir, const std::string& out_dir, s
         return;
     }
     std::ifstream ifs_labels(labels_filename.c_str());
-    if (ifs_labels.fail()) {
-        std::cout << "filename for raw point cloud labels not found" << std::endl;
-        return;
+    bool no_labels = ifs_labels.fail();
+    if (no_labels) {
+        std::cout << "filename for raw point cloud labels not found; assuming this is part of the testing set" << std::endl;
     }
     std::string line;
     std::string line_labels;
@@ -127,16 +127,17 @@ void adaptive_sampling(const std::string& raw_dir, const std::string& out_dir, s
         if((pt_id+1)%1000000==0){
             std::cout << (pt_id+1)/1000000 << " M" << std::endl;
         }
-        getline(ifs_labels, line_labels);
 
-        std::stringstream sstr_label(line_labels);
-        int label;
-        sstr_label >> label;
+        int label = 0;
+        if (!no_labels) {
+            getline(ifs_labels, line_labels);
+            std::stringstream sstr_label(line_labels);
+            sstr_label >> label;
 
-        // continue if points is unlabeled
-        if(label == 0)
-            continue;
-
+            // continue if points is unlabeled
+            if (label == 0)
+                continue;
+        }
 
         std::stringstream sstr(line);
         float x,y,z;
@@ -197,11 +198,14 @@ void adaptive_sampling(const std::string& raw_dir, const std::string& out_dir, s
     std::ofstream output(output_filename.c_str());
     for(std::map<Eigen::Vector3i, Sample_points_container>::iterator it=voxels.begin(); it != voxels.end(); it++){
         Sample_points_container spc = it->second;
-        for (std::vector<Voxel_center>::iterator it2 = spc.begin(); it2 != spc.end(); it2++){
+        for (std::vector<Voxel_center>::iterator it2 = spc.begin(); it2 != spc.end(); it2++) {
             output << it2->x << " " << it2->y << " " << it2->z << " " //
-                   << it2->r << " " << it2->g << " " << it2->b << " " //
-                   << cols[it2->label][0] << " " << cols[it2->label][1] << " " << cols[it2->label][2] << " " //
-                   << it2->label << std::endl;
+                   << it2->r << " " << it2->g << " " << it2->b;
+            if (!no_labels) {
+                output << " " << cols[it2->label][0] << " " << cols[it2->label][1] << " " << cols[it2->label][2] << " " //
+                                   << it2->label;
+            }
+            output << std::endl;
         }
     }
     ifs.close();
@@ -215,24 +219,50 @@ int main (int argc, char** argv) {
         exit(1);
     }
     float voxel_size = strtof(argv[3], NULL);
-    std::vector<std::string> filenames(15);
-    filenames[0] = "bildstein_station1_xyz_intensity_rgb";
-    filenames[1] = "bildstein_station3_xyz_intensity_rgb";
-    filenames[2] = "bildstein_station5_xyz_intensity_rgb";
-    filenames[3] = "domfountain_station1_xyz_intensity_rgb";
-    filenames[4] = "domfountain_station2_xyz_intensity_rgb";
-    filenames[5] = "domfountain_station3_xyz_intensity_rgb";
-    filenames[6] = "neugasse_station1_xyz_intensity_rgb";
-    filenames[7] = "sg27_station1_intensity_rgb";
-    filenames[8] = "sg27_station2_intensity_rgb";
-    filenames[9] = "sg27_station4_intensity_rgb";
-    filenames[10] = "sg27_station5_intensity_rgb";
-    filenames[11] = "sg27_station9_intensity_rgb";
-    filenames[12] = "sg28_station4_intensity_rgb";
-    filenames[13] = "untermaederbrunnen_station1_xyz_intensity_rgb";
-    filenames[14] = "untermaederbrunnen_station3_xyz_intensity_rgb";
-    for (int i = 0; i < 15; i++) {
-        std::cout << "adaptive sampling for " + filenames[i] << std::endl;
-        adaptive_sampling(argv[1], argv[2], filenames[i], voxel_size);
+    std::vector<std::string> PossibleFileNames(30);
+    PossibleFileNames[0] = "bildstein_station1_xyz_intensity_rgb";
+    PossibleFileNames[1] = "bildstein_station3_xyz_intensity_rgb";
+    PossibleFileNames[2] = "bildstein_station5_xyz_intensity_rgb";
+    PossibleFileNames[3] = "domfountain_station1_xyz_intensity_rgb";
+    PossibleFileNames[4] = "domfountain_station2_xyz_intensity_rgb";
+    PossibleFileNames[5] = "domfountain_station3_xyz_intensity_rgb";
+    PossibleFileNames[6] = "neugasse_station1_xyz_intensity_rgb";
+    PossibleFileNames[7] = "sg27_station1_intensity_rgb";
+    PossibleFileNames[8] = "sg27_station2_intensity_rgb";
+    PossibleFileNames[9] = "sg27_station4_intensity_rgb";
+    PossibleFileNames[10] = "sg27_station5_intensity_rgb";
+    PossibleFileNames[11] = "sg27_station9_intensity_rgb";
+    PossibleFileNames[12] = "sg28_station4_intensity_rgb";
+    PossibleFileNames[13] = "untermaederbrunnen_station1_xyz_intensity_rgb";
+    PossibleFileNames[14] = "untermaederbrunnen_station3_xyz_intensity_rgb";
+    PossibleFileNames[15] = "birdfountain_station1_xyz_intensity_rgb";
+    PossibleFileNames[16] = "castleblatten_station1_intensity_rgb";
+    PossibleFileNames[17] = "castleblatten_station5_intensity_rgb";
+    PossibleFileNames[18] = "marketplacefeldkirch_station1_intensity_rgb";
+    PossibleFileNames[19] = "marketplacefeldkirch_station4_intensity_rgb";
+    PossibleFileNames[20] = "marketplacefeldkirch_station7_intensity_rgb";
+    PossibleFileNames[21] = "sg27_station10_intensity_rgb";
+    PossibleFileNames[22] = "sg27_station3_intensity_rgb";
+    PossibleFileNames[23] = "sg27_station6_intensity_rgb";
+    PossibleFileNames[24] = "sg27_station8_intensity_rgb";
+    PossibleFileNames[25] = "sg28_station2_intensity_rgb";
+    PossibleFileNames[26] = "sg28_station5_intensity_rgb";
+    PossibleFileNames[27] = "stgallencathedral_station1_intensity_rgb";
+    PossibleFileNames[28] = "stgallencathedral_station3_intensity_rgb";
+    PossibleFileNames[29] = "stgallencathedral_station6_intensity_rgb";
+    // we try to open the files one by one in order to know which ones are present in the folder
+    std::vector<std::string> fileNames;
+    for (unsigned int i=0;i<PossibleFileNames.size(); i++) {
+        std::string filename_labels_sparse =std::string(argv[2]) + "/" + PossibleFileNames[i] + "_pred.txt";
+        std::ifstream ifs(filename_labels_sparse.c_str());
+        if (!ifs.fail()) {
+            fileNames.push_back(PossibleFileNames[i]);
+            std::cout << "Found " + PossibleFileNames[i] << std::endl;
+        }
+        ifs.close();
+    }
+    for (int i = 0; i < fileNames.size(); i++) {
+        std::cout << "adaptive sampling for " + fileNames[i] << std::endl;
+        adaptive_sampling(argv[1], argv[2], fileNames[i], voxel_size);
     }
 }

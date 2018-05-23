@@ -195,7 +195,7 @@ int main (int argc, char** argv) {
         exit(1);
     }
     float voxel_size = strtof(argv[4], NULL);
-    std::vector<std::string> PossibleFileNames(15);
+    std::vector<std::string> PossibleFileNames(30);
     PossibleFileNames[0] = "bildstein_station1_xyz_intensity_rgb";
     PossibleFileNames[1] = "bildstein_station3_xyz_intensity_rgb";
     PossibleFileNames[2] = "bildstein_station5_xyz_intensity_rgb";

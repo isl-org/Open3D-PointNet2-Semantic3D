@@ -83,6 +83,8 @@ class Dataset():
             filenames = self.filenames_train
         elif self.split=='test':
             filenames = self.filenames_test
+        elif self.split=='full':
+            filenames = self.filenames_train + self.filenames_test
         # train on a smaller, easier dataset to speed up computation
         elif self.split=='train_short':
             filenames = self.filenames_train[0:2]

@@ -53,6 +53,24 @@ class Dataset():
             "sg27_station2_intensity_rgb"
             ]
 
+        self.real_test_filenames = [
+    "birdfountain_station1_xyz_intensity_rgb",
+     "castleblatten_station1_intensity_rgb",
+    "castleblatten_station5_xyz_intensity_rgb",
+    "marketplacefeldkirch_station1_intensity_rgb",
+     "marketplacefeldkirch_station4_intensity_rgb",
+     "marketplacefeldkirch_station7_intensity_rgb",
+     "sg27_station10_intensity_rgb",
+     "sg27_station3_intensity_rgb",
+     "sg27_station6_intensity_rgb",
+     "sg27_station8_intensity_rgb",
+     "sg28_station2_intensity_rgb",
+     "sg28_station5_xyz_intensity_rgb", 
+    "stgallencathedral_station1_intensity_rgb",
+     "stgallencathedral_station3_intensity_rgb",
+             "stgallencathedral_station6_intensity_rgb",
+             ]
+
         # Load the data
         self.load_data()
 
@@ -74,7 +92,7 @@ class Dataset():
             labelweights = labelweights/np.sum(labelweights)
             self.labelweights = 1/np.log(1.2+labelweights)
             
-        elif split=='test' or split=='test_short':
+        elif split=='test' or split=='test_short' or split=='test_full':
             self.labelweights = np.ones(9)
 
     def load_data(self):
@@ -85,6 +103,8 @@ class Dataset():
             filenames = self.filenames_test
         elif self.split=='full':
             filenames = self.filenames_train + self.filenames_test
+        elif self.split=='test_full':
+            filenames = self.real_test_filenames
         # train on a smaller, easier dataset to speed up computation
         elif self.split=='train_short':
             filenames = self.filenames_train[0:2]
@@ -98,12 +118,16 @@ class Dataset():
             self.scene_colors_list = list()
         for filename in self.data_filenames:
             data_points = np.load(filename + "_vertices.npz")
-            data_labels = np.load(filename + "_labels.npz")
+            if self.split=="test_full":
+                data_labels = np.zeros(len(data_points[data_points.files[0]])).astype(bool)
+            else:
+                data_labels = np.load(filename + "_labels.npz")
             if self.use_color:
                 data_colors = np.load(filename + "_colors.npz")
             # sort according to x to speed up computation of boxes and z-boxes
             data_points = data_points[data_points.files[0]]
-            data_labels = data_labels[data_labels.files[0]]
+            if self.split!="test_full":
+                data_labels = data_labels[data_labels.files[0]]
             if self.use_color:
                 data_colors = data_colors[data_colors.files[0]]
             sort_idx = np.argsort(data_points[:,0])

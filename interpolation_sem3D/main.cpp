@@ -92,10 +92,6 @@ std::pair<int, std::pair<std::vector<int>, std::vector<int> > > interpolate_labe
         int z_id = std::floor(z / voxel_size) + 0.5;
         Eigen::Vector3i vox(x_id, y_id, z_id);
 
-      //if((pt_id+1)%100000==0){
-      //    std::cout << voxels.count(vox)  << " " << x << " " << y << " " << z << " " << " "  << x_id << " " << y_id << " " << z_id << std::endl;
-      //}
-
         if (voxels.count(vox) == 0) {
             Interpolation_labels_container ilc;
             voxels[vox] = ilc;
@@ -114,11 +110,15 @@ std::pair<int, std::pair<std::vector<int>, std::vector<int> > > interpolate_labe
     // don't know how to open only when necessary
     std::string out_label_filename  = output_dir + "/" + filename + ".labels";
     std::ofstream out_label (out_label_filename.c_str());
-    std::cout << "labeling raw point cloud" << std::endl;
     std::ifstream ifs2 (filename_dense.c_str());
     if (ifs2.fail()) std::cerr << filename_dense << " not found" << std::endl;
     std::ifstream ifs_labels2 (filename_labels_dense.c_str());
-    if (ifs_labels2.fail()) std::cerr << filename_labels_dense << " not found" << std::endl;
+    bool compute_perfs = (!ifs_labels2.fail());
+    std::cout << "labeling raw point cloud";
+    if (export_labels) std::cout << " and exporting labels";
+    if (compute_perfs) std::cout << " and computing performances";
+    std::cout << std::endl;
+    if (!compute_perfs) std::cout << filename_labels_dense << " not found, assuming this is testing dataset" << std::endl;
     pt_id = 0;
     int nb_labeled_pts = 0;
     std::vector<int> successes(9, 0);
@@ -128,16 +128,6 @@ std::pair<int, std::pair<std::vector<int>, std::vector<int> > > interpolate_labe
         if((pt_id+1)%1000000==0){
             std::cout << (pt_id+1)/1000000 << " M" << std::endl;
         }
-        getline(ifs_labels2,line_labels);
-        std::stringstream sstr_label(line_labels);
-        int ground_truth;
-        int label;
-        sstr_label >> ground_truth;
-        // continue if point is unlabeled
-        if(ground_truth == 0)
-            continue;
-        unions[ground_truth]++;
-        nb_labeled_pts++;
         std::stringstream sstr(line);
         float x,y,z;
         int intensity, r, g, b;
@@ -147,6 +137,7 @@ std::pair<int, std::pair<std::vector<int>, std::vector<int> > > interpolate_labe
         int y_id = std::floor(y/voxel_size) + 0.5;
         int z_id = std::floor(z/voxel_size) + 0.5;
 
+        int label;
         Eigen::Vector3i vox(x_id, y_id, z_id);
         if (voxels.count(vox)==0) {
             label = 0; // TODO : improve this
@@ -159,11 +150,22 @@ std::pair<int, std::pair<std::vector<int>, std::vector<int> > > interpolate_labe
       //    std::cout << voxels.count(vox) << " " << ground_truth << " " << x << " " << y << " " << z << " " << " "  << x_id << " " << y_id << " " << z_id << std::endl;
       //}
 
-        if (label == ground_truth){
-            successes[label]++;
-        }
-        else{
-            unions[label]++;
+        if (compute_perfs){
+            getline(ifs_labels2,line_labels);
+            std::stringstream sstr_label(line_labels);
+            int ground_truth;
+            sstr_label >> ground_truth;
+        // continue if point is unlabeled
+            if(ground_truth == 0)
+                continue;
+            unions[ground_truth]++;
+            nb_labeled_pts++;
+            if (label == ground_truth){
+                successes[label]++;
+            }
+            else{
+                unions[label]++;
+            }
         }
 
     }
@@ -171,21 +173,23 @@ std::pair<int, std::pair<std::vector<int>, std::vector<int> > > interpolate_labe
 
     std::string perf_filename  = output_dir + "/" + filename + "_perf.txt";
     std::ofstream output(perf_filename.c_str());
-    output << "Performances of " + filename << std::endl;
+    if (compute_perfs) output << "Performances of " + filename << std::endl;
     std::string classes [9] = {"unlabeled", "man-made terrain", "natural terrain", "high vegetation", "low vegetation", "buildings", "hard scape", "scanning artefacts", "cars"};
     int nb_of_successes = 0;
     float sum_IoUs = 0;
-    std::vector<float> IoUs(9);
-    for (int i=0; i<9; i++){
-        IoUs[i] = successes[i]/float(unions[i]);
-        sum_IoUs+=IoUs[i];
-        std::cout << IoUs[i] << " ";
-        output << "IoU of " << classes[i] << IoUs[i] << std::endl;
-        nb_of_successes += successes[i];
+    std::vector<float> IoUs(9,0);
+    if (compute_perfs){
+        for (int i=0; i<9; i++){
+            IoUs[i] = successes[i]/float(unions[i]);
+            sum_IoUs+=IoUs[i];
+            std::cout << IoUs[i] << " ";
+            output << "IoU of " << classes[i] << IoUs[i] << std::endl;
+            nb_of_successes += successes[i];
+        }
+        output << "global accuracy : " << nb_of_successes/float(nb_labeled_pts) << std::endl;
+        output << "IoU averaged on 8 classes : " << sum_IoUs/8. << std::endl;
+        std::cout << std::endl << nb_labeled_pts << std::endl;
     }
-    output << "global accuracy : " << nb_of_successes/float(nb_labeled_pts) << std::endl;
-    output << "IoU averaged on 8 classes : " << sum_IoUs/8. << std::endl;
-    std::cout << std::endl << nb_labeled_pts << std::endl;
     return std::pair< int, std::pair< std::vector<int>, std::vector<int> > > (nb_labeled_pts, std::pair<std::vector<int>, std::vector<int> > (successes, unions) );
 }
 
@@ -213,7 +217,7 @@ int main (int argc, char** argv) {
     PossibleFileNames[14] = "untermaederbrunnen_station3_xyz_intensity_rgb";
     PossibleFileNames[15] = "birdfountain_station1_xyz_intensity_rgb";
     PossibleFileNames[16] = "castleblatten_station1_intensity_rgb";
-    PossibleFileNames[17] = "castleblatten_station5_intensity_rgb";
+    PossibleFileNames[17] = "castleblatten_station5_xyz_intensity_rgb";
     PossibleFileNames[18] = "marketplacefeldkirch_station1_intensity_rgb";
     PossibleFileNames[19] = "marketplacefeldkirch_station4_intensity_rgb";
     PossibleFileNames[20] = "marketplacefeldkirch_station7_intensity_rgb";
@@ -222,7 +226,7 @@ int main (int argc, char** argv) {
     PossibleFileNames[23] = "sg27_station6_intensity_rgb";
     PossibleFileNames[24] = "sg27_station8_intensity_rgb";
     PossibleFileNames[25] = "sg28_station2_intensity_rgb";
-    PossibleFileNames[26] = "sg28_station5_intensity_rgb";
+    PossibleFileNames[26] = "sg28_station5_xyz_intensity_rgb";
     PossibleFileNames[27] = "stgallencathedral_station1_intensity_rgb";
     PossibleFileNames[28] = "stgallencathedral_station3_intensity_rgb";
     PossibleFileNames[29] = "stgallencathedral_station6_intensity_rgb";
@@ -243,7 +247,7 @@ int main (int argc, char** argv) {
     for (unsigned int i=0;i < fileNames.size(); i++) {
         std::cout << "interpolation for " + fileNames[i] << std::endl;
         std::pair< int, std::pair< std::vector<int>, std::vector<int> > > scene_perfs
-                = interpolate_labels_one_point_cloud(argv[1], argv[2], argv[3], fileNames[i], voxel_size, argv[5]=="1");
+                = interpolate_labels_one_point_cloud(argv[1], argv[2], argv[3], fileNames[i], voxel_size, (std::string(argv[5])=="1"));
         for (int j=0; j<9; j++){
             successes[j]+= scene_perfs.second.first[j];
             unions[j]+= scene_perfs.second.second[j];
@@ -257,24 +261,26 @@ int main (int argc, char** argv) {
         std::cout << "no file found" << std::endl;
         return 0;
     }
-    std::string perf_filename  = std::string(argv[3]) + "/global_perf.txt";
-    std::ofstream output((perf_filename).c_str());
-    output << "Global performances on files ";
-    for (unsigned int i=0; i<fileNames.size();i++)
-        output << fileNames[i] << " ";
-    output << std::endl;
-    std::string classes [9] = {"unlabeled", "man-made terrain", "natural terrain", "high vegetation", "low vegetation", "buildings", "hard scape", "scanning artefacts", "cars"};
-    int total_nb_of_successes = 0;
-    float sum_IoUs = 0;
-    std::vector<float> IoUs(9);
-    for (int i=0; i<9; i++){
-        IoUs[i] = successes[i]/float(unions[i]);
-        sum_IoUs+=IoUs[i];
-        std::cout << IoUs[i] << " ";
-        output << "IoU of " << classes[i] << IoUs[i] << std::endl;
-        total_nb_of_successes += successes[i];
+    if (total_nb_labeled_pts !=0){
+        std::string perf_filename  = std::string(argv[3]) + "/global_perf.txt";
+        std::ofstream output((perf_filename).c_str());
+        output << "Global performances on files ";
+        for (unsigned int i=0; i<fileNames.size();i++)
+            output << fileNames[i] << " ";
+        output << std::endl;
+        std::string classes [9] = {"unlabeled", "man-made terrain", "natural terrain", "high vegetation", "low vegetation", "buildings", "hard scape", "scanning artefacts", "cars"};
+        int total_nb_of_successes = 0;
+        float sum_IoUs = 0;
+        std::vector<float> IoUs(9);
+        for (int i=0; i<9; i++){
+            IoUs[i] = successes[i]/float(unions[i]);
+            sum_IoUs+=IoUs[i];
+            std::cout << IoUs[i] << " ";
+            output << "IoU of " << classes[i] << IoUs[i] << std::endl;
+            total_nb_of_successes += successes[i];
+        }
+        output << "global accuracy : " << total_nb_of_successes/float(total_nb_labeled_pts) << std::endl;
+        output << "IoU averaged on 8 classes : " << sum_IoUs/8. << std::endl;
+        std::cout << std::endl << total_nb_labeled_pts << std::endl;
     }
-    output << "global accuracy : " << total_nb_of_successes/float(total_nb_labeled_pts) << std::endl;
-    output << "IoU averaged on 8 classes : " << sum_IoUs/8. << std::endl;
-    std::cout << std::endl << total_nb_labeled_pts << std::endl;
 }

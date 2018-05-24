@@ -22,13 +22,11 @@ one horizontal grid. This way you can quickly check whether the input of the net
 by humans. You can set the number of batches you want with the --n option (set it to zero if you are not
 interested by this functionalities).
 
-This file is of course compatible with both semantic.py and scannet.py. Since scannet.py implements the way
-the scannet dataset was fed into the network by the creators of pointnet2, to excellent results,
-it is a good idea to compare with it.
+This file is of course compatible with both semantic.py and scannet.py (or very nearly, and only
+small modifications shound be necessary).
+Since scannet.py implements the way the scannet dataset was fed into the network by the creators
+ of pointnet2, to excellent results, it is a good idea to compare with it.
 
-edit: in fact right now it is not compatible with scannet anymore because of the dataset initialisation
-which takes specific keyword arguments. maybe it should be a json that's given to the dataset... or
-we should stick to general keyword arguments.
 """
 import argparse
 import numpy as np
@@ -255,14 +253,14 @@ for i in range(NBATCH):
         for j, scene in enumerate(data):
             labels = label_data[j]
             if PARAMS['use_color']:
-                pc_util.write_ply_true_color(scene[:,0:3], scene[:,3:6], OUTPUT_DIR_BATCHES+"/{}_{}_{}.txt".format(SET, "trueColors", j))
+                pc_util.write_ply_true_color(scene[:,0:3], (255*scene[:,3:6]).astype(int), OUTPUT_DIR_BATCHES+"/{}_{}_{}.txt".format(SET, "trueColors", j))
             else:
                 pc_util.write_ply_true_color(scene[:,0:3], np.zeros(scene[:,0:3].shape), OUTPUT_DIR_BATCHES+"/{}_{}_{}.txt".format(SET, "trueColors", j))
             pc_util.write_ply_color(scene[:,0:3], labels, OUTPUT_DIR_BATCHES+"/{}_{}_{}.txt".format(SET, "labelColors", j), NUM_CLASSES)
             
 if GROUP_BY_BATCHES and NBATCH > 0:
     if PARAMS['use_color']:
-        pc_util.write_ply_true_color(visu_cloud[:,0:3], visu_cloud[:,3:6], OUTPUT_DIR_BATCHES+"/{}_{}.txt".format(SET, "trueColors"))
+        pc_util.write_ply_true_color(visu_cloud[:,0:3], (255*visu_cloud[:,3:6]).astype(int), OUTPUT_DIR_BATCHES+"/{}_{}.txt".format(SET, "trueColors"))
     else:
         pc_util.write_ply_true_color(visu_cloud[:,0:3], np.zeros(visu_cloud[:,0:3].shape), OUTPUT_DIR_BATCHES+"/{}_{}.txt".format(SET, "trueColors"))
     pc_util.write_ply_color(visu_cloud[:,0:3], visu_labels, OUTPUT_DIR_BATCHES+"/{}_{}.txt".format(SET, "labelColors"), NUM_CLASSES)

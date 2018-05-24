@@ -14,12 +14,13 @@
 
 class Interpolation_labels_container{
     std::vector<int> label_count;
-    long int label;
+    int label;
 public:
     Interpolation_labels_container(){label_count = std::vector<int>(9,0); label = 0;}
     void add_label(int label){label_count[label]++;}
     void calculate_label(){label = max_element(label_count.begin(), label_count.end()) - label_count.begin();}
-    long int get_label(){return label;}
+    int get_label(){return label;}
+    void set_label(int l){label = l;}
 };
 
 // comparator for voxels
@@ -123,10 +124,11 @@ std::pair<int, std::pair<std::vector<int>, std::vector<int> > > interpolate_labe
     int nb_labeled_pts = 0;
     std::vector<int> successes(9, 0);
     std::vector<int> unions(9, 0);
+    int holes_nb = 0;
     while(getline(ifs2,line)){
         pt_id++;
         if((pt_id+1)%1000000==0){
-            std::cout << (pt_id+1)/1000000 << " M" << std::endl;
+            std::cout << (pt_id+1)/1000000 << " M. " << holes_nb << " holes had to be filled " << std::endl;
         }
         std::stringstream sstr(line);
         float x,y,z;
@@ -140,11 +142,26 @@ std::pair<int, std::pair<std::vector<int>, std::vector<int> > > interpolate_labe
         int label;
         Eigen::Vector3i vox(x_id, y_id, z_id);
         if (voxels.count(vox)==0) {
-            label = 0; // TODO : improve this
+            holes_nb++;
+            //std::cout << "voxel unlabeled. fetching closest voxel" << std::endl;
+            // here no point in the voxel was in the aggregated point cloud
+            // we assign it the label of the nearest voxel
+            int d_min = 1000000;
+            Eigen::Vector3i vox_min(0, 0, 0);
+            for (std::map<Eigen::Vector3i, Interpolation_labels_container>::iterator it = voxels.begin(); it != voxels.end(); it++, j++) {
+                int d = (it->first.x()-vox_min.x())*(it->first.x()-vox_min.x())
+                        + (it->first.y()-vox_min.y())*(it->first.y()-vox_min.y())
+                        + (it->first.z()-vox_min.z())*(it->first.z()-vox_min.z());
+                if (d < d_min){
+                    d_min = d;
+                    vox_min = it->first;
+                }
+            }
+            Interpolation_labels_container ilc;
+            ilc.set_label(voxels[vox_min].get_label());
+            voxels[vox] = ilc;
         }
-        else{
-            label = voxels[vox].get_label();
-        }
+        label = voxels[vox].get_label();
         if (export_labels) out_label << label << std::endl;
       //if((pt_id+1)%1000000==0){
       //    std::cout << voxels.count(vox) << " " << ground_truth << " " << x << " " << y << " " << z << " " << " "  << x_id << " " << y_id << " " << z_id << std::endl;

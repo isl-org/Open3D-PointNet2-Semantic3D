@@ -128,7 +128,7 @@ std::pair<int, std::pair<std::vector<int>, std::vector<int> > > interpolate_labe
     while(getline(ifs2,line)){
         pt_id++;
         if((pt_id+1)%1000000==0){
-            std::cout << (pt_id+1)/1000000 << " M. " << holes_nb << " holes had to be filled " << std::endl;
+            std::cout << (pt_id+1)/1000000 << " M. " << holes_nb << " holes encoutered so far " << std::endl;
         }
         std::stringstream sstr(line);
         float x,y,z;
@@ -145,27 +145,14 @@ std::pair<int, std::pair<std::vector<int>, std::vector<int> > > interpolate_labe
             holes_nb++;
             //std::cout << "voxel unlabeled. fetching closest voxel" << std::endl;
             // here no point in the voxel was in the aggregated point cloud
-            // we assign it the label of the nearest voxel
-            int d_min = 1000000;
-            Eigen::Vector3i vox_min(0, 0, 0);
-            for (std::map<Eigen::Vector3i, Interpolation_labels_container>::iterator it = voxels.begin(); it != voxels.end(); it++, j++) {
-                int d = (it->first.x()-vox_min.x())*(it->first.x()-vox_min.x())
-                        + (it->first.y()-vox_min.y())*(it->first.y()-vox_min.y())
-                        + (it->first.z()-vox_min.z())*(it->first.z()-vox_min.z());
-                if (d < d_min){
-                    d_min = d;
-                    vox_min = it->first;
-                }
-            }
-            Interpolation_labels_container ilc;
-            ilc.set_label(voxels[vox_min].get_label());
-            voxels[vox] = ilc;
+            // we assign it the label 0 for now (TODO : improve by nearest neighbor search using octree ?)
+            label = 0;
         }
-        label = voxels[vox].get_label();
+        else{
+            label = voxels[vox].get_label();
+        }
+
         if (export_labels) out_label << label << std::endl;
-      //if((pt_id+1)%1000000==0){
-      //    std::cout << voxels.count(vox) << " " << ground_truth << " " << x << " " << y << " " << z << " " << " "  << x_id << " " << y_id << " " << z_id << std::endl;
-      //}
 
         if (compute_perfs){
             getline(ifs_labels2,line_labels);

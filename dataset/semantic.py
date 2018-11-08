@@ -20,7 +20,7 @@ class Dataset():
             split (str): Defaults to 'train'. The selected part of the data (train, test, reduced...)
             color (bool): Defaults to True. Whether to use colors or not
             box_size (int): Defaults to 10. The size of the extracted cube.
-            path (float): Defaults to 'dataset/semantic_data/'. 
+            path (float): Defaults to 'dataset/semantic_data/'.
             dropout_max (float): Defaults to 0.875. Maximum dropout to apply on the inputs.
             accept_rate (float): Minimum rate (between 0.0 and 1.0) of points in the box to accept it. E.g : npoints = 100, then you need at least 50 points.
         """

@@ -4,7 +4,10 @@ import sys
 import os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
-grouping_module=tf.load_op_library(os.path.join(BASE_DIR, 'tf_grouping_so.so'))
+grouping_module = tf.load_op_library(
+    os.path.join(BASE_DIR, 'tf_grouping_so.so'))
+
+
 def query_ball_point(radius, nsample, xyz1, xyz2):
     '''
     Input:
@@ -18,7 +21,11 @@ def query_ball_point(radius, nsample, xyz1, xyz2):
     '''
     #return grouping_module.query_ball_point(radius, nsample, xyz1, xyz2)
     return grouping_module.query_ball_point(xyz1, xyz2, radius, nsample)
+
+
 ops.NoGradient('QueryBallPoint')
+
+
 def select_top_k(k, dist):
     '''
     Input:
@@ -29,7 +36,11 @@ def select_top_k(k, dist):
         dist_out: (b,m,n) float32 array, first k in n are the top k
     '''
     return grouping_module.selection_sort(dist, k)
+
+
 ops.NoGradient('SelectionSort')
+
+
 def group_point(points, idx):
     '''
     Input:
@@ -39,11 +50,14 @@ def group_point(points, idx):
         out: (batch_size, npoint, nsample, channel) float32 array, values sampled from points
     '''
     return grouping_module.group_point(points, idx)
+
+
 @tf.RegisterGradient('GroupPoint')
 def _group_point_grad(op, grad_out):
     points = op.inputs[0]
     idx = op.inputs[1]
     return [grouping_module.group_point_grad(points, idx, grad_out), None]
+
 
 def knn_point(k, xyz1, xyz2):
     '''
@@ -60,31 +74,32 @@ def knn_point(k, xyz1, xyz2):
     c = xyz1.get_shape()[2].value
     m = xyz2.get_shape()[1].value
     print b, n, c, m
-    print xyz1, (b,1,n,c)
-    xyz1 = tf.tile(tf.reshape(xyz1, (b,1,n,c)), [1,m,1,1])
-    xyz2 = tf.tile(tf.reshape(xyz2, (b,m,1,c)), [1,1,n,1])
-    dist = tf.reduce_sum((xyz1-xyz2)**2, -1)
+    print xyz1, (b, 1, n, c)
+    xyz1 = tf.tile(tf.reshape(xyz1, (b, 1, n, c)), [1, m, 1, 1])
+    xyz2 = tf.tile(tf.reshape(xyz2, (b, m, 1, c)), [1, 1, n, 1])
+    dist = tf.reduce_sum((xyz1 - xyz2)**2, -1)
     print dist, k
     outi, out = select_top_k(k, dist)
-    idx = tf.slice(outi, [0,0,0], [-1,-1,k])
-    val = tf.slice(out, [0,0,0], [-1,-1,k])
+    idx = tf.slice(outi, [0, 0, 0], [-1, -1, k])
+    val = tf.slice(out, [0, 0, 0], [-1, -1, k])
     print idx, val
     #val, idx = tf.nn.top_k(-dist, k=k) # ONLY SUPPORT CPU
     return val, idx
 
-if __name__=='__main__':
-    knn=True
+
+if __name__ == '__main__':
+    knn = True
     import numpy as np
     import time
     np.random.seed(100)
-    pts = np.random.random((32,512,64)).astype('float32')
-    tmp1 = np.random.random((32,512,3)).astype('float32')
-    tmp2 = np.random.random((32,128,3)).astype('float32')
+    pts = np.random.random((32, 512, 64)).astype('float32')
+    tmp1 = np.random.random((32, 512, 3)).astype('float32')
+    tmp2 = np.random.random((32, 128, 3)).astype('float32')
     with tf.device('/gpu:1'):
         points = tf.constant(pts)
         xyz1 = tf.constant(tmp1)
         xyz2 = tf.constant(tmp2)
-        radius = 0.1 
+        radius = 0.1
         nsample = 64
         if knn:
             _, idx = knn_point(nsample, xyz1, xyz2)
@@ -95,11 +110,9 @@ if __name__=='__main__':
             #grouped_points_grad = tf.ones_like(grouped_points)
             #points_grad = tf.gradients(grouped_points, points, grouped_points_grad)
     with tf.Session('') as sess:
-        now = time.time() 
+        now = time.time()
         for _ in range(100):
             ret = sess.run(grouped_points)
         print time.time() - now
         print ret.shape, ret.dtype
         print ret
-    
-    

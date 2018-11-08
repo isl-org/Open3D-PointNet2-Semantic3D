@@ -21,33 +21,18 @@ from itertools import islice as _islice
 import numpy as _np
 from sys import byteorder as _byteorder
 
-
 try:
     _range = xrange
 except NameError:
     _range = range
 
-
 # Many-many relation
-_data_type_relation = [
-    ('int8', 'i1'),
-    ('char', 'i1'),
-    ('uint8', 'u1'),
-    ('uchar', 'b1'),
-    ('uchar', 'u1'),
-    ('int16', 'i2'),
-    ('short', 'i2'),
-    ('uint16', 'u2'),
-    ('ushort', 'u2'),
-    ('int32', 'i4'),
-    ('int', 'i4'),
-    ('uint32', 'u4'),
-    ('uint', 'u4'),
-    ('float32', 'f4'),
-    ('float', 'f4'),
-    ('float64', 'f8'),
-    ('double', 'f8')
-]
+_data_type_relation = [('int8', 'i1'), ('char', 'i1'), ('uint8', 'u1'),
+                       ('uchar', 'b1'), ('uchar', 'u1'), ('int16', 'i2'),
+                       ('short', 'i2'), ('uint16', 'u2'), ('ushort', 'u2'),
+                       ('int32', 'i4'), ('int', 'i4'), ('uint32', 'u4'),
+                       ('uint', 'u4'), ('float32', 'f4'), ('float', 'f4'),
+                       ('float64', 'f8'), ('double', 'f8')]
 
 _data_types = dict(_data_type_relation)
 _data_type_reverse = dict((b, a) for (a, b) in _data_type_relation)
@@ -62,17 +47,13 @@ for (_a, _b) in _data_type_relation:
         _types_list.append(_b)
         _types_set.add(_b)
 
-
 _byte_order_map = {
     'ascii': '=',
     'binary_little_endian': '<',
     'binary_big_endian': '>'
 }
 
-_byte_order_reverse = {
-    '<': 'binary_little_endian',
-    '>': 'binary_big_endian'
-}
+_byte_order_reverse = {'<': 'binary_little_endian', '>': 'binary_big_endian'}
 
 _native_byte_order = {'little': '<', 'big': '>'}[_byteorder]
 
@@ -82,8 +63,8 @@ def _lookup_type(type_str):
         try:
             type_str = _data_types[type_str]
         except KeyError:
-            raise ValueError("field type %r not in %r" %
-                             (type_str, _types_list))
+            raise ValueError(
+                "field type %r not in %r" % (type_str, _types_list))
 
     return _data_type_reverse[type_str]
 
@@ -114,12 +95,10 @@ def make2d(array, cols=None, dtype=None):
     if dtype is None:
         dtype = array[0].dtype
 
-    return _np.fromiter(array, [('_', dtype, (cols,))],
-                        count=len(array))['_']
+    return _np.fromiter(array, [('_', dtype, (cols, ))], count=len(array))['_']
 
 
 class PlyParseError(Exception):
-
     '''
     Raised when a PLY file cannot be parsed.
 
@@ -146,12 +125,12 @@ class PlyParseError(Exception):
         Exception.__init__(self, s)
 
     def __repr__(self):
-        return ('PlyParseError(%r, element=%r, row=%r, prop=%r)' %
-                self.message, self.element, self.row, self.prop)
+        return (
+            'PlyParseError(%r, element=%r, row=%r, prop=%r)' % self.message,
+            self.element, self.row, self.prop)
 
 
 class PlyData(object):
-
     '''
     PLY file header and data.
 
@@ -162,8 +141,12 @@ class PlyData(object):
 
     '''
 
-    def __init__(self, elements=[], text=False, byte_order='=',
-                 comments=[], obj_info=[]):
+    def __init__(self,
+                 elements=[],
+                 text=False,
+                 byte_order='=',
+                 comments=[],
+                 obj_info=[]):
         '''
         elements: sequence of PlyElement instances.
 
@@ -211,8 +194,7 @@ class PlyData(object):
     byte_order = property(_get_byte_order, _set_byte_order)
 
     def _index(self):
-        self._element_lookup = dict((elt.name, elt) for elt in
-                                    self._elements)
+        self._element_lookup = dict((elt.name, elt) for elt in self._elements)
         if len(self._element_lookup) != len(self._elements):
             raise ValueError("two elements with same name")
 
@@ -267,9 +249,9 @@ class PlyData(object):
             comments[lines[a][0]].append(lines[a][1])
             a += 1
 
-        return PlyData(PlyElement._parse_multi(lines[a:]),
-                       text, byte_order,
-                       comments['comment'], comments['obj_info'])
+        return PlyData(
+            PlyElement._parse_multi(lines[a:]), text, byte_order,
+            comments['comment'], comments['obj_info'])
 
     @staticmethod
     def read(stream):
@@ -314,8 +296,7 @@ class PlyData(object):
         if self.text:
             lines.append('format ascii 1.0')
         else:
-            lines.append('format ' +
-                         _byte_order_reverse[self.byte_order] +
+            lines.append('format ' + _byte_order_reverse[self.byte_order] +
                          ' 1.0')
 
         # Some information is lost here, since all comments are placed
@@ -348,8 +329,8 @@ class PlyData(object):
     def __repr__(self):
         return ('PlyData(%r, text=%r, byte_order=%r, '
                 'comments=%r, obj_info=%r)' %
-                (self.elements, self.text, self.byte_order,
-                 self.comments, self.obj_info))
+                (self.elements, self.text, self.byte_order, self.comments,
+                 self.obj_info))
 
 
 def _open_stream(stream, read_or_write):
@@ -362,7 +343,6 @@ def _open_stream(stream, read_or_write):
 
 
 class PlyElement(object):
-
     '''
     PLY file element.
 
@@ -393,8 +373,8 @@ class PlyElement(object):
 
         self.comments = list(comments)
 
-        self._have_list = any(isinstance(p, PlyListProperty)
-                              for p in self.properties)
+        self._have_list = any(
+            isinstance(p, PlyListProperty) for p in self.properties)
 
     @property
     def count(self):
@@ -426,8 +406,8 @@ class PlyElement(object):
     properties = property(_get_properties, _set_properties)
 
     def _index(self):
-        self._property_lookup = dict((prop.name, prop)
-                                     for prop in self._properties)
+        self._property_lookup = dict(
+            (prop.name, prop) for prop in self._properties)
         if len(self._property_lookup) != len(self._properties):
             raise ValueError("two properties with same name")
 
@@ -500,12 +480,10 @@ class PlyElement(object):
             else:
                 break
 
-        return (PlyElement(name, properties, count, comments),
-                lines[a:])
+        return (PlyElement(name, properties, count, comments), lines[a:])
 
     @staticmethod
-    def describe(data, name, len_types={}, val_types={},
-                 comments=[]):
+    def describe(data, name, len_types={}, val_types={}, comments=[]):
         '''
         Construct a PlyElement from an array's metadata.
 
@@ -521,8 +499,7 @@ class PlyElement(object):
             raise TypeError("only numpy arrays are supported")
 
         if len(data.shape) != 1:
-            raise ValueError("only one-dimensional arrays are "
-                             "supported")
+            raise ValueError("only one-dimensional arrays are " "supported")
 
         count = len(data)
 
@@ -579,8 +556,7 @@ class PlyElement(object):
             else:
                 # There are no list properties, so loading the data is
                 # much more straightforward.
-                self._data = _np.fromfile(stream,
-                                          self.dtype(byte_order),
+                self._data = _np.fromfile(stream, self.dtype(byte_order),
                                           self.count)
 
         if len(self._data) < self.count:
@@ -605,8 +581,8 @@ class PlyElement(object):
             else:
                 # no list properties, so serialization is
                 # straightforward.
-                self.data.astype(self.dtype(byte_order),
-                                 copy=False).tofile(stream)
+                self.data.astype(
+                    self.dtype(byte_order), copy=False).tofile(stream)
 
     def _read_txt(self, stream):
         '''
@@ -623,11 +599,9 @@ class PlyElement(object):
                 try:
                     self._data[prop.name][k] = prop._from_fields(fields)
                 except StopIteration:
-                    raise PlyParseError("early end-of-line",
-                                        self, k, prop)
+                    raise PlyParseError("early end-of-line", self, k, prop)
                 except ValueError:
-                    raise PlyParseError("malformed input",
-                                        self, k, prop)
+                    raise PlyParseError("malformed input", self, k, prop)
             try:
                 next(fields)
             except StopIteration:
@@ -667,8 +641,7 @@ class PlyElement(object):
                     self._data[prop.name][k] = \
                         prop._read_bin(stream, byte_order)
                 except StopIteration:
-                    raise PlyParseError("early end-of-file",
-                                        self, k, prop)
+                    raise PlyParseError("early end-of-file", self, k, prop)
 
     def _write_bin(self, stream, byte_order):
         '''
@@ -709,12 +682,10 @@ class PlyElement(object):
 
     def __repr__(self):
         return ('PlyElement(%r, %r, count=%d, comments=%r)' %
-                (self.name, self.properties, self.count,
-                 self.comments))
+                (self.name, self.properties, self.count, self.comments))
 
 
 class PlyProperty(object):
-
     '''
     PLY property description.  This class is pure metadata; the data
     itself is contained in PlyElement instances.
@@ -749,21 +720,17 @@ class PlyProperty(object):
 
         if line[1] == 'list':
             if len(line) > 5:
-                raise PlyParseError("too many fields after "
-                                    "'property list'")
+                raise PlyParseError("too many fields after " "'property list'")
             if len(line) < 5:
-                raise PlyParseError("too few fields after "
-                                    "'property list'")
+                raise PlyParseError("too few fields after " "'property list'")
 
             return PlyListProperty(line[4], line[2], line[3])
 
         else:
             if len(line) > 3:
-                raise PlyParseError("too many fields after "
-                                    "'property'")
+                raise PlyParseError("too many fields after " "'property'")
             if len(line) < 3:
-                raise PlyParseError("too few fields after "
-                                    "'property'")
+                raise PlyParseError("too few fields after " "'property'")
 
             return PlyProperty(line[2], line[1])
 
@@ -813,12 +780,11 @@ class PlyProperty(object):
         return 'property %s %s' % (val_str, self.name)
 
     def __repr__(self):
-        return 'PlyProperty(%r, %r)' % (self.name,
-                                        _lookup_type(self.val_dtype))
+        return 'PlyProperty(%r, %r)' % (self.name, _lookup_type(
+            self.val_dtype))
 
 
 class PlyListProperty(PlyProperty):
-
     '''
     PLY list property description.
 
@@ -850,8 +816,7 @@ class PlyListProperty(PlyProperty):
         strings).
 
         '''
-        return (byte_order + self.len_dtype,
-                byte_order + self.val_dtype)
+        return (byte_order + self.len_dtype, byte_order + self.val_dtype)
 
     def _from_fields(self, fields):
         (len_t, val_t) = self.list_dtype()
@@ -910,7 +875,6 @@ class PlyListProperty(PlyProperty):
         return 'property list %s %s %s' % (len_str, val_str, self.name)
 
     def __repr__(self):
-        return ('PlyListProperty(%r, %r, %r)' %
-                (self.name,
-                 _lookup_type(self.len_dtype),
-                 _lookup_type(self.val_dtype)))
+        return ('PlyListProperty(%r, %r, %r)' % (self.name,
+                                                 _lookup_type(self.len_dtype),
+                                                 _lookup_type(self.val_dtype)))

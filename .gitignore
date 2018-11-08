@@ -1,5 +1,4 @@
 *.pyc
-tf_ops/*.pyc
 dataset/semantic_data
 dataset/scannet_data
 dataset/semantic_color_data

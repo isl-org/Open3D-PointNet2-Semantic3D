@@ -1,21 +1,21 @@
 #!/bin/bash
-display_usage() { 
-	echo "This script interpolates the results on the preprocessed data to the raw point clouds." 
-	echo "provide first the directory where you have the raw semantic_data, then where you have the results of prediction.py (in visu/semantic_test/full_scenes_predictions for example), then where results should be written, and finally the voxel size used for interpolation" 
-	} 
+display_usage() {
+	echo "This script interpolates the results on the preprocessed data to the raw point clouds."
+	echo "provide first the directory where you have the raw semantic_data, then where you have the results of prediction.py (in visu/semantic_test/full_scenes_predictions for example), then where results should be written, and finally the voxel size used for interpolation"
+	}
 
-# check whether user had supplied -h or --help . If yes display usage 
-if [[ ( $# == "--help") ||  $# == "-h" ]] 
-	then 
+# check whether user had supplied -h or --help . If yes display usage
+if [[ ( $# == "--help") ||  $# == "-h" ]]
+	then
 		display_usage
                 exit 0
-	fi 
+	fi
 
-if [  $# -le 2 ] 
-	then 
+if [  $# -le 2 ]
+	then
 		display_usage
 		exit 1
-	fi 
+	fi
 
 if [ ! -d $1 ]; then
   echo $1" not found"
@@ -39,13 +39,13 @@ if [ ! -d "build" ]; then
   cd ..
 fi
 
-if [  $# -le 3 ] 
-	then 
+if [  $# -le 3 ]
+	then
                 echo "voxel size set to 0.1 default"
 		voxel_size=0.1
         else
                 voxel_size=$4
-	fi 
+	fi
 
 ./build/interpolate $1 $2 $3 $voxel_size 0
 

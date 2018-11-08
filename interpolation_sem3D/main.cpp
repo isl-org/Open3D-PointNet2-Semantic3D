@@ -1,37 +1,46 @@
 /*
  * code inspired by  https://github.com/aboulch/snapnet
- * The IoUs (per class and average) and the accuracy are computed for each scene that is in the folder passed as argument,
- * and then the global IoUs and global accuracy are computed and saved. More information below. 
+ * The IoUs (per class and average) and the accuracy are computed for each scene
+ * that is in the folder passed as argument, and then the global IoUs and global
+ * accuracy are computed and saved. More information below.
  */
-#include  <iostream>
-#include  <fstream>
-#include  <string>
-#include  <sstream>
-#include  <vector>
-#include  <map>
-#include  <Eigen/Dense>
-#include  <algorithm>
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <sstream>
+#include <vector>
+#include <map>
+#include <Eigen/Dense>
+#include <algorithm>
 
-class Interpolation_labels_container{
+class Interpolation_labels_container {
     std::vector<int> label_count;
     int label;
-public:
-    Interpolation_labels_container(){label_count = std::vector<int>(9,0); label = 0;}
-    void add_label(int label){label_count[label]++;}
-    void calculate_label(){label = max_element(label_count.begin(), label_count.end()) - label_count.begin();}
-    int get_label(){return label;}
-    void set_label(int l){label = l;}
+
+   public:
+    Interpolation_labels_container() {
+        label_count = std::vector<int>(9, 0);
+        label = 0;
+    }
+    void add_label(int label) { label_count[label]++; }
+    void calculate_label() {
+        label = max_element(label_count.begin(), label_count.end()) -
+                label_count.begin();
+    }
+    int get_label() { return label; }
+    void set_label(int l) { label = l; }
 };
 
 // comparator for voxels
 struct Vector3icomp {
-    bool operator() (const Eigen::Vector3i& v1, const Eigen::Vector3i& v2) const{
-        if(v1[0] < v2[0]){
+    bool operator()(const Eigen::Vector3i& v1,
+                    const Eigen::Vector3i& v2) const {
+        if (v1[0] < v2[0]) {
             return true;
-        }else if(v1[0] == v2[0]){
-            if(v1[1] < v2[1]){
+        } else if (v1[0] == v2[0]) {
+            if (v1[1] < v2[1]) {
                 return true;
-            }else if(v1[1] == v2[1] && v1[2] < v2[2]){
+            } else if (v1[1] == v2[1] && v1[2] < v2[2]) {
                 return true;
             }
         }
@@ -39,40 +48,47 @@ struct Vector3icomp {
     }
 };
 
-
-std::pair<int, std::pair<std::vector<int>, std::vector<int> > > interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
-                                                                                                 const std::string& input_sparse_dir,
-                                                                                                 const std::string& output_dir,
-                                                                                                 const std::string& filename,
-                                                                                                 const float& voxel_size,
-                                                                                                 const bool& export_labels)
-{
+std::pair<int, std::pair<std::vector<int>, std::vector<int>>>
+interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
+                                   const std::string& input_sparse_dir,
+                                   const std::string& output_dir,
+                                   const std::string& filename,
+                                   const float& voxel_size,
+                                   const bool& export_labels) {
     /*
-     * The pointnet2 network only takes up to a few thousand points at a time, so we do not have the real results yet
-     * But we can get results on a sparser point cloud (after decimation, and after we dynamically sample inputs on
-     * the decimated point clouds.
-     * The job of this function is to take a very sparse point cloud (a few hundred thousand points) with predictions
-     * by the network and to interpolate the results to the much denser raw point clouds.
-     * This is achieved by a division of the space into a voxel grid, implemented as a map called voxels.
-     * First the sparse point cloud is iterated and the map is constructed. We store for each voxel and each label
-     * the nb of points from the sparse cloud and with the right label was in the voxel.
-     * Then we assign to each voxel the label which got the most points.
-     * And finally we can iterate the dense point cloud and dynamically assign labels according to the voxels.
-     * IoU per class and accuracy are calculated at the end.
+     * The pointnet2 network only takes up to a few thousand points at a time,
+     * so we do not have the real results yet But we can get results on a
+     * sparser point cloud (after decimation, and after we dynamically sample
+     * inputs on the decimated point clouds. The job of this function is to take
+     * a very sparse point cloud (a few hundred thousand points) with
+     * predictions by the network and to interpolate the results to the much
+     * denser raw point clouds. This is achieved by a division of the space into
+     * a voxel grid, implemented as a map called voxels. First the sparse point
+     * cloud is iterated and the map is constructed. We store for each voxel and
+     * each label the nb of points from the sparse cloud and with the right
+     * label was in the voxel. Then we assign to each voxel the label which got
+     * the most points. And finally we can iterate the dense point cloud and
+     * dynamically assign labels according to the voxels. IoU per class and
+     * accuracy are calculated at the end.
      */
-    std::string filename_sparse =input_sparse_dir + "/" + filename + "_aggregated.txt";
-    std::string filename_labels_sparse =input_sparse_dir + "/" + filename + "_pred.txt";
-    std::string filename_dense =input_dense_dir + "/" + filename + ".txt";
-    std::string filename_labels_dense =input_dense_dir + "/" + filename + ".labels";
+    std::string filename_sparse =
+        input_sparse_dir + "/" + filename + "_aggregated.txt";
+    std::string filename_labels_sparse =
+        input_sparse_dir + "/" + filename + "_pred.txt";
+    std::string filename_dense = input_dense_dir + "/" + filename + ".txt";
+    std::string filename_labels_dense =
+        input_dense_dir + "/" + filename + ".labels";
     std::ifstream ifs(filename_sparse.c_str());
-    if (ifs.fail()) std::cerr << filename_sparse <<" not found" << std::endl;
+    if (ifs.fail()) std::cerr << filename_sparse << " not found" << std::endl;
     std::ifstream ifs_labels(filename_labels_sparse.c_str());
-    if (ifs_labels.fail()) std::cerr << filename_labels_sparse << " not found" << std::endl;
+    if (ifs_labels.fail())
+        std::cerr << filename_labels_sparse << " not found" << std::endl;
     std::string line;
     std::string line_labels;
     int pt_id = 0;
 
-    std::map<Eigen::Vector3i, Interpolation_labels_container, Vector3icomp> voxels;
+    std::map<Eigen::Vector3i, Interpolation_labels_container, Vector3icomp>
+        voxels;
     while (getline(ifs, line)) {
         pt_id++;
         if ((pt_id + 1) % 1000000 == 0) {
@@ -88,7 +104,8 @@ std::pair<int, std::pair<std::vector<int>, std::vector<int> > > interpolate_labe
         int r, g, b;
         std::string v;
         sstr >> v >> x >> y >> z >> r >> g >> b;
-        int x_id = std::floor(x / voxel_size) + 0.5; // + 0.5, centre du voxel (k1*res, k2*res)
+        int x_id = std::floor(x / voxel_size) +
+                   0.5;  // + 0.5, centre du voxel (k1*res, k2*res)
         int y_id = std::floor(y / voxel_size) + 0.5;
         int z_id = std::floor(z / voxel_size) + 0.5;
         Eigen::Vector3i vox(x_id, y_id, z_id);
@@ -101,7 +118,8 @@ std::pair<int, std::pair<std::vector<int>, std::vector<int> > > interpolate_labe
     }
 
     int j = 0;
-    for (std::map<Eigen::Vector3i, Interpolation_labels_container>::iterator it = voxels.begin();
+    for (std::map<Eigen::Vector3i, Interpolation_labels_container>::iterator
+             it = voxels.begin();
          it != voxels.end(); it++, j++) {
         it->second.calculate_label();
     }
@@ -109,97 +127,110 @@ std::pair<int, std::pair<std::vector<int>, std::vector<int> > > interpolate_labe
 
     // now we move on to the dense cloud
     // don't know how to open only when necessary
-    std::string out_label_filename  = output_dir + "/" + filename + ".labels";
-    std::ofstream out_label (out_label_filename.c_str());
-    std::ifstream ifs2 (filename_dense.c_str());
+    std::string out_label_filename = output_dir + "/" + filename + ".labels";
+    std::ofstream out_label(out_label_filename.c_str());
+    std::ifstream ifs2(filename_dense.c_str());
     if (ifs2.fail()) std::cerr << filename_dense << " not found" << std::endl;
-    std::ifstream ifs_labels2 (filename_labels_dense.c_str());
+    std::ifstream ifs_labels2(filename_labels_dense.c_str());
     bool compute_perfs = (!ifs_labels2.fail());
     std::cout << "labeling raw point cloud";
     if (export_labels) std::cout << " and exporting labels";
     if (compute_perfs) std::cout << " and computing performances";
     std::cout << std::endl;
-    if (!compute_perfs) std::cout << filename_labels_dense << " not found, assuming this is testing dataset" << std::endl;
+    if (!compute_perfs)
+        std::cout << filename_labels_dense
+                  << " not found, assuming this is testing dataset"
+                  << std::endl;
     pt_id = 0;
     int nb_labeled_pts = 0;
     std::vector<int> successes(9, 0);
     std::vector<int> unions(9, 0);
     int holes_nb = 0;
-    while(getline(ifs2,line)){
+    while (getline(ifs2, line)) {
         pt_id++;
-        if((pt_id+1)%1000000==0){
-            std::cout << (pt_id+1)/1000000 << " M. " << holes_nb << " holes encoutered so far " << std::endl;
+        if ((pt_id + 1) % 1000000 == 0) {
+            std::cout << (pt_id + 1) / 1000000 << " M. " << holes_nb
+                      << " holes encoutered so far " << std::endl;
         }
         std::stringstream sstr(line);
-        float x,y,z;
+        float x, y, z;
         int intensity, r, g, b;
         sstr >> x >> y >> z >> intensity >> r >> g >> b;
 
-        int x_id = std::floor(x/voxel_size) + 0.5; // + 0.5, centre du voxel (k1*res, k2*res)
-        int y_id = std::floor(y/voxel_size) + 0.5;
-        int z_id = std::floor(z/voxel_size) + 0.5;
+        int x_id = std::floor(x / voxel_size) +
+                   0.5;  // + 0.5, centre du voxel (k1*res, k2*res)
+        int y_id = std::floor(y / voxel_size) + 0.5;
+        int z_id = std::floor(z / voxel_size) + 0.5;
 
         int label;
         Eigen::Vector3i vox(x_id, y_id, z_id);
-        if (voxels.count(vox)==0) {
+        if (voxels.count(vox) == 0) {
             holes_nb++;
-            //std::cout << "voxel unlabeled. fetching closest voxel" << std::endl;
+            // std::cout << "voxel unlabeled. fetching closest voxel" <<
+            // std::endl;
             // here no point in the voxel was in the aggregated point cloud
-            // we assign it the label 0 for now (TODO : improve by nearest neighbor search using octree ?)
+            // we assign it the label 0 for now (TODO : improve by nearest
+            // neighbor search using octree ?)
             label = 0;
-        }
-        else{
+        } else {
             label = voxels[vox].get_label();
         }
 
         if (export_labels) out_label << label << std::endl;
 
-        if (compute_perfs){
-            getline(ifs_labels2,line_labels);
+        if (compute_perfs) {
+            getline(ifs_labels2, line_labels);
             std::stringstream sstr_label(line_labels);
             int ground_truth;
             sstr_label >> ground_truth;
-        // continue if point is unlabeled
-            if(ground_truth == 0)
-                continue;
+            // continue if point is unlabeled
+            if (ground_truth == 0) continue;
             unions[ground_truth]++;
             nb_labeled_pts++;
-            if (label == ground_truth){
+            if (label == ground_truth) {
                 successes[label]++;
-            }
-            else{
+            } else {
                 unions[label]++;
             }
         }
-
     }
     out_label.close();
 
-    std::string perf_filename  = output_dir + "/" + filename + "_perf.txt";
+    std::string perf_filename = output_dir + "/" + filename + "_perf.txt";
     std::ofstream output(perf_filename.c_str());
     if (compute_perfs) output << "Performances of " + filename << std::endl;
-    std::string classes [9] = {"unlabeled", "man-made terrain", "natural terrain", "high vegetation", "low vegetation", "buildings", "hard scape", "scanning artefacts", "cars"};
+    std::string classes[9] = {
+        "unlabeled",       "man-made terrain",   "natural terrain",
+        "high vegetation", "low vegetation",     "buildings",
+        "hard scape",      "scanning artefacts", "cars"};
     int nb_of_successes = 0;
     float sum_IoUs = 0;
-    std::vector<float> IoUs(9,0);
-    if (compute_perfs){
-        for (int i=0; i<9; i++){
-            IoUs[i] = successes[i]/float(unions[i]);
-            sum_IoUs+=IoUs[i];
+    std::vector<float> IoUs(9, 0);
+    if (compute_perfs) {
+        for (int i = 0; i < 9; i++) {
+            IoUs[i] = successes[i] / float(unions[i]);
+            sum_IoUs += IoUs[i];
             std::cout << IoUs[i] << " ";
             output << "IoU of " << classes[i] << IoUs[i] << std::endl;
             nb_of_successes += successes[i];
         }
-        output << "global accuracy : " << nb_of_successes/float(nb_labeled_pts) << std::endl;
-        output << "IoU averaged on 8 classes : " << sum_IoUs/8. << std::endl;
+        output << "global accuracy : "
+               << nb_of_successes / float(nb_labeled_pts) << std::endl;
+        output << "IoU averaged on 8 classes : " << sum_IoUs / 8. << std::endl;
         std::cout << std::endl << nb_labeled_pts << std::endl;
     }
-    return std::pair< int, std::pair< std::vector<int>, std::vector<int> > > (nb_labeled_pts, std::pair<std::vector<int>, std::vector<int> > (successes, unions) );
+    return std::pair<int, std::pair<std::vector<int>, std::vector<int>>>(
+        nb_labeled_pts,
+        std::pair<std::vector<int>, std::vector<int>>(successes, unions));
 }
 
-int main (int argc, char** argv) {
+int main(int argc, char** argv) {
     if (argc < 6) {
-        std::cerr << "USAGE : " << argv[0] << " path/to/raw/point/clouds/  path/to/agregated/point/clouds/  path/for/results/   export_labels" << std::endl;
+        std::cerr
+            << "USAGE : " << argv[0]
+            << " path/to/raw/point/clouds/  path/to/agregated/point/clouds/  "
+               "path/for/results/   export_labels"
+            << std::endl;
         exit(1);
     }
     float voxel_size = strtof(argv[4], NULL);
@@ -234,10 +265,12 @@ int main (int argc, char** argv) {
     PossibleFileNames[27] = "stgallencathedral_station1_intensity_rgb";
     PossibleFileNames[28] = "stgallencathedral_station3_intensity_rgb";
     PossibleFileNames[29] = "stgallencathedral_station6_intensity_rgb";
-    // we try to open the files one by one in order to know which ones are present in the folder
+    // we try to open the files one by one in order to know which ones are
+    // present in the folder
     std::vector<std::string> fileNames;
-    for (unsigned int i=0;i<PossibleFileNames.size(); i++) {
-        std::string filename_labels_sparse =std::string(argv[2]) + "/" + PossibleFileNames[i] + "_pred.txt";
+    for (unsigned int i = 0; i < PossibleFileNames.size(); i++) {
+        std::string filename_labels_sparse =
+            std::string(argv[2]) + "/" + PossibleFileNames[i] + "_pred.txt";
         std::ifstream ifs(filename_labels_sparse.c_str());
         if (!ifs.fail()) {
             fileNames.push_back(PossibleFileNames[i]);
@@ -245,46 +278,54 @@ int main (int argc, char** argv) {
         }
         ifs.close();
     }
-    std::vector<int> unions (9,0);
-    std::vector<int> successes (9,0);
+    std::vector<int> unions(9, 0);
+    std::vector<int> successes(9, 0);
     int total_nb_labeled_pts = 0;
-    for (unsigned int i=0;i < fileNames.size(); i++) {
+    for (unsigned int i = 0; i < fileNames.size(); i++) {
         std::cout << "interpolation for " + fileNames[i] << std::endl;
-        std::pair< int, std::pair< std::vector<int>, std::vector<int> > > scene_perfs
-                = interpolate_labels_one_point_cloud(argv[1], argv[2], argv[3], fileNames[i], voxel_size, (std::string(argv[5])=="1"));
-        for (int j=0; j<9; j++){
-            successes[j]+= scene_perfs.second.first[j];
-            unions[j]+= scene_perfs.second.second[j];
+        std::pair<int, std::pair<std::vector<int>, std::vector<int>>>
+            scene_perfs = interpolate_labels_one_point_cloud(
+                argv[1], argv[2], argv[3], fileNames[i], voxel_size,
+                (std::string(argv[5]) == "1"));
+        for (int j = 0; j < 9; j++) {
+            successes[j] += scene_perfs.second.first[j];
+            unions[j] += scene_perfs.second.second[j];
         }
         total_nb_labeled_pts += scene_perfs.first;
     }
 
-    // now we agregate this data on the point clouds that were processed and we write it into a file
+    // now we agregate this data on the point clouds that were processed and we
+    // write it into a file
 
-    if (fileNames.size()==0){
+    if (fileNames.size() == 0) {
         std::cout << "no file found" << std::endl;
         return 0;
     }
-    if (total_nb_labeled_pts !=0){
-        std::string perf_filename  = std::string(argv[3]) + "/global_perf.txt";
+    if (total_nb_labeled_pts != 0) {
+        std::string perf_filename = std::string(argv[3]) + "/global_perf.txt";
         std::ofstream output((perf_filename).c_str());
         output << "Global performances on files ";
-        for (unsigned int i=0; i<fileNames.size();i++)
+        for (unsigned int i = 0; i < fileNames.size(); i++)
             output << fileNames[i] << " ";
         output << std::endl;
-        std::string classes [9] = {"unlabeled", "man-made terrain", "natural terrain", "high vegetation", "low vegetation", "buildings", "hard scape", "scanning artefacts", "cars"};
+        std::string classes[9] = {
+            "unlabeled",       "man-made terrain",   "natural terrain",
+            "high vegetation", "low vegetation",     "buildings",
+            "hard scape",      "scanning artefacts", "cars"};
         int total_nb_of_successes = 0;
         float sum_IoUs = 0;
         std::vector<float> IoUs(9);
-        for (int i=0; i<9; i++){
-            IoUs[i] = successes[i]/float(unions[i]);
-            sum_IoUs+=IoUs[i];
+        for (int i = 0; i < 9; i++) {
+            IoUs[i] = successes[i] / float(unions[i]);
+            sum_IoUs += IoUs[i];
             std::cout << IoUs[i] << " ";
             output << "IoU of " << classes[i] << IoUs[i] << std::endl;
             total_nb_of_successes += successes[i];
         }
-        output << "global accuracy : " << total_nb_of_successes/float(total_nb_labeled_pts) << std::endl;
-        output << "IoU averaged on 8 classes : " << sum_IoUs/8. << std::endl;
+        output << "global accuracy : "
+               << total_nb_of_successes / float(total_nb_labeled_pts)
+               << std::endl;
+        output << "IoU averaged on 8 classes : " << sum_IoUs / 8. << std::endl;
         std::cout << std::endl << total_nb_labeled_pts << std::endl;
     }
 }

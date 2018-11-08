@@ -1,17 +1,17 @@
 /*
  *code closely inspired by  https://github.com/aboulch/snapnet
  */
- #include  <iostream>
- #include  <fstream>
- #include  <string>
- #include  <sstream>
- #include  <vector>
- #include  <map>
- #include  <Eigen/Dense>
- #include  <algorithm>
- #include  <pcl/point_types.h>
- #include  <pcl/point_cloud.h>
- #include  <pcl/common/pca.h>
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <sstream>
+#include <vector>
+#include <map>
+#include <Eigen/Dense>
+#include <algorithm>
+#include <pcl/point_types.h>
+#include <pcl/point_cloud.h>
+#include <pcl/common/pca.h>
 
 typedef pcl::PointXYZRGBNormal Point;
 typedef pcl::PointCloud<Point> PointCloud;
@@ -19,64 +19,65 @@ typedef PointCloud::Ptr PointCloudPtr;
 typedef unsigned char Byte;
 
 // class for voxels
-class Voxel_center{
-public:
-    float x,y,z;
-    int r,g,b;
+class Voxel_center {
+   public:
+    float x, y, z;
+    int r, g, b;
     int label;
 };
 
 // class for sample of n points in voxel
 // We don't stay with n points all the way through :
 // if the surface is flat, we drop all but one of them
-class Sample_points_container{
-public:
+class Sample_points_container {
+   public:
     unsigned int n, i;
     std::vector<Voxel_center> points;
-    Sample_points_container(){
-        n                 = 10;
-        i                 = 0;
-        points            = std::vector<Voxel_center>(n);
+    Sample_points_container() {
+        n = 10;
+        i = 0;
+        points = std::vector<Voxel_center>(n);
     }
     void insert_if_room(Voxel_center vc);
     void resize();
-    int size(){return points.size();}
-    std::vector<Voxel_center>::iterator begin(){return points.begin();}
-    std::vector<Voxel_center>::iterator end (){return points.end();}
+    int size() { return points.size(); }
+    std::vector<Voxel_center>::iterator begin() { return points.begin(); }
+    std::vector<Voxel_center>::iterator end() { return points.end(); }
 };
 
-// We fill the container with (n=10) at most and we don't accept points that are too close together
+// We fill the container with (n=10) at most and we don't accept points that are
+// too close together
 void Sample_points_container::insert_if_room(Voxel_center vc) {
-    if (i < n){
+    if (i < n) {
         float dmin = 1e7;
-        for (int j=0;j<i;j++){
-            float d = (vc.x - points[j].x)*(vc.x - points[j].x)
-                      + (vc.y - points[j].y)*(vc.y - points[j].y)
-                      + (vc.z - points[j].z)*(vc.z - points[j].z);
+        for (int j = 0; j < i; j++) {
+            float d = (vc.x - points[j].x) * (vc.x - points[j].x) +
+                      (vc.y - points[j].y) * (vc.y - points[j].y) +
+                      (vc.z - points[j].z) * (vc.z - points[j].z);
             if (d < dmin) dmin = d;
         }
-        if (dmin > 0.001){
+        if (dmin > 0.001) {
             points[i] = vc;
             i++;
         }
     }
-    if (i==n){
-        resize(); // resizing in order to reduce memory allocation
-        i++; // in order to go quickly though this function all the next times
+    if (i == n) {
+        resize();  // resizing in order to reduce memory allocation
+        i++;  // in order to go quickly though this function all the next times
     }
 }
 
 // Flatness is calculated with pca on the points in the container.
 void Sample_points_container::resize() {
-    if (i < 3){
+    if (i < 3) {
         points.resize(i);
         return;
     }
     PointCloudPtr smallpc(new PointCloud);
-    smallpc->width    = n;
-    smallpc->height   = 1;
+    smallpc->width = n;
+    smallpc->height = 1;
     smallpc->is_dense = false;
-    smallpc->points.resize (smallpc->width * smallpc->height);
+    smallpc->points.resize(smallpc->width * smallpc->height);
     pcl::PCA<Point> pca(*smallpc);
     Eigen::Vector3f eigenvalues = pca.getEigenValues();
     if (eigenvalues(2) > 0.00001)
@@ -87,13 +88,14 @@ void Sample_points_container::resize() {
 
 // comparator for voxels
 struct Vector3icomp {
-    bool operator() (const Eigen::Vector3i& v1, const Eigen::Vector3i& v2) const{
-        if(v1[0] < v2[0]){
+    bool operator()(const Eigen::Vector3i& v1,
+                    const Eigen::Vector3i& v2) const {
+        if (v1[0] < v2[0]) {
             return true;
-        }else if(v1[0] == v2[0]){
-            if(v1[1] < v2[1]){
+        } else if (v1[0] == v2[0]) {
+            if (v1[1] < v2[1]) {
                 return true;
-            }else if(v1[1] == v2[1] && v1[2] < v2[2]){
+            } else if (v1[1] == v2[1] && v1[2] < v2[2]) {
                 return true;
             }
         }
@@ -101,10 +103,10 @@ struct Vector3icomp {
     }
 };
 
-
-void adaptive_sampling(const std::string& raw_dir, const std::string& out_dir, std::basic_string<char> & filename, float voxel_size){
+void adaptive_sampling(const std::string& raw_dir, const std::string& out_dir,
+                       std::basic_string<char>& filename, float voxel_size) {
     std::cout << "Processing " << filename << std::endl;
-    std::string data_filename   = raw_dir + filename + ".txt";
+    std::string data_filename = raw_dir + filename + ".txt";
     std::string labels_filename = raw_dir + filename + ".labels";
     std::string output_filename = out_dir + filename + "_all.txt";
     std::ifstream ifs(data_filename.c_str());
@@ -115,17 +117,19 @@ void adaptive_sampling(const std::string& raw_dir, const std::string& out_dir, s
     std::ifstream ifs_labels(labels_filename.c_str());
     bool no_labels = ifs_labels.fail();
     if (no_labels) {
-        std::cout << "filename for raw point cloud labels not found; assuming this is part of the testing set" << std::endl;
+        std::cout << "filename for raw point cloud labels not found; assuming "
+                     "this is part of the testing set"
+                  << std::endl;
     }
     std::string line;
     std::string line_labels;
-    int pt_id =0;
+    int pt_id = 0;
 
     std::map<Eigen::Vector3i, Sample_points_container, Vector3icomp> voxels;
-    while(getline(ifs,line)){
+    while (getline(ifs, line)) {
         pt_id++;
-        if((pt_id+1)%1000000==0){
-            std::cout << (pt_id+1)/1000000 << " M" << std::endl;
+        if ((pt_id + 1) % 1000000 == 0) {
+            std::cout << (pt_id + 1) / 1000000 << " M" << std::endl;
         }
 
         int label = 0;
@@ -135,39 +139,39 @@ void adaptive_sampling(const std::string& raw_dir, const std::string& out_dir, s
             sstr_label >> label;
 
             // continue if points is unlabeled
-            if (label == 0)
-                continue;
+            if (label == 0) continue;
         }
 
         std::stringstream sstr(line);
-        float x,y,z;
+        float x, y, z;
         int intensity;
         int r, g, b;
         sstr >> x >> y >> z >> intensity >> r >> g >> b;
 
-        int x_id = std::floor(x/voxel_size) + 0.5; // + 0.5, centre du voxel (k1*res, k2*res)
-        int y_id = std::floor(y/voxel_size) + 0.5;
-        int z_id = std::floor(z/voxel_size) + 0.5;
+        int x_id = std::floor(x / voxel_size) +
+                   0.5;  // + 0.5, centre du voxel (k1*res, k2*res)
+        int y_id = std::floor(y / voxel_size) + 0.5;
+        int z_id = std::floor(z / voxel_size) + 0.5;
 
         Eigen::Vector3i vox(x_id, y_id, z_id);
 
-        if(voxels.count(vox)>0){
+        if (voxels.count(vox) > 0) {
             Voxel_center vc;
-            vc.x = std::floor(x/voxel_size)*voxel_size;
-            vc.y = std::floor(y/voxel_size)*voxel_size;
-            vc.z = std::floor(z/voxel_size)*voxel_size;
+            vc.x = std::floor(x / voxel_size) * voxel_size;
+            vc.y = std::floor(y / voxel_size) * voxel_size;
+            vc.z = std::floor(z / voxel_size) * voxel_size;
             vc.r = r;
             vc.g = g;
             vc.b = b;
             vc.label = label;
             voxels[vox].insert_if_room(vc);
 
-        }else{
+        } else {
             Sample_points_container container;
             Voxel_center vc;
-            vc.x = std::floor(x/voxel_size)*voxel_size;
-            vc.y = std::floor(y/voxel_size)*voxel_size;
-            vc.z = std::floor(z/voxel_size)*voxel_size;
+            vc.x = std::floor(x / voxel_size) * voxel_size;
+            vc.y = std::floor(y / voxel_size) * voxel_size;
+            vc.z = std::floor(z / voxel_size) * voxel_size;
             vc.r = r;
             vc.g = g;
             vc.b = b;
@@ -179,31 +183,38 @@ void adaptive_sampling(const std::string& raw_dir, const std::string& out_dir, s
 
     // resizing point containers
     pt_id = 0;
-    for(std::map<Eigen::Vector3i, Sample_points_container>::iterator it=voxels.begin(); it != voxels.end(); it++){
+    for (std::map<Eigen::Vector3i, Sample_points_container>::iterator it =
+             voxels.begin();
+         it != voxels.end(); it++) {
         it->second.resize();
         pt_id++;
     }
     std::cout << "exporting result of decimation" << std::endl;
 
     std::vector<Eigen::Vector3i> cols;
-    cols.push_back(Eigen::Vector3i(0,0,0));
-    cols.push_back(Eigen::Vector3i(192,192,192));
-    cols.push_back(Eigen::Vector3i(0,255,0));
-    cols.push_back(Eigen::Vector3i(38,214,64));
-    cols.push_back(Eigen::Vector3i(247,247,0));
-    cols.push_back(Eigen::Vector3i(255,3,0));
-    cols.push_back(Eigen::Vector3i(122,0,255));
-    cols.push_back(Eigen::Vector3i(0,255,255));
-    cols.push_back(Eigen::Vector3i(255,110,206));
+    cols.push_back(Eigen::Vector3i(0, 0, 0));
+    cols.push_back(Eigen::Vector3i(192, 192, 192));
+    cols.push_back(Eigen::Vector3i(0, 255, 0));
+    cols.push_back(Eigen::Vector3i(38, 214, 64));
+    cols.push_back(Eigen::Vector3i(247, 247, 0));
+    cols.push_back(Eigen::Vector3i(255, 3, 0));
+    cols.push_back(Eigen::Vector3i(122, 0, 255));
+    cols.push_back(Eigen::Vector3i(0, 255, 255));
+    cols.push_back(Eigen::Vector3i(255, 110, 206));
     std::ofstream output(output_filename.c_str());
-    for(std::map<Eigen::Vector3i, Sample_points_container>::iterator it=voxels.begin(); it != voxels.end(); it++){
+    for (std::map<Eigen::Vector3i, Sample_points_container>::iterator it =
+             voxels.begin();
+         it != voxels.end(); it++) {
         Sample_points_container spc = it->second;
-        for (std::vector<Voxel_center>::iterator it2 = spc.begin(); it2 != spc.end(); it2++) {
-            output << it2->x << " " << it2->y << " " << it2->z << " " //
+        for (std::vector<Voxel_center>::iterator it2 = spc.begin();
+             it2 != spc.end(); it2++) {
+            output << it2->x << " " << it2->y << " " << it2->z << " "  //
                    << it2->r << " " << it2->g << " " << it2->b;
             if (!no_labels) {
-                output << " " << cols[it2->label][0] << " " << cols[it2->label][1] << " " << cols[it2->label][2] << " " //
-                                   << it2->label;
+                output << " " << cols[it2->label][0] << " "
+                       << cols[it2->label][1] << " " << cols[it2->label][2]
+                       << " "  //
+                       << it2->label;
             }
             output << std::endl;
         }
@@ -211,11 +222,12 @@ void adaptive_sampling(const std::string& raw_dir, const std::string& out_dir, s
     ifs.close();
 }
 
-
-
-int main (int argc, char** argv) {
+int main(int argc, char** argv) {
     if (argc < 4) {
-        std::cerr << "USAGE : " << argv[0] << " path/to/raw/point/clouds  where/to/write/sampled/point/clouds  voxel_size" << std::endl;
+        std::cerr << "USAGE : " << argv[0]
+                  << " path/to/raw/point/clouds  "
+                     "where/to/write/sampled/point/clouds  voxel_size"
+                  << std::endl;
         exit(1);
     }
     float voxel_size = strtof(argv[3], NULL);
@@ -250,10 +262,12 @@ int main (int argc, char** argv) {
     PossibleFileNames[27] = "stgallencathedral_station1_intensity_rgb";
     PossibleFileNames[28] = "stgallencathedral_station3_intensity_rgb";
     PossibleFileNames[29] = "stgallencathedral_station6_intensity_rgb";
-    // we try to open the files one by one in order to know which ones are present in the folder
+    // we try to open the files one by one in order to know which ones are
+    // present in the folder
     std::vector<std::string> fileNames;
-    for (unsigned int i=0;i<PossibleFileNames.size(); i++) {
-        std::string filename_labels_sparse =std::string(argv[1]) + "/" + PossibleFileNames[i] + ".txt";
+    for (unsigned int i = 0; i < PossibleFileNames.size(); i++) {
+        std::string filename_labels_sparse =
+            std::string(argv[1]) + "/" + PossibleFileNames[i] + ".txt";
         std::ifstream ifs(filename_labels_sparse.c_str());
         if (!ifs.fail()) {
             fileNames.push_back(PossibleFileNames[i]);
@@ -265,5 +279,8 @@ int main (int argc, char** argv) {
         std::cout << "adaptive sampling for " + fileNames[i] << std::endl;
         adaptive_sampling(argv[1], argv[2], fileNames[i], voxel_size);
     }
-    if (fileNames.size()==0) std::cout << "not a single file was found in folder " + std::string(argv[1]) + "/" << std::endl;
+    if (fileNames.size() == 0)
+        std::cout << "not a single file was found in folder " +
+                         std::string(argv[1]) + "/"
+                  << std::endl;
 }

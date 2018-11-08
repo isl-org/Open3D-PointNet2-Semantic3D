@@ -40,7 +40,7 @@ def rotate_point_cloud(batch_data):
           BxNx3 array, rotated batch of point clouds
     """
     rotated_data = np.zeros(batch_data.shape, dtype=np.float32)
-    for k in xrange(batch_data.shape[0]):
+    for k in range(batch_data.shape[0]):
         rotation_angle = np.random.uniform() * 2 * np.pi
         cosval = np.cos(rotation_angle)
         sinval = np.sin(rotation_angle)
@@ -63,7 +63,7 @@ def rotate_feature_point_cloud(batch_data, feature_size=3):
     rotated_data = np.zeros(batch_data.shape, dtype=np.float32)
     rotated_data[:, :, 3:3 + feature_size] = batch_data[:, :, 3:3 +
                                                         feature_size]
-    for k in xrange(batch_data.shape[0]):
+    for k in range(batch_data.shape[0]):
         rotation_angle = np.random.uniform() * 2 * np.pi
         cosval = np.cos(rotation_angle)
         sinval = np.sin(rotation_angle)
@@ -82,7 +82,7 @@ def rotate_point_cloud_with_normal(batch_xyz_normal):
         Output:
             B,N,6, rotated XYZ, normal point cloud
     '''
-    for k in xrange(batch_xyz_normal.shape[0]):
+    for k in range(batch_xyz_normal.shape[0]):
         rotation_angle = np.random.uniform() * 2 * np.pi
         cosval = np.cos(rotation_angle)
         sinval = np.sin(rotation_angle)
@@ -107,7 +107,7 @@ def rotate_perturbation_point_cloud_with_normal(batch_data,
           BxNx3 array, rotated batch of point clouds
     """
     rotated_data = np.zeros(batch_data.shape, dtype=np.float32)
-    for k in xrange(batch_data.shape[0]):
+    for k in range(batch_data.shape[0]):
         angles = np.clip(angle_sigma * np.random.randn(3), -angle_clip,
                          angle_clip)
         Rx = np.array([[1, 0, 0], [0, np.cos(angles[0]), -np.sin(angles[0])],
@@ -136,7 +136,7 @@ def rotate_point_cloud_by_angle(batch_data, rotation_angle):
           BxNx3 array, rotated batch of point clouds
     """
     rotated_data = np.zeros(batch_data.shape, dtype=np.float32)
-    for k in xrange(batch_data.shape[0]):
+    for k in range(batch_data.shape[0]):
         #rotation_angle = np.random.uniform() * 2 * np.pi
         cosval = np.cos(rotation_angle)
         sinval = np.sin(rotation_angle)
@@ -156,7 +156,7 @@ def rotate_point_cloud_by_angle_with_normal(batch_data, rotation_angle):
           BxNx3 array, rotated batch of point clouds
     """
     rotated_data = np.zeros(batch_data.shape, dtype=np.float32)
-    for k in xrange(batch_data.shape[0]):
+    for k in range(batch_data.shape[0]):
         #rotation_angle = np.random.uniform() * 2 * np.pi
         cosval = np.cos(rotation_angle)
         sinval = np.sin(rotation_angle)
@@ -181,7 +181,7 @@ def rotate_perturbation_point_cloud(batch_data,
           BxNx3 array, rotated batch of point clouds
     """
     rotated_data = np.zeros(batch_data.shape, dtype=np.float32)
-    for k in xrange(batch_data.shape[0]):
+    for k in range(batch_data.shape[0]):
         angles = np.clip(angle_sigma * np.random.randn(3), -angle_clip,
                          angle_clip)
         Rx = np.array([[1, 0, 0], [0, np.cos(angles[0]), -np.sin(angles[0])],

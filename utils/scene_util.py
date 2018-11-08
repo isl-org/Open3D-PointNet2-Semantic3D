@@ -66,11 +66,11 @@ def virtual_scan(xyz, mode=-1):
     sub_r = local_aer[sub_idx, 2]
     sub_minidx = minidx[sub_idx]
     min_r = float('inf') * np.ones(np.max(sub_minidx) + 1)
-    for i in xrange(len(sub_r)):
+    for i in range(len(sub_r)):
         if sub_r[i] < min_r[sub_minidx[i]]:
             min_r[sub_minidx[i]] = sub_r[i]
     sub_smpidx = np.ones(len(sub_r))
-    for i in xrange(len(sub_r)):
+    for i in range(len(sub_r)):
         if sub_r[i] > min_r[sub_minidx[i]]:
             sub_smpidx[i] = 0
     smpidx = np.where(sub_idx)[0]

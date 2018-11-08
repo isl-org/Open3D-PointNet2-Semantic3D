@@ -1,7 +1,7 @@
 ''' Furthest point sampling
 Original author: Haoqiang Fan
 Modified by Charles R. Qi
-All Rights Reserved. 2017. 
+All Rights Reserved. 2017.
 '''
 import tensorflow as tf
 from tensorflow.python.framework import ops
@@ -28,8 +28,8 @@ ops.NoGradient('ProbSample')
 
 
 # TF1.0 API requires set shape in C++
-#@tf.RegisterShape('ProbSample')
-#def _prob_sample_shape(op):
+# @tf.RegisterShape('ProbSample')
+# def _prob_sample_shape(op):
 #    shape1=op.inputs[0].get_shape().with_rank(2)
 #    shape2=op.inputs[1].get_shape().with_rank(2)
 #    return [tf.TensorShape([shape2.dims[0],shape2.dims[1]])]
@@ -44,8 +44,8 @@ returns:
     return sampling_module.gather_point(inp, idx)
 
 
-#@tf.RegisterShape('GatherPoint')
-#def _gather_point_shape(op):
+# @tf.RegisterShape('GatherPoint')
+# def _gather_point_shape(op):
 #    shape1=op.inputs[0].get_shape().with_rank(3)
 #    shape2=op.inputs[1].get_shape().with_rank(2)
 #    return [tf.TensorShape([shape1.dims[0],shape2.dims[1],shape1.dims[2]])]
@@ -93,12 +93,12 @@ if __name__ == '__main__':
         vs = (uplusv - uminusv) * 0.5
         pt_sample = tria_sample + (trib_sample - tria_sample) * tf.expand_dims(
             us, -1) + (tric_sample - tria_sample) * tf.expand_dims(vs, -1)
-        print 'pt_sample: ', pt_sample
+        print('pt_sample: ', pt_sample)
         reduced_sample = gather_point(pt_sample,
                                       farthest_point_sample(1024, pt_sample))
-        print reduced_sample
+        print(reduced_sample)
     with tf.Session('') as sess:
         ret = sess.run(reduced_sample)
-    print ret.shape, ret.dtype
+    print(ret.shape, ret.dtype)
     import cPickle as pickle
     pickle.dump(ret, open('1.pkl', 'wb'), -1)

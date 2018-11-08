@@ -80,7 +80,7 @@ def virtual_scan(xyz, mode=-1):
 
 if __name__ == '__main__':
     pc = np.load('scannet_dataset/scannet_scenes/scene0015_00.npy')
-    print pc.shape
+    print(pc.shape)
     xyz = pc[:, :3]
     seg = pc[:, 7]
     smpidx = virtual_scan(xyz, mode=2)

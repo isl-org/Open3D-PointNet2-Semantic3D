@@ -354,11 +354,11 @@ def fully_connected(inputs,
                     bn_decay=None,
                     is_training=None):
     """ Fully connected layer with non-linear operation.
-  
+
   Args:
     inputs: 2-D tensor BxN
     num_outputs: int
-  
+
   Returns:
     Variable tensor of size B x num_outputs.
   """
@@ -390,7 +390,7 @@ def max_pool2d(inputs, kernel_size, scope, stride=[2, 2], padding='VALID'):
     inputs: 4-D tensor BxHxWxC
     kernel_size: a list of 2 ints
     stride: a list of 2 ints
-  
+
   Returns:
     Variable tensor
   """
@@ -413,7 +413,7 @@ def avg_pool2d(inputs, kernel_size, scope, stride=[2, 2], padding='VALID'):
     inputs: 4-D tensor BxHxWxC
     kernel_size: a list of 2 ints
     stride: a list of 2 ints
-  
+
   Returns:
     Variable tensor
   """
@@ -436,7 +436,7 @@ def max_pool3d(inputs, kernel_size, scope, stride=[2, 2, 2], padding='VALID'):
     inputs: 5-D tensor BxDxHxWxC
     kernel_size: a list of 3 ints
     stride: a list of 3 ints
-  
+
   Returns:
     Variable tensor
   """
@@ -459,7 +459,7 @@ def avg_pool3d(inputs, kernel_size, scope, stride=[2, 2, 2], padding='VALID'):
     inputs: 5-D tensor BxDxHxWxC
     kernel_size: a list of 3 ints
     stride: a list of 3 ints
-  
+
   Returns:
     Variable tensor
   """
@@ -480,7 +480,7 @@ def batch_norm_template_unused(inputs, is_training, scope, moments_dims,
     """ NOTE: this is older version of the util func. it is deprecated.
   Batch normalization on convolutional maps and beyond...
   Ref.: http://stackoverflow.com/questions/33949786/how-could-i-use-batch-normalization-in-tensorflow
-  
+
   Args:
       inputs:        Tensor, k-D input ... x C could be BC or BHWC or BDHWC
       is_training:   boolean tf.Varialbe, true indicates training phase
@@ -534,7 +534,7 @@ def batch_norm_template(inputs,
                         data_format='NHWC'):
     """ Batch normalization on convolutional maps and beyond...
   Ref.: http://stackoverflow.com/questions/33949786/how-could-i-use-batch-normalization-in-tensorflow
-  
+
   Args:
       inputs:        Tensor, k-D input ... x C could be BC or BHWC or BDHWC
       is_training:   boolean tf.Varialbe, true indicates training phase
@@ -559,7 +559,7 @@ def batch_norm_template(inputs,
 
 def batch_norm_for_fc(inputs, is_training, bn_decay, scope):
     """ Batch normalization on FC data.
-  
+
   Args:
       inputs:      Tensor, 2D BxC input
       is_training: boolean tf.Varialbe, true indicates training phase
@@ -575,7 +575,7 @@ def batch_norm_for_fc(inputs, is_training, bn_decay, scope):
 
 def batch_norm_for_conv1d(inputs, is_training, bn_decay, scope, data_format):
     """ Batch normalization on 1D convolutional maps.
-  
+
   Args:
       inputs:      Tensor, 3D BLC input maps
       is_training: boolean tf.Varialbe, true indicates training phase
@@ -591,7 +591,7 @@ def batch_norm_for_conv1d(inputs, is_training, bn_decay, scope, data_format):
 
 def batch_norm_for_conv2d(inputs, is_training, bn_decay, scope, data_format):
     """ Batch normalization on 2D convolutional maps.
-  
+
   Args:
       inputs:      Tensor, 4D BHWC input maps
       is_training: boolean tf.Varialbe, true indicates training phase
@@ -607,7 +607,7 @@ def batch_norm_for_conv2d(inputs, is_training, bn_decay, scope, data_format):
 
 def batch_norm_for_conv3d(inputs, is_training, bn_decay, scope):
     """ Batch normalization on 3D convolutional maps.
-  
+
   Args:
       inputs:      Tensor, 5D BDHWC input maps
       is_training: boolean tf.Varialbe, true indicates training phase

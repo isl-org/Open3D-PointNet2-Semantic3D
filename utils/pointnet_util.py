@@ -1,21 +1,18 @@
-""" PointNet++ Layers
-
-Author: Charles R. Qi
-Date: November 2017
-"""
+# PointNet++ Layers
+# Author: Charles R. Qi
+# Date: November 2017
 
 import os
 import sys
+import numpy as np
+import tensorflow as tf
+from tf_ops.interpolation.tf_interpolate import three_nn, three_interpolate
+from tf_ops.grouping.tf_grouping import query_ball_point, group_point, knn_point
+from tf_ops.sampling.tf_sampling import farthest_point_sample, gather_point
+from utils import tf_util
 
 ROOT_DIR = os.path.abspath(os.path.pardir)
 sys.path.append(ROOT_DIR)
-
-from tf_ops.sampling.tf_sampling import farthest_point_sample, gather_point
-from tf_ops.grouping.tf_grouping import query_ball_point, group_point, knn_point
-from tf_ops.interpolation.tf_interpolate import three_nn, three_interpolate
-import tensorflow as tf
-import numpy as np
-import tf_util
 
 
 def sample_and_group(npoint,
@@ -147,7 +144,8 @@ def pointnet_sa_module(xyz,
                 npoint, radius, nsample, xyz, points, knn, use_xyz)
 
         # Point Feature Embedding
-        if use_nchw: new_points = tf.transpose(new_points, [0, 3, 1, 2])
+        if use_nchw:
+            new_points = tf.transpose(new_points, [0, 3, 1, 2])
         for i, num_out_channel in enumerate(mlp):
             new_points = tf_util.conv2d(
                 new_points,
@@ -159,7 +157,8 @@ def pointnet_sa_module(xyz,
                 scope='conv%d' % (i),
                 bn_decay=bn_decay,
                 data_format=data_format)
-        if use_nchw: new_points = tf.transpose(new_points, [0, 2, 3, 1])
+        if use_nchw:
+            new_points = tf.transpose(new_points, [0, 2, 3, 1])
 
         # Pooling in Local Regions
         if pooling == 'max':
@@ -186,7 +185,8 @@ def pointnet_sa_module(xyz,
 
         # [Optional] Further Processing
         if mlp2 is not None:
-            if use_nchw: new_points = tf.transpose(new_points, [0, 3, 1, 2])
+            if use_nchw:
+                new_points = tf.transpose(new_points, [0, 3, 1, 2])
             for i, num_out_channel in enumerate(mlp2):
                 new_points = tf_util.conv2d(
                     new_points,
@@ -198,7 +198,8 @@ def pointnet_sa_module(xyz,
                     scope='conv_post_%d' % (i),
                     bn_decay=bn_decay,
                     data_format=data_format)
-            if use_nchw: new_points = tf.transpose(new_points, [0, 2, 3, 1])
+            if use_nchw:
+                new_points = tf.transpose(new_points, [0, 2, 3, 1])
 
         new_points = tf.squeeze(new_points,
                                 [2])  # (batch_size, npoints, mlp2[-1])
@@ -279,12 +280,12 @@ def pointnet_fp_module(xyz1,
                        scope,
                        bn=True):
     ''' PointNet Feature Propogation (FP) Module
-        Input:                                                                                                      
-            xyz1: (batch_size, ndataset1, 3) TF tensor                                                              
-            xyz2: (batch_size, ndataset2, 3) TF tensor, sparser than xyz1                                           
-            points1: (batch_size, ndataset1, nchannel1) TF tensor                                                   
+        Input:
+            xyz1: (batch_size, ndataset1, 3) TF tensor
+            xyz2: (batch_size, ndataset2, 3) TF tensor, sparser than xyz1
+            points1: (batch_size, ndataset1, nchannel1) TF tensor
             points2: (batch_size, ndataset2, nchannel2) TF tensor
-            mlp: list of int32 -- output size for MLP on each point                                                 
+            mlp: list of int32 -- output size for MLP on each point
         Return:
             new_points: (batch_size, ndataset1, mlp[-1]) TF tensor
     '''

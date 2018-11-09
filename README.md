@@ -16,6 +16,28 @@ To achieve that, we clean, document, refactor, and improve the original project.
 We will compare the same datasets later with SnapNet, another state-of-the-art
 semantic segmentation project.
 
+## Semantic 3D dataset
+
+See `dataset/semantic.py` for training/validation/test set split.
+
+### Train (with training set)
+```bash
+python train.py --config semantic.json
+```
+
+### Test (with validation set)
+```bash
+python predict.py --cloud=true --n=10 \
+                  --ckpt logs/semantic/best_model_epoch_060.ckpt \
+                  --dataset=semantic --set=test --config semantic.json
+```
+
+### Train (with training + validation set)
+TBD
+
+### Test (with test set and submit)
+TBD
+
 ## Dependancies and data
 We work on Ubuntu 16.04 with 3 GTX Titan Black and a GTX Titan X. On older GPUs,
 like my GTX 860m, you can expect to lower the number of points and the batch
@@ -23,7 +45,7 @@ size for the training, otherwise you will get a OutOfMemory from TensorFlow.
 You have to install TensorFlow on GPU (we use TF 1.2, cuda 8.0, python 2.7, but
 it should also work on newer versions with minor changes). Then, you have to
 compile the custom TensorFlow operators in the tf_ops subdirectories, with the
-.sh files. You may have to install some additionnal Python modules.
+.sh files. You may have to install some additional Python modules.
 
 Get the preprocessed data (you can also preprocess the semantic data from raw
 data in the directory dataset/preprocessing) :

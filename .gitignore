@@ -11,3 +11,4 @@ visu
 .vscode
 TODO.md
 local_test.json
+build/

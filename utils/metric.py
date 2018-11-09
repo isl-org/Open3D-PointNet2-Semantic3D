@@ -32,23 +32,23 @@ class ConfusionMatrix:
 
     def get_intersection_union_per_class(self):
         matrix_diagonal = [
-            self.confusion_matrix[i][i] for i in xrange(self.number_of_labels)
+            self.confusion_matrix[i][i] for i in range(self.number_of_labels)
         ]
         errors_summed_by_row = [0] * self.number_of_labels
-        for row in xrange(self.number_of_labels):
-            for column in xrange(self.number_of_labels):
+        for row in range(self.number_of_labels):
+            for column in range(self.number_of_labels):
                 if row != column:
                     errors_summed_by_row[row] += self.confusion_matrix[row][
                         column]
         errors_summed_by_column = [0] * self.number_of_labels
-        for column in xrange(self.number_of_labels):
-            for row in xrange(self.number_of_labels):
+        for column in range(self.number_of_labels):
+            for row in range(self.number_of_labels):
                 if row != column:
                     errors_summed_by_column[column] += self.confusion_matrix[
                         row][column]
 
         divisor = [0] * self.number_of_labels
-        for i in xrange(self.number_of_labels):
+        for i in range(self.number_of_labels):
             divisor[i] = matrix_diagonal[i] + errors_summed_by_row[
                 i] + errors_summed_by_column[i]
             if matrix_diagonal[i] == 0:
@@ -56,7 +56,7 @@ class ConfusionMatrix:
 
         return [
             float(matrix_diagonal[i]) / divisor[i]
-            for i in xrange(self.number_of_labels)
+            for i in range(self.number_of_labels)
         ]
 
     """returns 64-bit float"""
@@ -64,8 +64,8 @@ class ConfusionMatrix:
     def get_overall_accuracy(self):
         matrix_diagonal = 0
         all_values = 0
-        for row in xrange(self.number_of_labels):
-            for column in xrange(self.number_of_labels):
+        for row in range(self.number_of_labels):
+            for column in range(self.number_of_labels):
                 all_values += self.confusion_matrix[row][column]
                 if row == column:
                     matrix_diagonal += self.confusion_matrix[row][column]
@@ -93,8 +93,8 @@ class ConfusionMatrix:
                 if max_label > self.number_of_labels:
                     #resize to larger confusion matrix
                     b = np.zeros((max_label, max_label))
-                    for row in xrange(self.number_of_labels):
-                        for column in xrange(self.number_of_labels):
+                    for row in range(self.number_of_labels):
+                        for column in range(self.number_of_labels):
                             b[row][column] = self.confusion_matrix[row][column]
                     self.confusion_matrix = b
                     self.number_of_labels = max_label

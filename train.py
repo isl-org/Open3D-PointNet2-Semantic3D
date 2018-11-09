@@ -161,10 +161,10 @@ def average_gradients(tower_grads):
 
 def get_learning_rate(batch):
     """Compute the learning rate for a given batch size and global parameters
-    
+
     Args:
         batch (tf.Variable): the batch size
-    
+
     Returns:
         scalar tf.Tensor: the decayed learning rate
     """
@@ -182,10 +182,10 @@ def get_learning_rate(batch):
 
 def get_bn_decay(batch):
     """Compute the batch normalisation exponential decay
-    
+
     Args:
         batch (tf.Variable): the batch size
-    
+
     Returns:
         scalar tf.Tensor: the batch norm decay
     """
@@ -488,40 +488,42 @@ def training_loop(sess, ops, saver, stacker, train_writer, stack_train,
                   test_writer, stack_test):
     best_acc = -1
     # Train for MAX_EPOCH epochs
-    try:
-        for epoch in range(MAX_EPOCH):
-            log_string('**** EPOCH %03d ****' % (epoch))
-            sys.stdout.flush()
+    for epoch in range(MAX_EPOCH):
+        print("in epoch", epoch)
+        print("MAX_EPOCH", MAX_EPOCH)
 
-            # Train one epoch
-            train_one_epoch(sess, ops, train_writer, stack_train)
+        log_string('**** EPOCH %03d ****' % (epoch))
+        sys.stdout.flush()
 
-            # Evaluate, save, and compute the accuracy
-            if epoch % 5 == 0:
-                acc = eval_one_epoch(sess, ops, test_writer, stack_test)
-            if acc > best_acc:
-                best_acc = acc
-                save_path = saver.save(
-                    sess,
-                    os.path.join(LOG_DIR,
-                                 "best_model_epoch_%03d.ckpt" % (epoch)))
-                log_string("Model saved in file: %s" % save_path)
+        # Train one epoch
+        train_one_epoch(sess, ops, train_writer, stack_train)
 
-            # Save the variables to disk.
-            if epoch % 10 == 0:
-                save_path = saver.save(sess, os.path.join(
-                    LOG_DIR, "model.ckpt"))
-                log_string("Model saved in file: %s" % save_path)
-    finally:
-        # Kill the process, close the file and exit
-        stacker.terminate()
-        LOG_FOUT.close()
-        sys.exit()
+        # Evaluate, save, and compute the accuracy
+        if epoch % 5 == 0:
+            acc = eval_one_epoch(sess, ops, test_writer, stack_test)
+        if acc > best_acc:
+            best_acc = acc
+            save_path = saver.save(
+                sess,
+                os.path.join(LOG_DIR, "best_model_epoch_%03d.ckpt" % (epoch)))
+            log_string("Model saved in file: %s" % save_path)
+            print("Model saved in file: %s" % save_path)
+
+        # Save the variables to disk.
+        if epoch % 10 == 0:
+            save_path = saver.save(sess, os.path.join(LOG_DIR, "model.ckpt"))
+            log_string("Model saved in file: %s" % save_path)
+            print("Model saved in file: %s" % save_path)
+
+    # Kill the process, close the file and exit
+    stacker.terminate()
+    LOG_FOUT.close()
+    sys.exit()
 
 
 def train_one_epoch(sess, ops, train_writer, stack):
     """Train one epoch
-    
+
     Args:
         sess (tf.Session): the session to evaluate Tensors and ops
         ops (dict of tf.Operation): contain multiple operation mapped with with strings
@@ -581,12 +583,12 @@ def train_one_epoch(sess, ops, train_writer, stack):
 
 def eval_one_epoch(sess, ops, test_writer, stack):
     """Evaluate one epoch
-    
+
     Args:
         sess (tf.Session): the session to evaluate tensors and operations
         ops (tf.Operation): the dict of operations
         test_writer (tf.summary.FileWriter): enable to log the evaluation on TensorBoard
-    
+
     Returns:
         float: the overall accuracy computed on the test set
     """

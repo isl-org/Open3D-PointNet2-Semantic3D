@@ -1,10 +1,11 @@
 #!/usr/bin/env python
-#-*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 Unified semantic with color support and many options
 """
 import os
 import sys
+
 ROOT_DIR = os.path.abspath(os.path.pardir)
 sys.path.append(ROOT_DIR)
 
@@ -12,9 +13,10 @@ import numpy as np
 import utils.provider as provider
 
 
-class Dataset():
-    def __init__(self, npoints, split, use_color, box_size, path, dropout_max,
-                 z_feature):
+class Dataset:
+    def __init__(
+        self, npoints, split, use_color, box_size, path, dropout_max, z_feature
+    ):
         """Create a dataset holder
             npoints (int): Defaults to 8192. The number of point in each input
             split (str): Defaults to 'train'. The selected part of the data (train, test, reduced...)
@@ -34,19 +36,34 @@ class Dataset():
         self.num_classes = 9
         self.path = path
         self.labels_names = [
-            'unlabeled', 'man-made terrain', 'natural terrain',
-            'high vegetation', 'low vegetation', 'buildings', 'hard scape',
-            'scanning artefacts', 'cars'
+            "unlabeled",
+            "man-made terrain",
+            "natural terrain",
+            "high vegetation",
+            "low vegetation",
+            "buildings",
+            "hard scape",
+            "scanning artefacts",
+            "cars",
         ]
         self.short_labels_names = [
-            'unlbl.', 'm.m. terr.', 'nat. terr.', 'high veg.', 'low veg.',
-            'build.', 'hard sc.', 'scan. art.', 'cars'
+            "unlbl.",
+            "m.m. terr.",
+            "nat. terr.",
+            "high veg.",
+            "low veg.",
+            "build.",
+            "hard sc.",
+            "scan. art.",
+            "cars",
         ]
         self.filenames_test = [
-            "sg27_station4_intensity_rgb", "sg27_station5_intensity_rgb",
-            "sg27_station9_intensity_rgb", "sg28_station4_intensity_rgb",
+            "sg27_station4_intensity_rgb",
+            "sg27_station5_intensity_rgb",
+            "sg27_station9_intensity_rgb",
+            "sg28_station4_intensity_rgb",
             "untermaederbrunnen_station1_xyz_intensity_rgb",
-            "untermaederbrunnen_station3_xyz_intensity_rgb"
+            "untermaederbrunnen_station3_xyz_intensity_rgb",
         ]
         self.filenames_train = [
             "bildstein_station1_xyz_intensity_rgb",
@@ -56,7 +73,8 @@ class Dataset():
             "domfountain_station2_xyz_intensity_rgb",
             "domfountain_station3_xyz_intensity_rgb",
             "neugasse_station1_xyz_intensity_rgb",
-            "sg27_station1_intensity_rgb", "sg27_station2_intensity_rgb"
+            "sg27_station1_intensity_rgb",
+            "sg27_station2_intensity_rgb",
         ]
 
         self.real_test_filenames = [
@@ -85,7 +103,7 @@ class Dataset():
         self.set_pc_zmax_zmin()
 
         # Prepare the points weights if it is a training set
-        if split == 'train' or split == 'train_short' or split == 'full':
+        if split == "train" or split == "train_short" or split == "full":
             # Compute the weights
             labelweights = np.zeros(9)
             # First, compute the histogram of each labels
@@ -98,28 +116,26 @@ class Dataset():
             labelweights = labelweights / np.sum(labelweights)
             self.labelweights = 1 / np.log(1.2 + labelweights)
 
-        elif split == 'test' or split == 'test_short' or split == 'test_full':
+        elif split == "test" or split == "test_short" or split == "test_full":
             self.labelweights = np.ones(9)
 
     def load_data(self):
         print("Loading semantic data...")
-        if self.split == 'train':
+        if self.split == "train":
             filenames = self.filenames_train
-        elif self.split == 'test':
+        elif self.split == "test":
             filenames = self.filenames_test
-        elif self.split == 'full':
+        elif self.split == "full":
             filenames = self.filenames_train + self.filenames_test
-        elif self.split == 'test_full':
+        elif self.split == "test_full":
             filenames = self.real_test_filenames
         # train on a smaller, easier dataset to speed up computation
-        elif self.split == 'train_short':
+        elif self.split == "train_short":
             filenames = self.filenames_train[0:2]
-        elif self.split == 'test_short':
+        elif self.split == "test_short":
             filenames = self.filenames_train[2:3]
 
-        self.data_filenames = [
-            os.path.join(self.path, file) for file in filenames
-        ]
+        self.data_filenames = [os.path.join(self.path, file) for file in filenames]
         self.scene_points_list = list()
         self.semantic_labels_list = list()
         if self.use_color:
@@ -127,8 +143,9 @@ class Dataset():
         for filename in self.data_filenames:
             data_points = np.load(filename + "_vertices.npz")
             if self.split == "test_full":
-                data_labels = np.zeros(len(
-                    data_points[data_points.files[0]])).astype(bool)
+                data_labels = np.zeros(len(data_points[data_points.files[0]])).astype(
+                    bool
+                )
             else:
                 data_labels = np.load(filename + "_labels.npz")
             if self.use_color:
@@ -151,23 +168,22 @@ class Dataset():
 
         # Normalize RGB
         for i in range(len(self.scene_colors_list)):
-            self.scene_colors_list[i] = self.scene_colors_list[i].astype(
-                'float32') / 255
-            #self.scene_colors_list[i] = (self.scene_colors_list[i]-np.mean(self.scene_colors_list[i], axis=0))/np.std(self.scene_colors_list[i], axis=0)
+            self.scene_colors_list[i] = (
+                self.scene_colors_list[i].astype("float32") / 255
+            )
+            # self.scene_colors_list[i] = (self.scene_colors_list[i]-np.mean(self.scene_colors_list[i], axis=0))/np.std(self.scene_colors_list[i], axis=0)
 
         # Set min to (0,0,0)
         self.scene_max_list = list()
         self.scene_min_list = list()
         self.raw_scene_min_list = list()
         for i in range(len(self.scene_points_list)):
-            self.raw_scene_min_list.append(
-                np.min(self.scene_points_list[i], axis=0))
+            self.raw_scene_min_list.append(np.min(self.scene_points_list[i], axis=0))
             self.scene_points_list[i] = self.scene_points_list[i] - np.min(
-                self.scene_points_list[i], axis=0)
-            self.scene_max_list.append(
-                np.max(self.scene_points_list[i], axis=0))
-            self.scene_min_list.append(
-                np.min(self.scene_points_list[i], axis=0))
+                self.scene_points_list[i], axis=0
+            )
+            self.scene_max_list.append(np.max(self.scene_points_list[i], axis=0))
+            self.scene_min_list.append(np.min(self.scene_points_list[i], axis=0))
 
     def __getitem__(self, index):
         """
@@ -209,19 +225,15 @@ class Dataset():
 
         # Optional batch augmentation
         if augment and feature_size:
-            batch_data = provider.rotate_feature_point_cloud(
-                batch_data, feature_size)
+            batch_data = provider.rotate_feature_point_cloud(batch_data, feature_size)
         if augment and not feature_size:
             batch_data = provider.rotate_point_cloud(batch_data)
 
         return batch_data, batch_label, batch_weights
 
-    def next_input(self,
-                   dropout=False,
-                   sample=True,
-                   verbose=False,
-                   visu=False,
-                   predicting=False):
+    def next_input(
+        self, dropout=False, sample=True, verbose=False, visu=False, predicting=False
+    ):
         input_ok = False
         count_try = 0
         verbose = False
@@ -243,9 +255,9 @@ class Dataset():
             seed = scene[seed_index]  # [x,y,z]
 
             # Random (space)
-            #scene_max = np.max(scene,axis=0)
-            #scene_min = np.min(scene,axis=0)
-            #seed = np.random.uniform(scene_min,scene_max,3)
+            # scene_max = np.max(scene,axis=0)
+            # scene_min = np.min(scene,axis=0)
+            # seed = np.random.uniform(scene_min,scene_max,3)
 
             # Crop a z-box around that seed
             scene_extract_mask = self.extract_z_box(seed, scene, scene_index)
@@ -256,12 +268,17 @@ class Dataset():
                 continue
             else:
                 if verbose:
-                    print("There are %i points in the box" %
-                          (np.sum(scene_extract_mask)))
+                    print(
+                        "There are %i points in the box" % (np.sum(scene_extract_mask))
+                    )
                 input_ok = True
                 if visu:
-                    return scene_index, scene_extract_mask, np.histogram(
-                        scene_labels[scene_extract_mask], range(10))[0], seed
+                    return (
+                        scene_index,
+                        scene_extract_mask,
+                        np.histogram(scene_labels[scene_extract_mask], range(10))[0],
+                        seed,
+                    )
 
             data = scene[scene_extract_mask]
             labels = scene_labels[scene_extract_mask]
@@ -279,9 +296,8 @@ class Dataset():
             else:
                 # Not enough points, recopy the data until there are enough points
                 sample_mask = np.arange(len(data))
-                while (len(sample_mask) < self.npoints):
-                    sample_mask = np.concatenate((sample_mask, sample_mask),
-                                                 axis=0)
+                while len(sample_mask) < self.npoints:
+                    sample_mask = np.concatenate((sample_mask, sample_mask), axis=0)
                 sample_mask = sample_mask[np.arange(self.npoints)]
             raw_data = data[sample_mask]
 
@@ -304,12 +320,19 @@ class Dataset():
                 # Rotion is not a problem as it is done along z-axis
                 # z_feature is a new experimental feature
                 z_norm = (data[:, 2] - self.pc_zmin[scene_index]) / (
-                    self.pc_zmax[scene_index] - self.pc_zmin[scene_index])
+                    self.pc_zmax[scene_index] - self.pc_zmin[scene_index]
+                )
                 z_norm = z_norm.reshape(self.npoints, 1)
 
         if predicting:
-            return scene_index, data, raw_data + self.raw_scene_min_list[
-                scene_index], labels, colors, weights
+            return (
+                scene_index,
+                data,
+                raw_data + self.raw_scene_min_list[scene_index],
+                labels,
+                colors,
+                weights,
+            )
         else:
             if self.z_feature:
                 return data, z_norm, labels, colors, weights
@@ -320,15 +343,14 @@ class Dataset():
         self.pc_zmin = []
         self.pc_zmax = []
         for scene_index in range(len(self)):
-            self.pc_zmin.append(
-                np.min(self.scene_points_list[scene_index], axis=0)[2])
-            self.pc_zmax.append(
-                np.max(self.scene_points_list[scene_index], axis=0)[2])
+            self.pc_zmin.append(np.min(self.scene_points_list[scene_index], axis=0)[2])
+            self.pc_zmax.append(np.max(self.scene_points_list[scene_index], axis=0)[2])
 
     def get_random_scene_index(self):
-        #return np.random.randint(0,len(self.scene_points_list)) # Does not take into account the scene number of points
+        # return np.random.randint(0,len(self.scene_points_list)) # Does not take into account the scene number of points
         return np.random.choice(
-            np.arange(0, len(self.scene_points_list)), p=self.scenes_proba)
+            np.arange(0, len(self.scene_points_list)), p=self.scenes_proba
+        )
 
     def compute_random_scene_index_proba(self):
         # Precompute the probability of picking a point
@@ -338,37 +360,40 @@ class Dataset():
         total = self.get_total_num_points()
         proba = 0
         for scene_index in range(len(self)):
-            proba = float(len(
-                self.scene_points_list[scene_index])) / float(total)
+            proba = float(len(self.scene_points_list[scene_index])) / float(total)
             self.scenes_proba.append(proba)
 
     def center_box(self, data):
         # Shift the box so that z= 0 is the min and x=0 and y=0 is the center of the box horizontally
         box_min = np.min(data, axis=0)
-        shift = np.array([
-            box_min[0] + self.box_size / 2, box_min[1] + self.box_size / 2,
-            box_min[2]
-        ])
+        shift = np.array(
+            [box_min[0] + self.box_size / 2, box_min[1] + self.box_size / 2, box_min[2]]
+        )
         return data - shift
 
     def extract_box(self, seed, scene):
         # 10 meters seems intuitively to be a good value to understand the scene, we must test that
 
-        box_min = seed - [
-            self.box_size / 2, self.box_size / 2, self.box_size / 2
-        ]
-        box_max = seed + [
-            self.box_size / 2, self.box_size / 2, self.box_size / 2
-        ]
+        box_min = seed - [self.box_size / 2, self.box_size / 2, self.box_size / 2]
+        box_max = seed + [self.box_size / 2, self.box_size / 2, self.box_size / 2]
 
         i_min = np.searchsorted(scene[:, 0], box_min[0])
         i_max = np.searchsorted(scene[:, 0], box_max[0])
-        mask = np.sum(
-            (scene[i_min[0]:i_max, :] >= box_min) *
-            (scene[i_min[0]:i_max, :] <= box_max),
-            axis=1) == 3
-        mask = np.hstack((np.zeros(i_min, dtype=bool), mask,
-                          np.zeros(len(scene) - i_max, dtype=bool)))
+        mask = (
+            np.sum(
+                (scene[i_min[0] : i_max, :] >= box_min)
+                * (scene[i_min[0] : i_max, :] <= box_max),
+                axis=1,
+            )
+            == 3
+        )
+        mask = np.hstack(
+            (
+                np.zeros(i_min, dtype=bool),
+                mask,
+                np.zeros(len(scene) - i_max, dtype=bool),
+            )
+        )
         print(mask.shape)
         return mask
 
@@ -384,20 +409,27 @@ class Dataset():
 
         i_min = np.searchsorted(scene[:, 0], box_min[0])
         i_max = np.searchsorted(scene[:, 0], box_max[0])
-        mask = np.sum(
-            (scene[i_min:i_max, :] >= box_min) *
-            (scene[i_min:i_max, :] <= box_max),
-            axis=1) == 3
-        mask = np.hstack((np.zeros(i_min, dtype=bool), mask,
-                          np.zeros(len(scene) - i_max, dtype=bool)))
+        mask = (
+            np.sum(
+                (scene[i_min:i_max, :] >= box_min) * (scene[i_min:i_max, :] <= box_max),
+                axis=1,
+            )
+            == 3
+        )
+        mask = np.hstack(
+            (
+                np.zeros(i_min, dtype=bool),
+                mask,
+                np.zeros(len(scene) - i_max, dtype=bool),
+            )
+        )
 
-        #mask = np.sum((scene>=box_min)*(scene<=box_max),axis=1) == 3
+        # mask = np.sum((scene>=box_min)*(scene<=box_max),axis=1) == 3
         return mask
 
     def input_dropout(self, input):
         dropout_ratio = np.random.random() * self.dropout_max
-        drop_index = np.where(
-            np.random.random((input.shape[0])) <= dropout_ratio)[0]
+        drop_index = np.where(np.random.random((input.shape[0])) <= dropout_ratio)[0]
         return drop_index
 
     def get_total_num_points(self):
@@ -421,7 +453,7 @@ class Dataset():
         return labelweights
 
     def get_list_classes_str(self):
-        return 'unlabeled, man-made terrain, natural terrain, high vegetation, low vegetation, buildings, hard scape, scanning artefacts, cars'
+        return "unlabeled, man-made terrain, natural terrain, high vegetation, low vegetation, buildings, hard scape, scanning artefacts, cars"
 
     def get_data_filenames(self):
         return self.data_filenames
@@ -433,7 +465,8 @@ class Dataset():
         return self.scene_points_list[scene_index]
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import multiprocessing as mp
     import time
+
     data = Dataset(8192, "train", True, 10, "semantic_data", 0, 0)

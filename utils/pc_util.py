@@ -6,6 +6,7 @@ Date: November 2016
 
 import os
 import sys
+
 """ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR) """
 
@@ -29,23 +30,22 @@ def point_cloud_label_to_surface_voxel_label(point_cloud, label, res=0.0484):
     uvidx = np.unique(vidx)
     if label.ndim == 1:
         uvlabel = [
-            np.argmax(np.bincount(label[vidx == uv].astype(np.uint32)))
-            for uv in uvidx
+            np.argmax(np.bincount(label[vidx == uv].astype(np.uint32))) for uv in uvidx
         ]
     else:
-        assert (label.ndim == 2)
+        assert label.ndim == 2
         uvlabel = np.zeros(len(uvidx), label.shape[1])
         for i in range(label.shape[1]):
-            uvlabel[:, i] = np.array([
-                np.argmax(np.bincount(label[vidx == uv, i].astype(np.uint32)))
-                for uv in uvidx
-            ])
+            uvlabel[:, i] = np.array(
+                [
+                    np.argmax(np.bincount(label[vidx == uv, i].astype(np.uint32)))
+                    for uv in uvidx
+                ]
+            )
     return uvidx, uvlabel, nvox
 
 
-def point_cloud_label_to_surface_voxel_label_fast(point_cloud,
-                                                  label,
-                                                  res=0.0484):
+def point_cloud_label_to_surface_voxel_label_fast(point_cloud, label, res=0.0484):
     coordmax = np.max(point_cloud, axis=0)
     coordmin = np.min(point_cloud, axis=0)
     nvox = np.ceil((coordmax - coordmin) / res)
@@ -55,22 +55,18 @@ def point_cloud_label_to_surface_voxel_label_fast(point_cloud,
     if label.ndim == 1:
         uvlabel = label[vpidx]
     else:
-        assert (label.ndim == 2)
+        assert label.ndim == 2
         uvlabel = label[vpidx, :]
     return uvidx, uvlabel, nvox
 
 
-def point_cloud_to_volume_batch(point_clouds,
-                                vsize=12,
-                                radius=1.0,
-                                flatten=True):
+def point_cloud_to_volume_batch(point_clouds, vsize=12, radius=1.0, flatten=True):
     """ Input is BxNx3 batch of point cloud
         Output is Bx(vsize^3)
     """
     vol_list = []
     for b in range(point_clouds.shape[0]):
-        vol = point_cloud_to_volume(
-            np.squeeze(point_clouds[b, :, :]), vsize, radius)
+        vol = point_cloud_to_volume(np.squeeze(point_clouds[b, :, :]), vsize, radius)
         if flatten:
             vol_list.append(vol.flatten())
         else:
@@ -94,8 +90,8 @@ def point_cloud_to_volume(points, vsize, radius=1.0):
     return vol
 
 
-#a = np.zeros((16,1024,3))
-#print point_cloud_to_volume_batch(a, 12, 1.0, False).shape
+# a = np.zeros((16,1024,3))
+# print point_cloud_to_volume_batch(a, 12, 1.0, False).shape
 
 
 def volume_to_point_cloud(vol):
@@ -103,7 +99,7 @@ def volume_to_point_cloud(vol):
         return Nx3 numpy array.
     """
     vsize = vol.shape[0]
-    assert (vol.shape[1] == vsize and vol.shape[1] == vsize)
+    assert vol.shape[1] == vsize and vol.shape[1] == vsize
     points = []
     for a in range(vsize):
         for b in range(vsize):
@@ -116,18 +112,14 @@ def volume_to_point_cloud(vol):
     return points
 
 
-def point_cloud_to_volume_v2_batch(point_clouds,
-                                   vsize=12,
-                                   radius=1.0,
-                                   num_sample=128):
+def point_cloud_to_volume_v2_batch(point_clouds, vsize=12, radius=1.0, num_sample=128):
     """ Input is BxNx3 a batch of point cloud
         Output is BxVxVxVxnum_samplex3
         Added on Feb 19
     """
     vol_list = []
     for b in range(point_clouds.shape[0]):
-        vol = point_cloud_to_volume_v2(point_clouds[b, :, :], vsize, radius,
-                                       num_sample)
+        vol = point_cloud_to_volume_v2(point_clouds[b, :, :], vsize, radius, num_sample)
         vol_list.append(np.expand_dims(vol, 0))
     return np.concatenate(vol_list, 0)
 
@@ -150,7 +142,7 @@ def point_cloud_to_volume_v2(points, vsize, radius=1.0, num_sample=128):
         if loc not in loc2pc:
             loc2pc[loc] = []
         loc2pc[loc].append(points[n, :])
-    #print loc2pc
+    # print loc2pc
 
     for i in range(vsize):
         for j in range(vsize):
@@ -163,32 +155,30 @@ def point_cloud_to_volume_v2(points, vsize, radius=1.0, num_sample=128):
                     # Sample/pad to num_sample points
                     if pc.shape[0] > num_sample:
                         choices = np.random.choice(
-                            pc.shape[0], num_sample, replace=False)
+                            pc.shape[0], num_sample, replace=False
+                        )
                         pc = pc[choices, :]
                     elif pc.shape[0] < num_sample:
-                        pc = np.lib.pad(pc, ((0, num_sample - pc.shape[0]),
-                                             (0, 0)), 'edge')
+                        pc = np.lib.pad(
+                            pc, ((0, num_sample - pc.shape[0]), (0, 0)), "edge"
+                        )
                     # Normalize
                     pc_center = (np.array([i, j, k]) + 0.5) * voxel - radius
-                    #print 'pc center: ', pc_center
+                    # print 'pc center: ', pc_center
                     pc = (pc - pc_center) / voxel  # shift and scale
                     vol[i, j, k, :, :] = pc
-                    #print (i,j,k), vol[i,j,k,:,:]
+                    # print (i,j,k), vol[i,j,k,:,:]
     return vol
 
 
-def point_cloud_to_image_batch(point_clouds,
-                               imgsize,
-                               radius=1.0,
-                               num_sample=128):
+def point_cloud_to_image_batch(point_clouds, imgsize, radius=1.0, num_sample=128):
     """ Input is BxNx3 a batch of point cloud
         Output is BxIxIxnum_samplex3
         Added on Feb 19
     """
     img_list = []
     for b in range(point_clouds.shape[0]):
-        img = point_cloud_to_image(point_clouds[b, :, :], imgsize, radius,
-                                   num_sample)
+        img = point_cloud_to_image(point_clouds[b, :, :], imgsize, radius, num_sample)
         img_list.append(np.expand_dims(img, 0))
     return np.concatenate(img_list, 0)
 
@@ -219,12 +209,10 @@ def point_cloud_to_image(points, imgsize, radius=1.0, num_sample=128):
                 pc = loc2pc[(i, j)]
                 pc = np.vstack(pc)
                 if pc.shape[0] > num_sample:
-                    choices = np.random.choice(
-                        pc.shape[0], num_sample, replace=False)
+                    choices = np.random.choice(pc.shape[0], num_sample, replace=False)
                     pc = pc[choices, :]
                 elif pc.shape[0] < num_sample:
-                    pc = np.lib.pad(pc, ((0, num_sample - pc.shape[0]),
-                                         (0, 0)), 'edge')
+                    pc = np.lib.pad(pc, ((0, num_sample - pc.shape[0]), (0, 0)), "edge")
                 pc_center = (np.array([i, j]) + 0.5) * pixel - radius
                 pc[:, 0:2] = (pc[:, 0:2] - pc_center) / pixel
                 img[i, j, :, :] = pc
@@ -239,17 +227,18 @@ def point_cloud_to_image(points, imgsize, radius=1.0, num_sample=128):
 def read_ply(filename):
     """ read XYZ point cloud from filename PLY file """
     plydata = PlyData.read(filename)
-    pc = plydata['vertex'].data
+    pc = plydata["vertex"].data
     pc_array = np.array([[x, y, z] for x, y, z in pc])
     return pc_array
 
 
 def write_ply(points, filename, text=True):
     """ input: Nx3, write points to filename as PLY format. """
-    points = [(points[i, 0], points[i, 1], points[i, 2])
-              for i in range(points.shape[0])]
-    vertex = np.array(points, dtype=[('x', 'f4'), ('y', 'f4'), ('z', 'f4')])
-    el = PlyElement.describe(vertex, 'vertex', comments=['vertices'])
+    points = [
+        (points[i, 0], points[i, 1], points[i, 2]) for i in range(points.shape[0])
+    ]
+    vertex = np.array(points, dtype=[("x", "f4"), ("y", "f4"), ("z", "f4")])
+    el = PlyElement.describe(vertex, "vertex", comments=["vertices"])
     PlyData([el], text=text).write(filename)
 
 
@@ -258,15 +247,17 @@ def write_ply(points, filename, text=True):
 # ----------------------------------------
 
 
-def draw_point_cloud(input_points,
-                     canvasSize=500,
-                     space=200,
-                     diameter=25,
-                     xrot=0,
-                     yrot=0,
-                     zrot=0,
-                     switch_xyz=[0, 1, 2],
-                     normalize=True):
+def draw_point_cloud(
+    input_points,
+    canvasSize=500,
+    space=200,
+    diameter=25,
+    xrot=0,
+    yrot=0,
+    zrot=0,
+    switch_xyz=[0, 1, 2],
+    normalize=True,
+):
     """ Render point cloud to image with alpha channel.
         Input:
             points: Nx3 numpy array (+y is up direction)
@@ -286,7 +277,7 @@ def draw_point_cloud(input_points,
     if normalize:
         centroid = np.mean(points, axis=0)
         points -= centroid
-        furthest_distance = np.max(np.sqrt(np.sum(abs(points)**2, axis=-1)))
+        furthest_distance = np.max(np.sqrt(np.sum(abs(points) ** 2, axis=-1)))
         points /= furthest_distance
 
     # Pre-compute the Gaussian disk
@@ -295,9 +286,11 @@ def draw_point_cloud(input_points,
     for i in range(diameter):
         for j in range(diameter):
             if (i - radius) * (i - radius) + (j - radius) * (
-                    j - radius) <= radius * radius:
+                j - radius
+            ) <= radius * radius:
                 disk[i, j] = np.exp(
-                    (-(i - radius)**2 - (j - radius)**2) / (radius**2))
+                    (-(i - radius) ** 2 - (j - radius) ** 2) / (radius ** 2)
+                )
     mask = np.argwhere(disk > 0)
     dx = mask[:, 0]
     dy = mask[:, 1]
@@ -307,7 +300,8 @@ def draw_point_cloud(input_points,
     zorder = np.argsort(points[:, 2])
     points = points[zorder, :]
     points[:, 2] = (points[:, 2] - np.min(points[:, 2])) / (
-        np.max(points[:, 2] - np.min(points[:, 2])))
+        np.max(points[:, 2] - np.min(points[:, 2]))
+    )
     max_depth = np.max(points[:, 2])
 
     for i in range(points.shape[0]):
@@ -322,8 +316,7 @@ def draw_point_cloud(input_points,
         px = dx + xc
         py = dy + yc
 
-        image[px, py] = image[px, py] * 0.7 + dv * (
-            max_depth - points[j, 2]) * 0.3
+        image[px, py] = image[px, py] * 0.7 + dv * (max_depth - points[j, 2]) * 0.3
 
     image = image / np.max(image)
     return image
@@ -340,17 +333,20 @@ def point_cloud_three_views(points):
         points,
         zrot=110 / 180.0 * np.pi,
         xrot=45 / 180.0 * np.pi,
-        yrot=0 / 180.0 * np.pi)
+        yrot=0 / 180.0 * np.pi,
+    )
     img2 = draw_point_cloud(
         points,
         zrot=70 / 180.0 * np.pi,
         xrot=135 / 180.0 * np.pi,
-        yrot=0 / 180.0 * np.pi)
+        yrot=0 / 180.0 * np.pi,
+    )
     img3 = draw_point_cloud(
         points,
         zrot=180.0 / 180.0 * np.pi,
         xrot=90 / 180.0 * np.pi,
-        yrot=0 / 180.0 * np.pi)
+        yrot=0 / 180.0 * np.pi,
+    )
     image_large = np.concatenate([img1, img2, img3], 1)
     return image_large
 
@@ -358,10 +354,11 @@ def point_cloud_three_views(points):
 def point_cloud_three_views_demo():
     """ Demo for draw_point_cloud function """
     from PIL import Image
-    points = read_ply('../third_party/mesh_sampling/piano.ply')
+
+    points = read_ply("../third_party/mesh_sampling/piano.ply")
     im_array = point_cloud_three_views(points)
     img = Image.fromarray(np.uint8(im_array * 255.0))
-    img.save('piano.jpg')
+    img.save("piano.jpg")
 
 
 if __name__ == "__main__":
@@ -371,13 +368,14 @@ if __name__ == "__main__":
 def pyplot_draw_point_cloud(points, output_filename):
     """ points is a Nx3 numpy array """
     import matplotlib.pyplot as plt
+
     fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
+    ax = fig.add_subplot(111, projection="3d")
     ax.scatter(points[:, 0], points[:, 1], points[:, 2])
-    ax.set_xlabel('x')
-    ax.set_ylabel('y')
-    ax.set_zlabel('z')
-    #savefig(output_filename)
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+    ax.set_zlabel("z")
+    # savefig(output_filename)
 
 
 def pyplot_draw_volume(vol, output_filename):
@@ -391,21 +389,22 @@ def pyplot_draw_volume(vol, output_filename):
 def write_ply_color(points, labels, out_filename, num_classes=None):
     """ Color (N,3) points with labels (N) within range 0 ~ num_classes-1 as OBJ file """
     import matplotlib.pyplot as pyplot
+
     labels = labels.astype(int)
     N = points.shape[0]
     if num_classes is None:
         num_classes = np.max(labels) + 1
     else:
-        assert (num_classes > np.max(labels))
-    fout = open(out_filename, 'w')
-    colors = [
-        pyplot.cm.hsv(i / float(num_classes)) for i in range(num_classes)
-    ]
+        assert num_classes > np.max(labels)
+    fout = open(out_filename, "w")
+    colors = [pyplot.cm.hsv(i / float(num_classes)) for i in range(num_classes)]
     for i in range(N):
         c = colors[labels[i]]
         c = [int(x * 255) for x in c]
-        fout.write('v %f %f %f %d %d %d\n' % (points[i, 0], points[i, 1],
-                                              points[i, 2], c[0], c[1], c[2]))
+        fout.write(
+            "v %f %f %f %d %d %d\n"
+            % (points[i, 0], points[i, 1], points[i, 2], c[0], c[1], c[2])
+        )
     fout.close()
 
 
@@ -413,9 +412,17 @@ def write_ply_true_color(points, colors, out_filename):
     """ Color (N,3) points with labels (N) within range 0 ~ num_classes-1 as OBJ file """
     colors = colors.astype(int)
     N = points.shape[0]
-    fout = open(out_filename, 'w')
+    fout = open(out_filename, "w")
     for i in range(N):
-        fout.write('v %f %f %f %d %d %d\n' %
-                   (points[i, 0], points[i, 1], points[i, 2], colors[i, 0],
-                    colors[i, 1], colors[i, 2]))
+        fout.write(
+            "v %f %f %f %d %d %d\n"
+            % (
+                points[i, 0],
+                points[i, 1],
+                points[i, 2],
+                colors[i, 0],
+                colors[i, 1],
+                colors[i, 2],
+            )
+        )
     fout.close()

@@ -22,76 +22,76 @@ import time
 
 PARSER = argparse.ArgumentParser()
 PARSER.add_argument(
-    '--config',
-    type=str,
-    default="semantic.json",
-    metavar='N',
-    help='config file')
+    "--config", type=str, default="semantic.json", metavar="N", help="config file"
+)
 ARGS = PARSER.parse_args()
 JSON_DATA_CUSTOM = open(ARGS.config).read()
 CUSTOM = json.loads(JSON_DATA_CUSTOM)
-JSON_DATA = open('default.json').read()
+JSON_DATA = open("default.json").read()
 PARAMS = json.loads(JSON_DATA)
 
 PARAMS.update(CUSTOM)
 
-BATCH_SIZE = PARAMS['batch_size']
-NUM_POINT = PARAMS['num_point']
-MAX_EPOCH = PARAMS['max_epoch']
-BASE_LEARNING_RATE = PARAMS['learning_rate']
-GPU_INDEX = PARAMS['gpu']
-MOMENTUM = PARAMS['momentum']
-OPTIMIZER = PARAMS['optimizer']
-DECAY_STEP = PARAMS['decay_step']
-DECAY_RATE = PARAMS['learning_rate_decay_rate']
-DATASET_NAME = PARAMS['dataset']
+BATCH_SIZE = PARAMS["batch_size"]
+NUM_POINT = PARAMS["num_point"]
+MAX_EPOCH = PARAMS["max_epoch"]
+BASE_LEARNING_RATE = PARAMS["learning_rate"]
+GPU_INDEX = PARAMS["gpu"]
+MOMENTUM = PARAMS["momentum"]
+OPTIMIZER = PARAMS["optimizer"]
+DECAY_STEP = PARAMS["decay_step"]
+DECAY_RATE = PARAMS["learning_rate_decay_rate"]
+DATASET_NAME = PARAMS["dataset"]
 
 # Fix GPU use
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"  # see issue #152
 os.environ["CUDA_VISIBLE_DEVICES"] = str(GPU_INDEX)
 NUM_GPUS = len(GPU_INDEX.split(","))
-assert (BATCH_SIZE % NUM_GPUS == 0)
+assert BATCH_SIZE % NUM_GPUS == 0
 DEVICE_BATCH_SIZE = BATCH_SIZE / NUM_GPUS
 
 # Import model
-MODEL = importlib.import_module('models.' + PARAMS['model'])
-LOG_DIR = PARAMS['logdir']
-if not os.path.exists(LOG_DIR): os.mkdir(LOG_DIR)
+MODEL = importlib.import_module("models." + PARAMS["model"])
+LOG_DIR = PARAMS["logdir"]
+if not os.path.exists(LOG_DIR):
+    os.mkdir(LOG_DIR)
 
 # Batch normalisation
-BN_INIT_DECAY = PARAMS['bn_init_decay']
-BN_DECAY_DECAY_RATE = PARAMS['bn_decay_decay_rate']
+BN_INIT_DECAY = PARAMS["bn_init_decay"]
+BN_DECAY_DECAY_RATE = PARAMS["bn_decay_decay_rate"]
 BN_DECAY_DECAY_STEP = float(DECAY_STEP)
-BN_DECAY_CLIP = PARAMS['bn_decay_clip']
+BN_DECAY_CLIP = PARAMS["bn_decay_clip"]
 
 # Import dataset
-data = importlib.import_module('dataset.' + DATASET_NAME)
+data = importlib.import_module("dataset." + DATASET_NAME)
 TRAIN_DATASET = data.Dataset(
     npoints=NUM_POINT,
-    split='train',
-    box_size=PARAMS['box_size'],
-    use_color=PARAMS['use_color'],
-    dropout_max=PARAMS['input_dropout'],
-    path=PARAMS['data_path'],
-    z_feature=PARAMS['use_z_feature'])
+    split="train",
+    box_size=PARAMS["box_size"],
+    use_color=PARAMS["use_color"],
+    dropout_max=PARAMS["input_dropout"],
+    path=PARAMS["data_path"],
+    z_feature=PARAMS["use_z_feature"],
+)
 TEST_DATASET = data.Dataset(
     npoints=NUM_POINT,
-    split='test',
-    box_size=PARAMS['box_size'],
-    use_color=PARAMS['use_color'],
-    dropout_max=PARAMS['input_dropout'],
-    path=PARAMS['data_path'],
-    z_feature=PARAMS['use_z_feature'])
+    split="test",
+    box_size=PARAMS["box_size"],
+    use_color=PARAMS["use_color"],
+    dropout_max=PARAMS["input_dropout"],
+    path=PARAMS["data_path"],
+    z_feature=PARAMS["use_z_feature"],
+)
 NUM_CLASSES = TRAIN_DATASET.num_classes
 
 # Start logging
-LOG_FOUT = open(os.path.join(LOG_DIR, 'log_train.txt'), 'w')
+LOG_FOUT = open(os.path.join(LOG_DIR, "log_train.txt"), "w")
 
 EPOCH_CNT = 0
 
 
 def log_string(out_str):
-    LOG_FOUT.write(out_str + '\n')
+    LOG_FOUT.write(out_str + "\n")
     LOG_FOUT.flush()
     print(out_str)
 
@@ -116,7 +116,8 @@ def update_progress(progress):
         status = "Done...\r\n"
     block = int(round(barLength * progress))
     text = "\rProgress: [{0}] {1}% {2}".format(
-        "#" * block + "-" * (barLength - block), progress * 100, status)
+        "#" * block + "-" * (barLength - block), progress * 100, status
+    )
     sys.stdout.write(text)
     sys.stdout.flush()
 
@@ -138,7 +139,7 @@ def average_gradients(tower_grads):
         # Note that each grad_and_vars looks like the following:
         #   ((grad0_gpu0, var0_gpu0), ... , (grad0_gpuN, var0_gpuN))
         grads = []
-        #for g, _ in grad_and_vars:
+        # for g, _ in grad_and_vars:
         for g, v in grad_and_vars:
             # Add 0 dimension to the gradients to represent the tower.
             expanded_g = tf.expand_dims(g, 0)
@@ -174,9 +175,9 @@ def get_learning_rate(batch):
         batch * BATCH_SIZE,  # Current index into the dataset.
         DECAY_STEP,  # Decay step.
         DECAY_RATE,  # Decay rate.
-        staircase=True)
-    learning_rate = tf.maximum(learning_rate,
-                               0.00001)  # CLIP THE LEARNING RATE!
+        staircase=True,
+    )
+    learning_rate = tf.maximum(learning_rate, 0.00001)  # CLIP THE LEARNING RATE!
     return learning_rate
 
 
@@ -195,7 +196,8 @@ def get_bn_decay(batch):
         batch * BATCH_SIZE,
         BN_DECAY_DECAY_STEP,
         BN_DECAY_DECAY_RATE,
-        staircase=True)
+        staircase=True,
+    )
     bn_decay = tf.minimum(BN_DECAY_CLIP, 1 - bn_momentum)
     return bn_decay
 
@@ -217,10 +219,10 @@ def fill_queues(stack_train, stack_test, maxsize_train, maxsize_test):
     # Launch as much as n
     while True:
         if stack_train.qsize() + launched_train < maxsize_train:
-            results_train.append(pool.apply_async(get_batch, args=("train", )))
+            results_train.append(pool.apply_async(get_batch, args=("train",)))
             launched_train += 1
         elif stack_test.qsize() + launched_test < maxsize_test:
-            results_test.append(pool.apply_async(get_batch, args=("test", )))
+            results_test.append(pool.apply_async(get_batch, args=("test",)))
             launched_test += 1
         for p in results_train:
             if p.ready():
@@ -237,7 +239,7 @@ def fill_queues(stack_train, stack_test, maxsize_train, maxsize_test):
 
 
 def init_stacking():
-    with tf.device('/cpu:0'):
+    with tf.device("/cpu:0"):
         # Queues that contain several batches in advance
         num_train_batches = TRAIN_DATASET.get_num_batches(BATCH_SIZE)
         num_test_batches = TEST_DATASET.get_num_batches(BATCH_SIZE)
@@ -245,8 +247,8 @@ def init_stacking():
         stack_test = mp.Queue(num_test_batches)
         stacker = mp.Process(
             target=fill_queues,
-            args=(stack_train, stack_test, num_train_batches,
-                  num_test_batches))
+            args=(stack_train, stack_test, num_train_batches, num_test_batches),
+        )
         stacker.start()
         return stacker, stack_test, stack_train
 
@@ -257,16 +259,17 @@ def train_single():
     with tf.Graph().as_default():
         stacker, stack_test, stack_train = init_stacking()
 
-        with tf.device('/gpu:' + str(GPU_INDEX)):
+        with tf.device("/gpu:" + str(GPU_INDEX)):
             pointclouds_pl, labels_pl, smpws_pl = MODEL.placeholder_inputs(
-                BATCH_SIZE, NUM_POINT, hyperparams=PARAMS)
+                BATCH_SIZE, NUM_POINT, hyperparams=PARAMS
+            )
             is_training_pl = tf.placeholder(tf.bool, shape=())
 
             # Note the global_step=batch parameter to minimize.
             # That tells the optimizer to helpfully increment the 'batch' parameter for you every time it trains.
             batch = tf.Variable(0)
             bn_decay = get_bn_decay(batch)
-            tf.summary.scalar('bn_decay', bn_decay)
+            tf.summary.scalar("bn_decay", bn_decay)
 
             print("--- Get model and loss")
             # Get model and loss
@@ -275,31 +278,31 @@ def train_single():
                 is_training_pl,
                 NUM_CLASSES,
                 hyperparams=PARAMS,
-                bn_decay=bn_decay)
+                bn_decay=bn_decay,
+            )
             loss = MODEL.get_loss(pred, labels_pl, smpws_pl, end_points)
-            tf.summary.scalar('loss', loss)
+            tf.summary.scalar("loss", loss)
 
             # Compute accuracy
             correct = tf.equal(tf.argmax(pred, 2), tf.to_int64(labels_pl))
             accuracy = tf.reduce_sum(tf.cast(correct, tf.float32)) / float(
-                BATCH_SIZE * NUM_POINT)
-            tf.summary.scalar('accuracy', accuracy)
+                BATCH_SIZE * NUM_POINT
+            )
+            tf.summary.scalar("accuracy", accuracy)
 
             # Computer mean intersection over union
             mean_intersection_over_union, update_iou_op = tf.metrics.mean_iou(
-                tf.to_int32(labels_pl), tf.to_int32(tf.argmax(pred, 2)),
-                NUM_CLASSES)
-            tf.summary.scalar('mIoU',
-                              tf.to_float(mean_intersection_over_union))
+                tf.to_int32(labels_pl), tf.to_int32(tf.argmax(pred, 2)), NUM_CLASSES
+            )
+            tf.summary.scalar("mIoU", tf.to_float(mean_intersection_over_union))
 
             print("--- Get training operator")
             # Get training operator
             learning_rate = get_learning_rate(batch)
-            tf.summary.scalar('learning_rate', learning_rate)
-            if OPTIMIZER == 'momentum':
-                optimizer = tf.train.MomentumOptimizer(
-                    learning_rate, momentum=MOMENTUM)
-            elif OPTIMIZER == 'adam':
+            tf.summary.scalar("learning_rate", learning_rate)
+            if OPTIMIZER == "momentum":
+                optimizer = tf.train.MomentumOptimizer(learning_rate, momentum=MOMENTUM)
+            elif OPTIMIZER == "adam":
                 optimizer = tf.train.AdamOptimizer(learning_rate)
             train_op = optimizer.minimize(loss, global_step=batch)
 
@@ -315,31 +318,37 @@ def train_single():
 
         # Add summary writers
         merged = tf.summary.merge_all()
-        train_writer = tf.summary.FileWriter(
-            os.path.join(LOG_DIR, 'train'), sess.graph)
-        test_writer = tf.summary.FileWriter(
-            os.path.join(LOG_DIR, 'test'), sess.graph)
+        train_writer = tf.summary.FileWriter(os.path.join(LOG_DIR, "train"), sess.graph)
+        test_writer = tf.summary.FileWriter(os.path.join(LOG_DIR, "test"), sess.graph)
 
         # Init variables
         sess.run(tf.global_variables_initializer())
         sess.run(tf.local_variables_initializer())  # important for mIoU
 
         ops = {
-            'pointclouds_pl': pointclouds_pl,
-            'labels_pl': labels_pl,
-            'smpws_pl': smpws_pl,
-            'is_training_pl': is_training_pl,
-            'pred': pred,
-            'loss': loss,
-            'train_op': train_op,
-            'merged': merged,
-            'step': batch,
-            'end_points': end_points,
-            'update_iou': update_iou_op
+            "pointclouds_pl": pointclouds_pl,
+            "labels_pl": labels_pl,
+            "smpws_pl": smpws_pl,
+            "is_training_pl": is_training_pl,
+            "pred": pred,
+            "loss": loss,
+            "train_op": train_op,
+            "merged": merged,
+            "step": batch,
+            "end_points": end_points,
+            "update_iou": update_iou_op,
         }
 
-        training_loop(sess, ops, saver, stacker, train_writer, stack_train,
-                      test_writer, stack_test)
+        training_loop(
+            sess,
+            ops,
+            saver,
+            stacker,
+            train_writer,
+            stack_train,
+            test_writer,
+            stack_test,
+        )
 
 
 def train_multi():
@@ -348,29 +357,28 @@ def train_multi():
     """
     with tf.Graph().as_default():
         stacker, stack_test, stack_train = init_stacking()
-        with tf.device('/cpu:0'):
+        with tf.device("/cpu:0"):
             pointclouds_pl, labels_pl, smpws_pl = MODEL.placeholder_inputs(
-                BATCH_SIZE, NUM_POINT, hyperparams=PARAMS)
+                BATCH_SIZE, NUM_POINT, hyperparams=PARAMS
+            )
             is_training_pl = tf.placeholder(tf.bool, shape=())
 
             # Note the global_step=batch parameter to minimize.
             # That tells the optimizer to helpfully increment the 'batch' parameter for you every time it trains.
-            #batch = tf.Variable(0)
+            # batch = tf.Variable(0)
             batch = tf.get_variable(
-                'batch', [],
-                initializer=tf.constant_initializer(0),
-                trainable=False)
+                "batch", [], initializer=tf.constant_initializer(0), trainable=False
+            )
             bn_decay = get_bn_decay(batch)
-            tf.summary.scalar('bn_decay', bn_decay)
+            tf.summary.scalar("bn_decay", bn_decay)
 
             print("--- Get training operator")
             # Get training operator
             learning_rate = get_learning_rate(batch)
-            tf.summary.scalar('learning_rate', learning_rate)
-            if OPTIMIZER == 'momentum':
-                optimizer = tf.train.MomentumOptimizer(
-                    learning_rate, momentum=MOMENTUM)
-            elif OPTIMIZER == 'adam':
+            tf.summary.scalar("learning_rate", learning_rate)
+            if OPTIMIZER == "momentum":
+                optimizer = tf.train.MomentumOptimizer(learning_rate, momentum=MOMENTUM)
+            elif OPTIMIZER == "adam":
                 optimizer = tf.train.AdamOptimizer(learning_rate)
 
             # -------------------------------------------
@@ -385,36 +393,44 @@ def train_multi():
                 is_training_pl,
                 NUM_CLASSES,
                 hyperparams=PARAMS,
-                bn_decay=bn_decay)
+                bn_decay=bn_decay,
+            )
 
             tower_grads = []
             pred_gpu = []
             total_loss_gpu = []
             for i in range(NUM_GPUS):
                 with tf.variable_scope(tf.get_variable_scope(), reuse=True):
-                    with tf.device('/gpu:%d' % (i)), tf.name_scope(
-                            'gpu_%d' % (i)) as scope:
+                    with tf.device("/gpu:%d" % (i)), tf.name_scope(
+                        "gpu_%d" % (i)
+                    ) as scope:
                         # Evenly split input data to each GPU
-                        pc_batch = tf.slice(pointclouds_pl,
-                                            [i * DEVICE_BATCH_SIZE, 0, 0],
-                                            [DEVICE_BATCH_SIZE, -1, -1])
-                        label_batch = tf.slice(labels_pl,
-                                               [i * DEVICE_BATCH_SIZE, 0],
-                                               [DEVICE_BATCH_SIZE, -1])
-                        smpws_batch = tf.slice(smpws_pl,
-                                               [i * DEVICE_BATCH_SIZE, 0],
-                                               [DEVICE_BATCH_SIZE, -1])
+                        pc_batch = tf.slice(
+                            pointclouds_pl,
+                            [i * DEVICE_BATCH_SIZE, 0, 0],
+                            [DEVICE_BATCH_SIZE, -1, -1],
+                        )
+                        label_batch = tf.slice(
+                            labels_pl,
+                            [i * DEVICE_BATCH_SIZE, 0],
+                            [DEVICE_BATCH_SIZE, -1],
+                        )
+                        smpws_batch = tf.slice(
+                            smpws_pl,
+                            [i * DEVICE_BATCH_SIZE, 0],
+                            [DEVICE_BATCH_SIZE, -1],
+                        )
                         pred, end_points = MODEL.get_model(
                             pc_batch,
                             is_training_pl,
                             NUM_CLASSES,
                             hyperparams=PARAMS,
-                            bn_decay=bn_decay)
+                            bn_decay=bn_decay,
+                        )
 
-                        MODEL.get_loss(pred, label_batch, smpws_batch,
-                                       end_points)
-                        losses = tf.get_collection('losses', scope)
-                        total_loss = tf.add_n(losses, name='total_loss')
+                        MODEL.get_loss(pred, label_batch, smpws_batch, end_points)
+                        losses = tf.get_collection("losses", scope)
+                        total_loss = tf.add_n(losses, name="total_loss")
                         for l in losses + [total_loss]:
                             tf.summary.scalar(l.op.name, l)
 
@@ -424,7 +440,7 @@ def train_multi():
                         pred_gpu.append(pred)
                         total_loss_gpu.append(total_loss)
 
-            #print(tower_grads)
+            # print(tower_grads)
             # Merge pred and losses from multiple GPUs
             pred = tf.concat(pred_gpu, 0)
             total_loss = tf.reduce_mean(total_loss_gpu)
@@ -435,16 +451,14 @@ def train_multi():
 
             # Compute accuracy
             correct = tf.equal(tf.argmax(pred, 2), tf.to_int64(labels_pl))
-            accuracy = tf.reduce_sum(tf.cast(correct,
-                                             tf.float32)) / float(BATCH_SIZE)
-            tf.summary.scalar('accuracy', accuracy)
+            accuracy = tf.reduce_sum(tf.cast(correct, tf.float32)) / float(BATCH_SIZE)
+            tf.summary.scalar("accuracy", accuracy)
 
             # Computer mean intersection over union
             mean_intersection_over_union, update_iou_op = tf.metrics.mean_iou(
-                tf.to_int32(labels_pl), tf.to_int32(tf.argmax(pred, 2)),
-                NUM_CLASSES)
-            tf.summary.scalar('mIoU',
-                              tf.to_float(mean_intersection_over_union))
+                tf.to_int32(labels_pl), tf.to_int32(tf.argmax(pred, 2)), NUM_CLASSES
+            )
+            tf.summary.scalar("mIoU", tf.to_float(mean_intersection_over_union))
 
             # Add ops to save and restore all the variables.
             saver = tf.train.Saver()
@@ -458,41 +472,48 @@ def train_multi():
 
         # Add summary writers
         merged = tf.summary.merge_all()
-        train_writer = tf.summary.FileWriter(
-            os.path.join(LOG_DIR, 'train'), sess.graph)
-        test_writer = tf.summary.FileWriter(
-            os.path.join(LOG_DIR, 'test'), sess.graph)
+        train_writer = tf.summary.FileWriter(os.path.join(LOG_DIR, "train"), sess.graph)
+        test_writer = tf.summary.FileWriter(os.path.join(LOG_DIR, "test"), sess.graph)
 
         # Init variables
         sess.run(tf.global_variables_initializer())
         sess.run(tf.local_variables_initializer())  # important for mIoU
 
         ops = {
-            'pointclouds_pl': pointclouds_pl,
-            'labels_pl': labels_pl,
-            'smpws_pl': smpws_pl,
-            'is_training_pl': is_training_pl,
-            'pred': pred,
-            'loss': total_loss,
-            'train_op': train_op,
-            'merged': merged,
-            'step': batch,
-            'end_points': end_points,
-            'update_iou': update_iou_op
+            "pointclouds_pl": pointclouds_pl,
+            "labels_pl": labels_pl,
+            "smpws_pl": smpws_pl,
+            "is_training_pl": is_training_pl,
+            "pred": pred,
+            "loss": total_loss,
+            "train_op": train_op,
+            "merged": merged,
+            "step": batch,
+            "end_points": end_points,
+            "update_iou": update_iou_op,
         }
-        training_loop(sess, ops, saver, stacker, train_writer, stack_train,
-                      test_writer, stack_test)
+        training_loop(
+            sess,
+            ops,
+            saver,
+            stacker,
+            train_writer,
+            stack_train,
+            test_writer,
+            stack_test,
+        )
 
 
-def training_loop(sess, ops, saver, stacker, train_writer, stack_train,
-                  test_writer, stack_test):
+def training_loop(
+    sess, ops, saver, stacker, train_writer, stack_train, test_writer, stack_test
+):
     best_acc = -1
     # Train for MAX_EPOCH epochs
     for epoch in range(MAX_EPOCH):
         print("in epoch", epoch)
         print("MAX_EPOCH", MAX_EPOCH)
 
-        log_string('**** EPOCH %03d ****' % (epoch))
+        log_string("**** EPOCH %03d ****" % (epoch))
         sys.stdout.flush()
 
         # Train one epoch
@@ -504,8 +525,8 @@ def training_loop(sess, ops, saver, stacker, train_writer, stack_train,
         if acc > best_acc:
             best_acc = acc
             save_path = saver.save(
-                sess,
-                os.path.join(LOG_DIR, "best_model_epoch_%03d.ckpt" % (epoch)))
+                sess, os.path.join(LOG_DIR, "best_model_epoch_%03d.ckpt" % (epoch))
+            )
             log_string("Model saved in file: %s" % save_path)
             print("Model saved in file: %s" % save_path)
 
@@ -550,35 +571,37 @@ def train_one_epoch(sess, ops, train_writer, stack):
 
         # Get predicted labels
         feed_dict = {
-            ops['pointclouds_pl']: batch_data,
-            ops['labels_pl']: batch_label,
-            ops['smpws_pl']: batch_weights,
-            ops['is_training_pl']: is_training,
+            ops["pointclouds_pl"]: batch_data,
+            ops["labels_pl"]: batch_label,
+            ops["smpws_pl"]: batch_weights,
+            ops["is_training_pl"]: is_training,
         }
-        summary, step, _, loss_val, pred_val, _ = sess.run([
-            ops['merged'], ops['step'], ops['train_op'], ops['loss'],
-            ops['pred'], ops['update_iou']
-        ],
-                                                           feed_dict=feed_dict)
+        summary, step, _, loss_val, pred_val, _ = sess.run(
+            [
+                ops["merged"],
+                ops["step"],
+                ops["train_op"],
+                ops["loss"],
+                ops["pred"],
+                ops["update_iou"],
+            ],
+            feed_dict=feed_dict,
+        )
         train_writer.add_summary(summary, step)
         pred_val = np.argmax(pred_val, 2)
 
         # Update metrics
         for i in range(len(pred_val)):
             for j in range(len(pred_val[i])):
-                confusion_matrix.count_predicted(batch_label[i][j],
-                                                 pred_val[i][j])
+                confusion_matrix.count_predicted(batch_label[i][j], pred_val[i][j])
         loss_sum += loss_val
     update_progress(1)
-    log_string('mean loss: %f' % (loss_sum / float(num_batches)))
-    log_string(
-        "Overall accuracy : %f" % (confusion_matrix.get_overall_accuracy()))
-    log_string("Average IoU : %f" %
-               (confusion_matrix.get_average_intersection_union()))
+    log_string("mean loss: %f" % (loss_sum / float(num_batches)))
+    log_string("Overall accuracy : %f" % (confusion_matrix.get_overall_accuracy()))
+    log_string("Average IoU : %f" % (confusion_matrix.get_average_intersection_union()))
     iou_per_class = confusion_matrix.get_intersection_union_per_class()
     for i in range(1, NUM_CLASSES):
-        log_string("IoU of %s : %f" % (TRAIN_DATASET.labels_names[i],
-                                       iou_per_class[i]))
+        log_string("IoU of %s : %f" % (TRAIN_DATASET.labels_names[i], iou_per_class[i]))
 
 
 def eval_one_epoch(sess, ops, test_writer, stack):
@@ -605,7 +628,7 @@ def eval_one_epoch(sess, ops, test_writer, stack):
 
     log_string(str(datetime.now()))
 
-    log_string('---- EPOCH %03d EVALUATION ----' % (EPOCH_CNT))
+    log_string("---- EPOCH %03d EVALUATION ----" % (EPOCH_CNT))
 
     update_progress(0)
 
@@ -615,14 +638,14 @@ def eval_one_epoch(sess, ops, test_writer, stack):
         batch_data, batch_label, batch_weights = stack.get()
 
         feed_dict = {
-            ops['pointclouds_pl']: batch_data,
-            ops['labels_pl']: batch_label,
-            ops['smpws_pl']: batch_weights,
-            ops['is_training_pl']: is_training
+            ops["pointclouds_pl"]: batch_data,
+            ops["labels_pl"]: batch_label,
+            ops["smpws_pl"]: batch_weights,
+            ops["is_training_pl"]: is_training,
         }
         summary, step, loss_val, pred_val = sess.run(
-            [ops['merged'], ops['step'], ops['loss'], ops['pred']],
-            feed_dict=feed_dict)
+            [ops["merged"], ops["step"], ops["loss"], ops["pred"]], feed_dict=feed_dict
+        )
 
         test_writer.add_summary(summary, step)
         pred_val = np.argmax(pred_val, 2)  # BxN
@@ -630,8 +653,7 @@ def eval_one_epoch(sess, ops, test_writer, stack):
         # Update metrics
         for i in range(len(pred_val)):
             for j in range(len(pred_val[i])):
-                confusion_matrix.count_predicted(batch_label[i][j],
-                                                 pred_val[i][j])
+                confusion_matrix.count_predicted(batch_label[i][j], pred_val[i][j])
         loss_sum += loss_val
 
     update_progress(1)
@@ -639,21 +661,18 @@ def eval_one_epoch(sess, ops, test_writer, stack):
     iou_per_class = confusion_matrix.get_intersection_union_per_class()
 
     # Display metrics
-    log_string('mean loss: %f' % (loss_sum / float(num_batches)))
-    log_string(
-        "Overall accuracy : %f" % (confusion_matrix.get_overall_accuracy()))
-    log_string("Average IoU : %f" %
-               (confusion_matrix.get_average_intersection_union()))
+    log_string("mean loss: %f" % (loss_sum / float(num_batches)))
+    log_string("Overall accuracy : %f" % (confusion_matrix.get_overall_accuracy()))
+    log_string("Average IoU : %f" % (confusion_matrix.get_average_intersection_union()))
     for i in range(1, NUM_CLASSES):
-        log_string("IoU of %s : %f" % (TEST_DATASET.labels_names[i],
-                                       iou_per_class[i]))
+        log_string("IoU of %s : %f" % (TEST_DATASET.labels_names[i], iou_per_class[i]))
 
     EPOCH_CNT += 5
     return confusion_matrix.get_overall_accuracy()
 
 
 if __name__ == "__main__":
-    log_string('pid: %s' % (str(os.getpid())))
+    log_string("pid: %s" % (str(os.getpid())))
     if NUM_GPUS == 1:
         train_single()
     else:

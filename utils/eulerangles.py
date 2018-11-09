@@ -6,7 +6,7 @@
 #   copyright and license terms.
 #
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ##
-''' Module implementing Euler angle rotations and their conversions
+""" Module implementing Euler angle rotations and their conversions
 
 See:
 
@@ -81,11 +81,12 @@ We are using the following conventions:
 The convention of rotation around ``z``, followed by rotation around
 ``y``, followed by rotation around ``x``, is known (confusingly) as
 "xyz", pitch-roll-yaw, Cardan angles, or Tait-Bryan angles.
-'''
+"""
 
 import math
 
 import sys
+
 if sys.version_info >= (3, 0):
     from functools import reduce
 
@@ -95,7 +96,7 @@ _FLOAT_EPS_4 = np.finfo(float).eps * 4.0
 
 
 def euler2mat(z=0, y=0, x=0):
-    ''' Return matrix for rotations around z, y and x axes
+    """ Return matrix for rotations around z, y and x axes
 
     Uses the z, then y, then x convention above
 
@@ -166,7 +167,7 @@ def euler2mat(z=0, y=0, x=0):
     curl your fingers; the direction your fingers curl is the direction
     of rotation).  Therefore, the rotations are counterclockwise if
     looking along the axis of rotation from positive to negative.
-    '''
+    """
     Ms = []
     if z:
         cosz = math.cos(z)
@@ -186,7 +187,7 @@ def euler2mat(z=0, y=0, x=0):
 
 
 def mat2euler(M, cy_thresh=None):
-    ''' Discover Euler angle vector from 3x3 matrix
+    """ Discover Euler angle vector from 3x3 matrix
 
     Uses the conventions above.
 
@@ -236,7 +237,7 @@ def mat2euler(M, cy_thresh=None):
 
     The code appears to be licensed (from the website) as "can be used
     without restrictions".
-    '''
+    """
     M = np.asarray(M)
     if cy_thresh is None:
         try:
@@ -259,7 +260,7 @@ def mat2euler(M, cy_thresh=None):
 
 
 def euler2quat(z=0, y=0, x=0):
-    ''' Return quaternion corresponding to these Euler angles
+    """ Return quaternion corresponding to these Euler angles
 
     Uses the z, then y, then x convention above
 
@@ -289,7 +290,7 @@ def euler2quat(z=0, y=0, x=0):
     3. Apply quaternion multiplication formula -
        http://en.wikipedia.org/wiki/Quaternions#Hamilton_product - to
        formulae from 2.) to give formula for combined rotations.
-    '''
+    """
     z = z / 2.0
     y = y / 2.0
     x = x / 2.0
@@ -299,14 +300,18 @@ def euler2quat(z=0, y=0, x=0):
     sy = math.sin(y)
     cx = math.cos(x)
     sx = math.sin(x)
-    return np.array([
-        cx * cy * cz - sx * sy * sz, cx * sy * sz + cy * cz * sx,
-        cx * cz * sy - sx * cy * sz, cx * cy * sz + sx * cz * sy
-    ])
+    return np.array(
+        [
+            cx * cy * cz - sx * sy * sz,
+            cx * sy * sz + cy * cz * sx,
+            cx * cz * sy - sx * cy * sz,
+            cx * cy * sz + sx * cz * sy,
+        ]
+    )
 
 
 def quat2euler(q):
-    ''' Return Euler angles corresponding to quaternion `q`
+    """ Return Euler angles corresponding to quaternion `q`
 
     Parameters
     ----------
@@ -328,14 +333,15 @@ def quat2euler(q):
     combining parts of the ``quat2mat`` and ``mat2euler`` functions, but
     the reduction in computation is small, and the code repetition is
     large.
-    '''
+    """
     # delayed import to avoid cyclic dependencies
     import nibabel.quaternions as nq
+
     return mat2euler(nq.quat2mat(q))
 
 
 def euler2angle_axis(z=0, y=0, x=0):
-    ''' Return angle, axis corresponding to these Euler angles
+    """ Return angle, axis corresponding to these Euler angles
 
     Uses the z, then y, then x convention above
 
@@ -362,14 +368,15 @@ def euler2angle_axis(z=0, y=0, x=0):
     1.5
     >>> np.allclose(vec, [0, 1, 0])
     True
-    '''
+    """
     # delayed import to avoid cyclic dependencies
     import nibabel.quaternions as nq
+
     return nq.quat2angle_axis(euler2quat(z, y, x))
 
 
 def angle_axis2euler(theta, vector, is_normalized=False):
-    ''' Convert angle, axis pair to Euler angles
+    """ Convert angle, axis pair to Euler angles
 
     Parameters
     ----------
@@ -400,8 +407,9 @@ def angle_axis2euler(theta, vector, is_normalized=False):
     combining parts of the ``angle_axis2mat`` and ``mat2euler``
     functions, but the reduction in computation is small, and the code
     repetition is large.
-    '''
+    """
     # delayed import to avoid cyclic dependencies
     import nibabel.quaternions as nq
+
     M = nq.angle_axis2mat(theta, vector, is_normalized)
     return mat2euler(M)

@@ -18,6 +18,55 @@ semantic segmentation project.
 
 ## Semantic 3D dataset
 
+### Dataset split
+```
+# Train (9)
+bildstein_station1_xyz_intensity_rgb
+bildstein_station3_xyz_intensity_rgb
+bildstein_station5_xyz_intensity_rgb
+domfountain_station1_xyz_intensity_rgb
+domfountain_station2_xyz_intensity_rgb
+domfountain_station3_xyz_intensity_rgb
+neugasse_station1_xyz_intensity_rgb
+sg27_station1_intensity_rgb
+sg27_station2_intensity_rgb
+
+
+# Validation (6)
+sg27_station4_intensity_rgb
+sg27_station5_intensity_rgb
+sg27_station9_intensity_rgb
+sg28_station4_intensity_rgb
+untermaederbrunnen_station1_xyz_intensity_rgb
+untermaederbrunnen_station3_xyz_intensity_rgb
+
+# Test (15)
+birdfountain_station1_xyz_intensity_rgb
+castleblatten_station1_intensity_rgb
+castleblatten_station5_xyz_intensity_rgb
+marketplacefeldkirch_station1_intensity_rgb
+marketplacefeldkirch_station4_intensity_rgb
+marketplacefeldkirch_station7_intensity_rgb
+sg27_station10_intensity_rgb
+sg27_station3_intensity_rgb
+sg27_station6_intensity_rgb
+sg27_station8_intensity_rgb
+sg28_station2_intensity_rgb
+sg28_station5_xyz_intensity_rgb
+stgallencathedral_station1_intensity_rgb
+stgallencathedral_station3_intensity_rgb
+stgallencathedral_station6_intensity_rgb
+```
+
+Currently, for the `Dataset` class:
+```
+# Todo: refactor this
+"train"     == Train
+"test"      == Validation
+"full"      == Train + Validation
+"test_full" == Test
+```
+
 See `dataset/semantic.py` for training/validation/test set split.
 
 ### Train (with training set)

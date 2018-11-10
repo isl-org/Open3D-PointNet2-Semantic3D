@@ -1,6 +1,6 @@
 """
-Use this file to train the network. It is compatible with both semantic.py
-and scannet.py accessors to the datasets semantic-8 and scannet.
+Use this file to train the network. It is compatible with semantic.py
+accessor to the datasets semantic-8 and scannet.
 Training results are stored as .ckpt files. Training records are stored as well.
 Training is done by tensorflow, with a queue separating CPU and GPU computations
 and multi-CPU support.
@@ -153,10 +153,10 @@ def average_gradients(tower_grads):
 
 def get_learning_rate(batch):
     """Compute the learning rate for a given batch size and global parameters
-    
+
     Args:
         batch (tf.Variable): the batch size
-    
+
     Returns:
         scalar tf.Tensor: the decayed learning rate
     """
@@ -174,10 +174,10 @@ def get_learning_rate(batch):
 
 def get_bn_decay(batch):
     """Compute the batch normalisation exponential decay
-    
+
     Args:
         batch (tf.Variable): the batch size
-    
+
     Returns:
         scalar tf.Tensor: the batch norm decay
     """
@@ -481,7 +481,7 @@ def training_loop(sess, ops, saver, stacker, train_writer, stack_train):
 
 def train_one_epoch(sess, ops, train_writer, stack):
     """Train one epoch
-    
+
     Args:
         sess (tf.Session): the session to evaluate Tensors and ops
         ops (dict of tf.Operation): contain multiple operation mapped with with strings

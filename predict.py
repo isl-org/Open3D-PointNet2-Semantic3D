@@ -144,6 +144,7 @@ def predict():
     scene_points = [np.array([]).reshape((0, p)) for i in range(nscenes)]
     ground_truth = [np.array([]) for i in range(nscenes)]
     predicted_labels = [np.array([]) for i in range(nscenes)]
+
     for i in range(N * nscenes):
         if i % 100 == 0 and i > 0:
             print("{} inputs generated".format(i))
@@ -157,10 +158,12 @@ def predict():
         scene_points[f] = np.vstack((scene_points[f], raw_data))
         ground_truth[f] = np.hstack((ground_truth[f], true_labels))
         predicted_labels[f] = np.hstack((predicted_labels[f], pred_labels))
-    filenames = DATASET.get_data_filenames()
-    filenamesForExport = filenames[0 : min(len(filenames), MAX_EXPORT)]
-    print("{} point clouds to export".format(len(filenamesForExport)))
-    for f, filename in enumerate(filenamesForExport):
+
+
+    file_names = DATASET.get_data_filenames()
+    print("{} point clouds to export".format(len(file_names)))
+
+    for f, filename in enumerate(file_names):
         print(
             "exporting file {} which has {} points".format(
                 os.path.basename(filename), len(ground_truth[f])

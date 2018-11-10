@@ -47,13 +47,13 @@ JSON_DATA = open("default.json").read()
 PARAMS = json.loads(JSON_DATA)
 PARAMS.update(CUSTOM)
 
-EXPORT_FULL_POINT_CLOUDS = FLAGS.cloud
 CHECKPOINT = FLAGS.ckpt
 GPU_INDEX = FLAGS.gpu
 NUM_POINT = FLAGS.num_point
 SET = FLAGS.set
 DATASET_NAME = FLAGS.dataset
 N = FLAGS.n
+print("N", N)
 
 # Fix GPU use
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"  # see issue #152
@@ -136,113 +136,56 @@ def predict():
         "pred": pred,
     }
 
-    if EXPORT_FULL_POINT_CLOUDS:
-        OUTPUT_DIR_FULL_PC = os.path.join(OUTPUT_DIR, "full_scenes_predictions")
-        if not os.path.exists(OUTPUT_DIR_FULL_PC):
-            os.mkdir(OUTPUT_DIR_FULL_PC)
-        nscenes = len(DATASET)
-        p = 6 if PARAMS["use_color"] else 3
-        scene_points = [np.array([]).reshape((0, p)) for i in range(nscenes)]
-        ground_truth = [np.array([]) for i in range(nscenes)]
-        predicted_labels = [np.array([]) for i in range(nscenes)]
-        for i in range(N * nscenes):
-            if i % 100 == 0 and i > 0:
-                print("{} inputs generated".format(i))
-            f, data, raw_data, true_labels, col, _ = DATASET.next_input(
-                DROPOUT, True, False, predicting=True
-            )
-            if p == 6:
-                raw_data = np.hstack((raw_data, col))
-                data = np.hstack((data, col))
-            pred_labels = predict_one_input(sess, ops, data)
-            scene_points[f] = np.vstack((scene_points[f], raw_data))
-            ground_truth[f] = np.hstack((ground_truth[f], true_labels))
-            predicted_labels[f] = np.hstack((predicted_labels[f], pred_labels))
-        filenames = DATASET.get_data_filenames()
-        filenamesForExport = filenames[0 : min(len(filenames), MAX_EXPORT)]
-        print("{} point clouds to export".format(len(filenamesForExport)))
-        for f, filename in enumerate(filenamesForExport):
-            print(
-                "exporting file {} which has {} points".format(
-                    os.path.basename(filename), len(ground_truth[f])
-                )
-            )
-            pc_util.write_ply_color(
-                scene_points[f][:, 0:3],
-                ground_truth[f],
-                OUTPUT_DIR_FULL_PC
-                + "/{}_groundtruth.txt".format(os.path.basename(filename)),
-                NUM_CLASSES,
-            )
-            pc_util.write_ply_color(
-                scene_points[f][:, 0:3],
-                predicted_labels[f],
-                OUTPUT_DIR_FULL_PC
-                + "/{}_aggregated.txt".format(os.path.basename(filename)),
-                NUM_CLASSES,
-            )
-            np.savetxt(
-                OUTPUT_DIR_FULL_PC + "/{}_pred.txt".format(os.path.basename(filename)),
-                predicted_labels[f].reshape((-1, 1)),
-                delimiter=" ",
-            )
-        print("done.")
-        return
-
-    if not os.path.exists(OUTPUT_DIR_GROUNDTRUTH):
-        os.mkdir(OUTPUT_DIR_GROUNDTRUTH)
-    if not os.path.exists(OUTPUT_DIR_PREDICTION):
-        os.mkdir(OUTPUT_DIR_PREDICTION)
-
-    # To add the histograms
-    meta_hist_true = np.zeros(9)
-    meta_hist_pred = np.zeros(9)
-
-    for idx in range(N):
-        data, true_labels, _, _ = DATASET.next_input(DROPOUT, True, False)
-        # Ground truth
-        print("Exporting scene number " + str(idx))
-        pc_util.write_ply_color(
-            data[:, 0:3],
-            true_labels,
-            OUTPUT_DIR_GROUNDTRUTH + "/{}_{}.txt".format(SET, idx),
-            NUM_CLASSES,
+    OUTPUT_DIR_FULL_PC = os.path.join(OUTPUT_DIR, "full_scenes_predictions")
+    if not os.path.exists(OUTPUT_DIR_FULL_PC):
+        os.mkdir(OUTPUT_DIR_FULL_PC)
+    nscenes = len(DATASET)
+    p = 6 if PARAMS["use_color"] else 3
+    scene_points = [np.array([]).reshape((0, p)) for i in range(nscenes)]
+    ground_truth = [np.array([]) for i in range(nscenes)]
+    predicted_labels = [np.array([]) for i in range(nscenes)]
+    for i in range(N * nscenes):
+        if i % 100 == 0 and i > 0:
+            print("{} inputs generated".format(i))
+        f, data, raw_data, true_labels, col, _ = DATASET.next_input(
+            DROPOUT, True, False, predicting=True
         )
-
-        # Prediction
+        if p == 6:
+            raw_data = np.hstack((raw_data, col))
+            data = np.hstack((data, col))
         pred_labels = predict_one_input(sess, ops, data)
-
-        # Compute mean IoU
-        iou, update_op = tf.metrics.mean_iou(
-            tf.to_int64(true_labels), tf.to_int64(pred_labels), NUM_CLASSES
+        scene_points[f] = np.vstack((scene_points[f], raw_data))
+        ground_truth[f] = np.hstack((ground_truth[f], true_labels))
+        predicted_labels[f] = np.hstack((predicted_labels[f], pred_labels))
+    filenames = DATASET.get_data_filenames()
+    filenamesForExport = filenames[0 : min(len(filenames), MAX_EXPORT)]
+    print("{} point clouds to export".format(len(filenamesForExport)))
+    for f, filename in enumerate(filenamesForExport):
+        print(
+            "exporting file {} which has {} points".format(
+                os.path.basename(filename), len(ground_truth[f])
+            )
         )
-        sess.run(tf.local_variables_initializer())
-        update_op.eval(session=sess)
-        print(sess.run(iou))
-
-        hist_true, _ = np.histogram(true_labels, range(NUM_CLASSES + 1))
-        hist_pred, _ = np.histogram(pred_labels, range(NUM_CLASSES + 1))
-
-        # update meta histograms
-        meta_hist_true += hist_true
-        meta_hist_pred += hist_pred
-
-        # print individual histograms
-        print(hist_true)
-        print(hist_pred)
-
         pc_util.write_ply_color(
-            data[:, 0:3],
-            pred_labels,
-            "{}/{}_{}.txt".format(OUTPUT_DIR_PREDICTION, SET, idx),
+            scene_points[f][:, 0:3],
+            ground_truth[f],
+            OUTPUT_DIR_FULL_PC
+            + "/{}_groundtruth.txt".format(os.path.basename(filename)),
             NUM_CLASSES,
         )
-
-    meta_hist_pred = (meta_hist_pred / sum(meta_hist_pred)) * 100
-    meta_hist_true = (meta_hist_true / sum(meta_hist_true)) * 100
-    print(LABELS_TEXT)
-    print(meta_hist_true)
-    print(meta_hist_pred)
+        pc_util.write_ply_color(
+            scene_points[f][:, 0:3],
+            predicted_labels[f],
+            OUTPUT_DIR_FULL_PC
+            + "/{}_aggregated.txt".format(os.path.basename(filename)),
+            NUM_CLASSES,
+        )
+        np.savetxt(
+            OUTPUT_DIR_FULL_PC + "/{}_pred.txt".format(os.path.basename(filename)),
+            predicted_labels[f].reshape((-1, 1)),
+            delimiter=" ",
+        )
+    print("done.")
 
 
 def predict_one_input(sess, ops, data):

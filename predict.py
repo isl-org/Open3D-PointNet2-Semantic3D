@@ -46,15 +46,6 @@ print("N", N)
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"  # see issue #152
 os.environ["CUDA_VISIBLE_DEVICES"] = str(GPU_INDEX)
 
-DROPOUT = False
-DROPOUT_RATIO = 0.875
-AUGMENT = False
-
-if DROPOUT:
-    print("dropout is on, with ratio %f" % (DROPOUT_RATIO))
-if AUGMENT:
-    print("rotation is on")
-
 # Import dataset
 data_module = importlib.import_module("dataset." + DATASET_NAME)
 DATASET = data_module.Dataset(
@@ -139,7 +130,7 @@ def predict():
         if i % 100 == 0 and i > 0:
             print("{} inputs generated".format(i))
         f, data, raw_data, true_labels, col, _ = DATASET.next_input(
-            dropout=DROPOUT, sample=True, verbose=False, predicting=True
+            dropout=False, sample=True, verbose=False, predicting=True
         )
         if p == 6:
             raw_data = np.hstack((raw_data, col))

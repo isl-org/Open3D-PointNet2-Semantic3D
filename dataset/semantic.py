@@ -237,7 +237,6 @@ class Dataset:
     ):
         input_ok = False
         count_try = 0
-        verbose = False
 
         # Try to find a non-empty cloud to process
         while not input_ok:

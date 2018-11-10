@@ -78,6 +78,7 @@ def predict_one_input(sess, ops, data):
     pred_val = np.argmax(pred_val, 1)
     return pred_val
 
+
 def predict():
     """
     Load the selected checkpoint and predict the labels
@@ -131,7 +132,7 @@ def predict():
         if i % 100 == 0 and i > 0:
             print("{} inputs generated".format(i))
         f, data, raw_data, true_labels, col, _ = DATASET.next_input(
-            DROPOUT, True, False, predicting=True
+            dropout=DROPOUT, sample=True, verbose=False, predicting=True
         )
         if p == 6:
             raw_data = np.hstack((raw_data, col))
@@ -170,7 +171,6 @@ def predict():
             delimiter=" ",
         )
     print("done.")
-
 
 
 if __name__ == "__main__":

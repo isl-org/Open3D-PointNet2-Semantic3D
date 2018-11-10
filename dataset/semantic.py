@@ -235,6 +235,7 @@ class Dataset:
     def next_input(
         self, dropout=False, sample=True, verbose=False, visu=False, predicting=False
     ):
+
         input_ok = False
         count_try = 0
 

@@ -11,12 +11,6 @@ import utils.pc_util as pc_util
 parser = argparse.ArgumentParser()
 parser.add_argument("--gpu", type=int, default=0, help="GPU to use [default: GPU 0]")
 parser.add_argument(
-    "--cloud",
-    type=bool,
-    default=False,
-    help="whether you want full point clouds to be exported",
-)
-parser.add_argument(
     "--n", type=int, default=8, help="Number of inputs you want [default : 8]"
 )
 parser.add_argument("--ckpt", default="", help="Checkpoint file")

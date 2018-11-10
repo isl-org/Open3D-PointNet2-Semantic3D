@@ -348,7 +348,8 @@ class Dataset:
             self.pc_zmax.append(np.max(self.scene_points_list[scene_index], axis=0)[2])
 
     def get_random_scene_index(self):
-        # return np.random.randint(0,len(self.scene_points_list)) # Does not take into account the scene number of points
+        # Does not take into account the scene number of points
+        # return np.random.randint(0,len(self.scene_points_list))
         return np.random.choice(
             np.arange(0, len(self.scene_points_list)), p=self.scenes_proba
         )
@@ -365,7 +366,8 @@ class Dataset:
             self.scenes_proba.append(proba)
 
     def center_box(self, data):
-        # Shift the box so that z= 0 is the min and x=0 and y=0 is the center of the box horizontally
+        # Shift the box so that z= 0 is the min and x=0 and y=0 is the center of the
+        # box horizontally
         box_min = np.min(data, axis=0)
         shift = np.array(
             [box_min[0] + self.box_size / 2, box_min[1] + self.box_size / 2, box_min[2]]
@@ -373,7 +375,8 @@ class Dataset:
         return data - shift
 
     def extract_box(self, seed, scene):
-        # 10 meters seems intuitively to be a good value to understand the scene, we must test that
+        # 10 meters seems intuitively to be a good value to understand the scene, we
+        # must test that
 
         box_min = seed - [self.box_size / 2, self.box_size / 2, self.box_size / 2]
         box_max = seed + [self.box_size / 2, self.box_size / 2, self.box_size / 2]

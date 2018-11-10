@@ -51,7 +51,6 @@ os.environ["CUDA_VISIBLE_DEVICES"] = str(GPU_INDEX)
 DROPOUT = False
 DROPOUT_RATIO = 0.875
 AUGMENT = False
-MAX_EXPORT = 20  # the maximum number of scenes to be exported
 
 if DROPOUT:
     print("dropout is on, with ratio %f" % (DROPOUT_RATIO))
@@ -70,8 +69,6 @@ DATASET = data_module.Dataset(
     z_feature=PARAMS["use_z_feature"],
 )
 NUM_CLASSES = DATASET.num_classes
-
-LABELS_TEXT = DATASET.labels_names
 
 # Outputs
 OUTPUT_DIR = os.path.join("visu", DATASET_NAME + "_" + SET)

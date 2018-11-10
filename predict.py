@@ -19,12 +19,9 @@ parser.add_argument(
 )
 parser.add_argument("--set", default="test", help="train or test [default: test]")
 parser.add_argument("--dataset", default="semantic", help="Dataset [default: semantic]")
-parser.add_argument(
-    "--config", type=str, default="config.json", metavar="N", help="config file"
-)
 FLAGS = parser.parse_args()
 
-JSON_DATA_CUSTOM = open(FLAGS.config).read()
+JSON_DATA_CUSTOM = open("semantic.json").read()
 CUSTOM = json.loads(JSON_DATA_CUSTOM)
 JSON_DATA = open("default.json").read()
 PARAMS = json.loads(JSON_DATA)

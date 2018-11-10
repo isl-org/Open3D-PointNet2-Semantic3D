@@ -85,16 +85,21 @@ NUM_CLASSES = DATASET.num_classes
 LABELS_TEXT = DATASET.labels_names
 
 # Outputs
-
 OUTPUT_DIR = os.path.join("visu", DATASET_NAME + "_" + SET)
 if not os.path.exists("visu"):
     os.mkdir("visu")
 if not os.path.exists(OUTPUT_DIR):
     os.mkdir(OUTPUT_DIR)
 
-OUTPUT_DIR_GROUNDTRUTH = os.path.join(OUTPUT_DIR, "scenes_groundtruth_test")
-OUTPUT_DIR_PREDICTION = os.path.join(OUTPUT_DIR, "scenes_predictions_test")
 
+def predict_one_input(sess, ops, data):
+    is_training = False
+    batch_data = np.array([data])  # 1 x NUM_POINT x 3
+    feed_dict = {ops["pointclouds_pl"]: batch_data, ops["is_training_pl"]: is_training}
+    pred_val = sess.run([ops["pred"]], feed_dict=feed_dict)
+    pred_val = pred_val[0][0]  # NUMPOINTSx9
+    pred_val = np.argmax(pred_val, 1)
+    return pred_val
 
 def predict():
     """
@@ -159,7 +164,6 @@ def predict():
         ground_truth[f] = np.hstack((ground_truth[f], true_labels))
         predicted_labels[f] = np.hstack((predicted_labels[f], pred_labels))
 
-
     file_names = DATASET.get_data_filenames()
     print("{} point clouds to export".format(len(file_names)))
 
@@ -190,15 +194,6 @@ def predict():
         )
     print("done.")
 
-
-def predict_one_input(sess, ops, data):
-    is_training = False
-    batch_data = np.array([data])  # 1 x NUM_POINT x 3
-    feed_dict = {ops["pointclouds_pl"]: batch_data, ops["is_training_pl"]: is_training}
-    pred_val = sess.run([ops["pred"]], feed_dict=feed_dict)
-    pred_val = pred_val[0][0]  # NUMPOINTSx9
-    pred_val = np.argmax(pred_val, 1)
-    return pred_val
 
 
 if __name__ == "__main__":

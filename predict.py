@@ -1,3 +1,10 @@
+"""
+This file predicts the labels with the weights calculated by train.py.
+These aggregated point clouds is the basis upon which interpolation is made to give
+predictions on the full raw point clouds and to truly evaluate the network's
+performances.
+"""
+
 import argparse
 import importlib
 import os

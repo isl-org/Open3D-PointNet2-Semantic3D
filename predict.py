@@ -1,24 +1,13 @@
-"""
-This file predicts the labels with the weights calculated by train.py or train_multi.py.
-You need to give as parameter the ckpt you want to use. A certain number of inputs is generated.
-A prediction is made on each of these inputs, to be compared to the ground truth, also exported.
-If you set --cloud=False (which is the default usage), each input is saved in a different point
-cloud, and there will be n inputs. If you set --cloud=True, they will be aggregated into scenes
-and there will be n inputs per scene. These aggregated point clouds is the basis upon which
-interpolation is made to give predictions on the full raw point clouds and to truly evaluate
-the network's performances.
-"""
 import argparse
-import numpy as np
-import tensorflow as tf
 import importlib
 import os
 import json
+import numpy as np
+import tensorflow as tf
 import models.model as MODEL
 import utils.pc_util as pc_util
 
 # Parser
-
 parser = argparse.ArgumentParser()
 parser.add_argument("--gpu", type=int, default=0, help="GPU to use [default: GPU 0]")
 parser.add_argument(
@@ -70,8 +59,8 @@ if AUGMENT:
     print("rotation is on")
 
 # Import dataset
-data = importlib.import_module("dataset." + DATASET_NAME)
-DATASET = data.Dataset(
+data_module = importlib.import_module("dataset." + DATASET_NAME)
+DATASET = data_module.Dataset(
     npoints=NUM_POINT,
     split=SET,
     box_size=PARAMS["box_size"],

@@ -34,7 +34,7 @@ parser.add_argument("--ckpt", default="", help="Checkpoint file")
 parser.add_argument(
     "--num_point", type=int, default=8192, help="Point Number [default: 8192]"
 )
-parser.add_argument("--set", default="train", help="train or test [default: train]")
+parser.add_argument("--set", default="test", help="train or test [default: test]")
 parser.add_argument("--dataset", default="semantic", help="Dataset [default: semantic]")
 parser.add_argument(
     "--config", type=str, default="config.json", metavar="N", help="config file"

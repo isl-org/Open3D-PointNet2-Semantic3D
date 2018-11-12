@@ -4,3 +4,6 @@ project(interpolation)
 
 add_executable(interpolate main.cpp)
 target_include_directories(interpolate PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Eigen)
+
+add_executable(eigen_print eigen_print.cpp)
+target_include_directories(eigen_print PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Eigen)

@@ -108,7 +108,6 @@ DATA = data.Dataset(
     use_color=PARAMS["use_color"],
     dropout_max=PARAMS["input_dropout"],
     path=PARAMS["data_path"],
-    z_feature=PARAMS["use_z_feature"],
 )
 NUM_CLASSES = DATA.num_classes
 # Outputs

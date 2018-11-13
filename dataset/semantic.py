@@ -13,7 +13,7 @@ import utils.provider as provider
 
 class Dataset:
     def __init__(
-        self, npoints, split, use_color, box_size, path, dropout_max, z_feature
+        self, npoints, split, use_color, box_size, path, dropout_max
     ):
         """Create a dataset holder
         npoints (int): Defaults to 8192. The number of point in each input
@@ -27,7 +27,6 @@ class Dataset:
                              accept it. E.g : npoints = 100, then you need at least 50
                              points.
         """
-        self.z_feature = z_feature
         # Dataset parameters
         self.npoints = npoints
         self.split = split
@@ -204,18 +203,10 @@ class Dataset:
         batch_weights = []
         feature_size = 0
         for _ in range(batch_size):
-            if not self.z_feature:
-                data, label, colors, weights = self.next_input(dropout)
-                if self.use_color:
-                    feature_size = 3
-                    data = np.hstack((data, colors))
-            else:
-                feature_size = 1
-                data, z_norm, label, colors, weights = self.next_input(dropout)
-                if self.use_color:
-                    feature_size = 4
-                    data = np.hstack((data, colors))
-                data = np.hstack((data, z_norm))
+            data, label, colors, weights = self.next_input(dropout)
+            if self.use_color:
+                feature_size = 3
+                data = np.hstack((data, colors))
             batch_data.append(data)
             batch_label.append(label)
             batch_weights.append(weights)
@@ -318,14 +309,6 @@ class Dataset:
                 drop_index = self.input_dropout(data)
                 weights[drop_index] *= 0
 
-            if self.z_feature:
-                # Rotion is not a problem as it is done along z-axis
-                # z_feature is a new experimental feature
-                z_norm = (data[:, 2] - self.pc_zmin[scene_index]) / (
-                    self.pc_zmax[scene_index] - self.pc_zmin[scene_index]
-                )
-                z_norm = z_norm.reshape(self.npoints, 1)
-
         if predicting:
             return (
                 scene_index,
@@ -336,9 +319,6 @@ class Dataset:
                 weights,
             )
         else:
-            if self.z_feature:
-                return data, z_norm, labels, colors, weights
-
             return data, labels, colors, weights
 
     def set_pc_zmax_zmin(self):

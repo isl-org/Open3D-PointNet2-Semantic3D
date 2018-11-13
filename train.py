@@ -266,7 +266,8 @@ def train_single():
             is_training_pl = tf.placeholder(tf.bool, shape=())
 
             # Note the global_step=batch parameter to minimize.
-            # That tells the optimizer to helpfully increment the 'batch' parameter for you every time it trains.
+            # That tells the optimizer to helpfully increment the 'batch' parameter for
+            # you every time it trains.
             batch = tf.Variable(0)
             bn_decay = get_bn_decay(batch)
             tf.summary.scalar("bn_decay", bn_decay)
@@ -364,7 +365,8 @@ def train_multi():
             is_training_pl = tf.placeholder(tf.bool, shape=())
 
             # Note the global_step=batch parameter to minimize.
-            # That tells the optimizer to helpfully increment the 'batch' parameter for you every time it trains.
+            # That tells the optimizer to helpfully increment the 'batch' parameter for
+            # you every time it trains.
             # batch = tf.Variable(0)
             batch = tf.get_variable(
                 "batch", [], initializer=tf.constant_initializer(0), trainable=False
@@ -549,7 +551,8 @@ def train_one_epoch(sess, ops, train_writer, stack):
         sess (tf.Session): the session to evaluate Tensors and ops
         ops (dict of tf.Operation): contain multiple operation mapped with with strings
         train_writer (tf.FileSaver): enable to log the training with TensorBoard
-        compute_class_iou (bool): it takes time to compute the iou per class, so you can disable it here
+        compute_class_iou (bool): it takes time to compute the iou per class, so you can
+                                  disable it here
     """
 
     is_training = True

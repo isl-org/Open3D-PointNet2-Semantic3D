@@ -398,7 +398,7 @@ def write_ply_color(points, labels, out_filename, num_classes=None):
         5: [0, 181, 255, 255],
         6: [0, 15, 255, 255],
         7: [155, 0, 255, 255],
-        8: [255, 0, 189, 255]
+        8: [255, 0, 189, 255],
     }
 
     labels = labels.astype(int)

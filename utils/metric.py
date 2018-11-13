@@ -6,14 +6,14 @@ class ConfusionMatrix:
     """Streaming interface to allow for any source of predictions. Initialize it, count
        predictions one by one, then print confusion matrix and intersection-union score"""
 
-    def __init__(self, number_of_labels=2):
+    def __init__(self, number_of_labels):
         self.number_of_labels = number_of_labels
         self.confusion_matrix = np.zeros(
             shape=(self.number_of_labels, self.number_of_labels)
         )
 
-    def count_predicted(self, ground_truth, predicted, number_of_added_elements=1):
-        self.confusion_matrix[ground_truth][predicted] += number_of_added_elements
+    def count_predicted(self, ground_truth, predicted):
+        self.confusion_matrix[ground_truth][predicted] += 1
 
     def get_count(self, ground_truth, predicted):
         """labels are integers from 0 to number_of_labels-1"""
@@ -131,9 +131,9 @@ class ConfusionMatrix:
 
 if __name__ == "__main__":
     CM = ConfusionMatrix(3)
-    CM.count_predicted(0, 0, 3)
-    CM.count_predicted(1, 1, 4)
-    CM.count_predicted(2, 2, 2)
-    CM.count_predicted(0, 1, 1)
-    CM.count_predicted(2, 0, 1)
+    CM.count_predicted(0, 0)
+    CM.count_predicted(1, 1)
+    CM.count_predicted(2, 2)
+    CM.count_predicted(0, 1)
+    CM.count_predicted(2, 0)
     CM.print_cm(["test1", "test2", "test2"])

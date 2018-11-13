@@ -6,11 +6,11 @@ class repartition of points (i.e. 10% for class 1, etc.) in the clouds resulting
 preprocessing. Then it produces some inputs from those clouds according to the dataset accessor
 you are using, and computes their own class repartition, which is different from before because
 some points are favored over others: sometimes because we want them to, and sometimes because we
-can't help it. (In fact, the inputs that are generated are usually undersampled to fit into the 
+can't help it. (In fact, the inputs that are generated are usually undersampled to fit into the
 nb of points the network can process, but here we skip that step because it's a uniform sampling).
 Then those inputs that were generated are used to give you other information : per point probability
 of being taken as input when the point's scene is considered. A histogram of these probabilities is
-saved and be plotted unless using the option --draw=False. Then all these points are exported with 
+saved and be plotted unless using the option --draw=False. Then all these points are exported with
 their probabilities as one point cloud per scene for visualisation in CloudCompare for example. The seeds
 (points around which a box is computed and the final input points are sampled in that box) are also
 provided in a separate point cloud and may be visualised in CloudCompare for example by giving them
@@ -22,10 +22,7 @@ one horizontal grid. This way you can quickly check whether the input of the net
 by humans. You can set the number of batches you want with the --n option (set it to zero if you are not
 interested by this functionalities).
 
-This file is of course compatible with both semantic.py and scannet.py (or very nearly, and only
-small modifications shound be necessary).
-Since scannet.py implements the way the scannet dataset was fed into the network by the creators
- of pointnet2, to excellent results, it is a good idea to compare with it.
+This file is of course compatible with semantic.py
 
 """
 import argparse

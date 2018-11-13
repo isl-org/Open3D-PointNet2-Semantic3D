@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 Unified semantic with color support and many options
 """
@@ -18,13 +16,16 @@ class Dataset:
         self, npoints, split, use_color, box_size, path, dropout_max, z_feature
     ):
         """Create a dataset holder
-            npoints (int): Defaults to 8192. The number of point in each input
-            split (str): Defaults to 'train'. The selected part of the data (train, test, reduced...)
-            color (bool): Defaults to True. Whether to use colors or not
-            box_size (int): Defaults to 10. The size of the extracted cube.
-            path (float): Defaults to 'dataset/semantic_data/'.
-            dropout_max (float): Defaults to 0.875. Maximum dropout to apply on the inputs.
-            accept_rate (float): Minimum rate (between 0.0 and 1.0) of points in the box to accept it. E.g : npoints = 100, then you need at least 50 points.
+        npoints (int): Defaults to 8192. The number of point in each input
+        split (str): Defaults to 'train'. The selected part of the data (train, test,
+                     reduced...)
+        color (bool): Defaults to True. Whether to use colors or not
+        box_size (int): Defaults to 10. The size of the extracted cube.
+        path (float): Defaults to 'dataset/semantic_data/'.
+        dropout_max (float): Defaults to 0.875. Maximum dropout to apply on the inputs.
+        accept_rate (float): Minimum rate (between 0.0 and 1.0) of points in the box to
+                             accept it. E.g : npoints = 100, then you need at least 50
+                             points.
         """
         self.z_feature = z_feature
         # Dataset parameters
@@ -171,7 +172,6 @@ class Dataset:
             self.scene_colors_list[i] = (
                 self.scene_colors_list[i].astype("float32") / 255
             )
-            # self.scene_colors_list[i] = (self.scene_colors_list[i]-np.mean(self.scene_colors_list[i], axis=0))/np.std(self.scene_colors_list[i], axis=0)
 
         # Set min to (0,0,0)
         self.scene_max_list = list()
@@ -188,7 +188,8 @@ class Dataset:
     def __getitem__(self, index):
         """
         input : index of a scene
-        output : the whole scene of npointsx3 (xyz) points of the scene and their labels, and colors if colors are used
+        output: the whole scene of npointsx3 (xyz) points of the scene and their
+                 labels, and colors if colors are used
         """
         point_set = self.scene_points_list[index]
         labels = self.semantic_labels_list[index].astype(np.int32)
@@ -234,14 +235,15 @@ class Dataset:
     def next_input(
         self, dropout=False, sample=True, verbose=False, visu=False, predicting=False
     ):
+
         input_ok = False
         count_try = 0
-        verbose = False
 
         # Try to find a non-empty cloud to process
         while not input_ok:
             count_try += 1
-            # Randomly choose a scene, taking account that some scenes contains more points than others
+            # Randomly choose a scene, taking account that some scenes contains more
+            # points than others
             scene_index = self.get_random_scene_index()
 
             # Randomly choose a seed
@@ -347,7 +349,8 @@ class Dataset:
             self.pc_zmax.append(np.max(self.scene_points_list[scene_index], axis=0)[2])
 
     def get_random_scene_index(self):
-        # return np.random.randint(0,len(self.scene_points_list)) # Does not take into account the scene number of points
+        # Does not take into account the scene number of points
+        # return np.random.randint(0,len(self.scene_points_list))
         return np.random.choice(
             np.arange(0, len(self.scene_points_list)), p=self.scenes_proba
         )
@@ -364,7 +367,8 @@ class Dataset:
             self.scenes_proba.append(proba)
 
     def center_box(self, data):
-        # Shift the box so that z= 0 is the min and x=0 and y=0 is the center of the box horizontally
+        # Shift the box so that z= 0 is the min and x=0 and y=0 is the center of the
+        # box horizontally
         box_min = np.min(data, axis=0)
         shift = np.array(
             [box_min[0] + self.box_size / 2, box_min[1] + self.box_size / 2, box_min[2]]
@@ -372,7 +376,8 @@ class Dataset:
         return data - shift
 
     def extract_box(self, seed, scene):
-        # 10 meters seems intuitively to be a good value to understand the scene, we must test that
+        # 10 meters seems intuitively to be a good value to understand the scene, we
+        # must test that
 
         box_min = seed - [self.box_size / 2, self.box_size / 2, self.box_size / 2]
         box_max = seed + [self.box_size / 2, self.box_size / 2, self.box_size / 2]

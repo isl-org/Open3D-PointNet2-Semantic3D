@@ -76,7 +76,7 @@ python train.py --config semantic.json
 
 ### Test (with validation set)
 ```bash
-python predict.py --cloud=true --n=10 \
+python predict.py \
     --ckpt logs/semantic/best_model_epoch_060.ckpt \
     --dataset=semantic --set=test --config semantic.json
 

@@ -12,9 +12,7 @@ import utils.provider as provider
 
 
 class Dataset:
-    def __init__(
-        self, npoints, split, use_color, box_size, path, dropout_max
-    ):
+    def __init__(self, npoints, split, use_color, box_size, path, dropout_max):
         """Create a dataset holder
         npoints (int): Defaults to 8192. The number of point in each input
         split (str): Defaults to 'train'. The selected part of the data (train, test,

@@ -44,17 +44,6 @@ class Dataset:
             "scanning artefacts",
             "cars",
         ]
-        self.short_labels_names = [
-            "unlbl.",
-            "m.m. terr.",
-            "nat. terr.",
-            "high veg.",
-            "low veg.",
-            "build.",
-            "hard sc.",
-            "scan. art.",
-            "cars",
-        ]
         self.filenames_train = [
             "bildstein_station1_xyz_intensity_rgb",
             "bildstein_station3_xyz_intensity_rgb",
@@ -221,7 +210,7 @@ class Dataset:
         return batch_data, batch_label, batch_weights
 
     def next_input(
-        self, dropout=False, sample=True, verbose=False, visu=False, predicting=False
+        self, dropout=False, sample=True, verbose=False, predicting=False
     ):
 
         input_ok = False
@@ -244,11 +233,6 @@ class Dataset:
             seed_index = np.random.randint(0, len(scene))
             seed = scene[seed_index]  # [x,y,z]
 
-            # Random (space)
-            # scene_max = np.max(scene,axis=0)
-            # scene_min = np.min(scene,axis=0)
-            # seed = np.random.uniform(scene_min,scene_max,3)
-
             # Crop a z-box around that seed
             scene_extract_mask = self.extract_z_box(seed, scene, scene_index)
             # Verify the cloud is not empty
@@ -262,13 +246,6 @@ class Dataset:
                         "There are %i points in the box" % (np.sum(scene_extract_mask))
                     )
                 input_ok = True
-                if visu:
-                    return (
-                        scene_index,
-                        scene_extract_mask,
-                        np.histogram(scene_labels[scene_extract_mask], range(10))[0],
-                        seed,
-                    )
 
             data = scene[scene_extract_mask]
             labels = scene_labels[scene_extract_mask]
@@ -338,7 +315,6 @@ class Dataset:
         # in order to pick more seeds in bigger scenes
         self.scenes_proba = []
         total = self.get_total_num_points()
-        proba = 0
         for scene_index in range(len(self)):
             proba = float(len(self.scene_points_list[scene_index])) / float(total)
             self.scenes_proba.append(proba)
@@ -426,26 +402,8 @@ class Dataset:
     def __len__(self):
         return len(self.scene_points_list)
 
-    def get_hist(self):
-        labelweights = np.zeros(9)
-        # First, compute the histogram of each labels
-        for seg in self.semantic_labels_list:
-            tmp, _ = np.histogram(seg, range(10))
-            labelweights += tmp
-        return labelweights
-
-    def get_list_classes_str(self):
-        return "unlabeled, man-made terrain, natural terrain, high vegetation, low vegetation, buildings, hard scape, scanning artefacts, cars"
-
     def get_data_filenames(self):
         return self.data_filenames
-
-    def get_scene_shape(self, scene_index):
-        return self.scene_points_list[scene_index].shape
-
-    def get_scene(self, scene_index):
-        return self.scene_points_list[scene_index]
-
 
 if __name__ == "__main__":
     import multiprocessing as mp

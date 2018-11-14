@@ -209,9 +209,7 @@ class Dataset:
 
         return batch_data, batch_label, batch_weights
 
-    def next_input(
-        self, dropout=False, sample=True, verbose=False, predicting=False
-    ):
+    def next_input(self, dropout=False, sample=True, verbose=False, predicting=False):
 
         input_ok = False
         count_try = 0
@@ -404,6 +402,7 @@ class Dataset:
 
     def get_data_filenames(self):
         return self.data_filenames
+
 
 if __name__ == "__main__":
     import multiprocessing as mp

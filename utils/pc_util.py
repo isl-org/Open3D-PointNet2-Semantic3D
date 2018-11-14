@@ -18,8 +18,10 @@ def write_ply_color(points, labels, file_name):
     with open(file_name, "w") as f:
         for point, label in zip(points, labels):
             color = map_label_to_color[label]
-            f.write("v %f %f %f %d %d %d\n"
-                    % (point[0], point[1], point[2], color[0], color[1], color[2]))
+            f.write(
+                "v %f %f %f %d %d %d\n"
+                % (point[0], point[1], point[2], color[0], color[1], color[2])
+            )
 
 
 def write_pts_label_as_color(points, labels, file_name):
@@ -30,8 +32,10 @@ def write_pts_label_as_color(points, labels, file_name):
         f.write("%d\n" % len(points))
         for point, label in zip(points, labels):
             color = map_label_to_color[label]
-            f.write("%f %f %f 0 %d %d %d\n"
-                    % (point[0], point[1], point[2], color[0], color[1], color[2]))
+            f.write(
+                "%f %f %f 0 %d %d %d\n"
+                % (point[0], point[1], point[2], color[0], color[1], color[2])
+            )
 
 
 def write_ply_true_color(points, colors, file_name):

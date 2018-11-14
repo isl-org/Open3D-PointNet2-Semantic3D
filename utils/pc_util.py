@@ -1,9 +1,3 @@
-""" Utility functions for processing point clouds.
-
-Author: Charles R. Qi, Hao Su
-Date: November 2016
-"""
-
 map_label_to_color = {
     0: [255, 0, 0, 255],
     1: [255, 165, 0, 255],

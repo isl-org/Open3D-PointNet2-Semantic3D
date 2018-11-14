@@ -165,6 +165,11 @@ def predict():
             predicted_labels[f].reshape((-1, 1)),
             delimiter=" ",
         )
+        np.savetxt(
+            OUTPUT_DIR_FULL_PC + "/{}_gt.txt".format(os.path.basename(filename)),
+            ground_truth[f].reshape((-1, 1)),
+            delimiter=" ",
+        )
     print("done.")
 
 

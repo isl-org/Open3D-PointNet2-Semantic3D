@@ -170,7 +170,7 @@ def get_batch(split):
         return TEST_DATASET.next_batch(BATCH_SIZE, False, False)
 
 
-def fill_queues(stack_train, stack_test, maxsize_train, maxsize_test):
+def fill_queues(stack_train, stack_test, num_train_batches, num_test_batches):
     pool = mp.Pool(processes=mp.cpu_count())
     launched_train = 0
     launched_test = 0
@@ -178,10 +178,10 @@ def fill_queues(stack_train, stack_test, maxsize_train, maxsize_test):
     results_test = []
     # Launch as much as n
     while True:
-        if stack_train.qsize() + launched_train < maxsize_train:
+        if stack_train.qsize() + launched_train < num_train_batches:
             results_train.append(pool.apply_async(get_batch, args=("train",)))
             launched_train += 1
-        elif stack_test.qsize() + launched_test < maxsize_test:
+        elif stack_test.qsize() + launched_test < num_test_batches:
             results_test.append(pool.apply_async(get_batch, args=("test",)))
             launched_test += 1
         for p in results_train:
@@ -199,6 +199,12 @@ def fill_queues(stack_train, stack_test, maxsize_train, maxsize_test):
 
 
 def init_stacking():
+    """
+    Returns:
+        stacker: mp.Process object
+        stack_test: mp.Queue, use stack_test.get() to read a batch
+        stack_train: mp.Queue, use stack_train.get() to read a batch
+    """
     with tf.device("/cpu:0"):
         # Queues that contain several batches in advance
         num_train_batches = TRAIN_DATASET.get_num_batches(BATCH_SIZE)

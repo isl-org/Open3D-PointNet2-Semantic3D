@@ -11,7 +11,7 @@ class ConfusionMatrix:
         label must be {0, 1, 2, ..., num_classes - 1}
         """
         self.num_classes = num_classes
-        self.confusion_matrix = np.zeros(self.num_classes, self.num_classes)
+        self.confusion_matrix = np.zeros((self.num_classes, self.num_classes))
 
     def count_predicted(self, gt_label, pd_label):
         # TODO: add checks
@@ -74,11 +74,15 @@ class ConfusionMatrix:
         return sum(values) / len(values)
 
     def build_conf_matrix_from_file(self, gt_file, pd_file):
-        self.confusion_matrix = np.zeros(self.num_classes, self.num_classes)
+        """
+        Typical use case: num_classes == 9, and both gt_file and pd_file only contains
+                          label 1, 2, ..., 8. Label 0 is not used at all.
+        """
+        self.confusion_matrix = np.zeros((self.num_classes, self.num_classes))
         with open(gt_file, "r") as gt_f, open(pd_file, "r") as pd_f:
             for gt_line, pd_line in zip(gt_f, pd_f):
-                gt_label = int(gt_line)
-                pd_label = int(pd_line)
+                gt_label = int(float(gt_line.strip()))
+                pd_label = int(float(pd_line.strip()))
                 self.count_predicted(gt_label, pd_label)
 
     def print_cm(

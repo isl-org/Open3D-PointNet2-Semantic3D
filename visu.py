@@ -340,7 +340,6 @@ for i in range(NBATCH):
                 scene[:, 0:3],
                 labels,
                 OUTPUT_DIR_BATCHES + "/{}_{}_{}.txt".format(SET, "labelColors", j),
-                NUM_CLASSES,
             )
 
 if GROUP_BY_BATCHES and NBATCH > 0:
@@ -360,6 +359,5 @@ if GROUP_BY_BATCHES and NBATCH > 0:
         visu_cloud[:, 0:3],
         visu_labels,
         OUTPUT_DIR_BATCHES + "/{}_{}.txt".format(SET, "labelColors"),
-        NUM_CLASSES,
     )
 print("done")

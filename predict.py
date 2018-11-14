@@ -152,15 +152,13 @@ def predict():
             scene_points[f][:, 0:3],
             ground_truth[f],
             OUTPUT_DIR_FULL_PC
-            + "/{}_groundtruth.txt".format(os.path.basename(filename)),
-            NUM_CLASSES,
+            + "/{}_groundtruth.txt".format(os.path.basename(filename))
         )
         pc_util.write_ply_color(
             scene_points[f][:, 0:3],
             predicted_labels[f],
             OUTPUT_DIR_FULL_PC
-            + "/{}_aggregated.txt".format(os.path.basename(filename)),
-            NUM_CLASSES,
+            + "/{}_aggregated.txt".format(os.path.basename(filename))
         )
         np.savetxt(
             OUTPUT_DIR_FULL_PC + "/{}_pred.txt".format(os.path.basename(filename)),

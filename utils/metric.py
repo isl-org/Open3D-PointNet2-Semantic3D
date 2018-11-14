@@ -7,20 +7,23 @@ class ConfusionMatrix:
        predictions one by one, then print confusion matrix and intersection-union score"""
 
     def __init__(self, num_classes):
+        """
+        label must be {0, 1, 2, ..., num_classes - 1}
+        """
         self.num_classes = num_classes
         self.confusion_matrix = np.zeros(self.num_classes, self.num_classes)
 
-    def count_predicted(self, ground_truth, predicted):
-        self.confusion_matrix[ground_truth][predicted] += 1
+    def count_predicted(self, gt_label, pd_label):
+        # TODO: add checks
+        self.confusion_matrix[gt_label][pd_label] += 1
 
-    def get_count(self, ground_truth, predicted):
+    def get_count(self, gt_label, pd_label):
         """labels are integers from 0 to num_classes-1"""
-        return self.confusion_matrix[ground_truth][predicted]
+        return self.confusion_matrix[gt_label][pd_label]
 
     def get_confusion_matrix(self):
-        """returns list of lists of integers; use it as result[ground_truth][predicted]
-             to know how many samples of class ground_truth were reported as class
-             predicted
+        """
+        result[gt_label][pd_label]: # of gt_label are predicted as pd_label
         """
         return self.confusion_matrix
 
@@ -70,31 +73,13 @@ class ConfusionMatrix:
         values = self.get_intersection_union_per_class()
         return sum(values) / len(values)
 
-    def build_conf_matrix_from_file(self, ground_truth_file, classified_file):
-        # read line by line without storing everything in ram
-        with open(ground_truth_file, "r") as f_gt, open(classified_file, "r") as f_cl:
-            for index, (line_gt, line_cl) in enumerate(zip(f_gt, f_cl)):
-                label_gt = int(line_gt)
-                label_cl_ = int(line_cl)
-                label_cl = max([min([label_cl_, 10000]), 1])
-                # protection against erroneous submissions: no infinite labels (for
-                # instance NaN) or classes smaller 1
-                if label_cl_ != label_cl:
-                    return -1
-                max_label = max([label_gt, label_cl])
-                if max_label > self.num_classes:
-                    # resize to larger confusion matrix
-                    b = np.zeros((max_label, max_label))
-                    for row in range(self.num_classes):
-                        for column in range(self.num_classes):
-                            b[row][column] = self.confusion_matrix[row][column]
-                    self.confusion_matrix = b
-                    self.num_classes = max_label
-
-                if label_gt == 0:
-                    continue
-                self.confusion_matrix[label_gt - 1][label_cl - 1] += 1
-                return 0
+    def build_conf_matrix_from_file(self, gt_file, pd_file):
+        self.confusion_matrix = np.zeros(self.num_classes, self.num_classes)
+        with open(gt_file, "r") as gt_f, open(pd_file, "r") as pd_f:
+            for gt_line, pd_line in zip(gt_f, pd_f):
+                gt_label = int(gt_line)
+                pd_label = int(pd_line)
+                self.count_predicted(gt_label, pd_label)
 
     def print_cm(
         self, labels, hide_zeroes=False, hide_diagonal=False, hide_threshold=None

@@ -171,6 +171,14 @@ def get_batch(split):
 
 
 def fill_queues(stack_train, stack_test, num_train_batches, num_test_batches):
+    """
+
+    Args:
+        stack_train: mp.Queue to be filled asynchronously
+        stack_test: mp.Queue to be filled asynchronously
+        num_train_batches: total number of training batches
+        num_test_batches: total number of test batches
+    """
     pool = mp.Pool(processes=mp.cpu_count())
     launched_train = 0
     launched_test = 0

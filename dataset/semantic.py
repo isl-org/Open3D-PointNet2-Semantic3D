@@ -55,14 +55,6 @@ class Dataset:
             "scan. art.",
             "cars",
         ]
-        self.filenames_test = [
-            "sg27_station4_intensity_rgb",
-            "sg27_station5_intensity_rgb",
-            "sg27_station9_intensity_rgb",
-            "sg28_station4_intensity_rgb",
-            "untermaederbrunnen_station1_xyz_intensity_rgb",
-            "untermaederbrunnen_station3_xyz_intensity_rgb",
-        ]
         self.filenames_train = [
             "bildstein_station1_xyz_intensity_rgb",
             "bildstein_station3_xyz_intensity_rgb",
@@ -74,7 +66,14 @@ class Dataset:
             "sg27_station1_intensity_rgb",
             "sg27_station2_intensity_rgb",
         ]
-
+        self.filenames_test = [
+            "sg27_station4_intensity_rgb",
+            "sg27_station5_intensity_rgb",
+            "sg27_station9_intensity_rgb",
+            "sg28_station4_intensity_rgb",
+            "untermaederbrunnen_station1_xyz_intensity_rgb",
+            "untermaederbrunnen_station3_xyz_intensity_rgb",
+        ]
         self.real_test_filenames = [
             "birdfountain_station1_xyz_intensity_rgb",
             "castleblatten_station1_intensity_rgb",

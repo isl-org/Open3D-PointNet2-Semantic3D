@@ -1,9 +1,7 @@
-/*
- * code inspired by  https://github.com/aboulch/snapnet
- * The IoUs (per class and average) and the accuracy are computed for each scene
- * that is in the folder passed as argument, and then the global IoUs and global
- * accuracy are computed and saved. More information below.
- */
+// code inspired by  https://github.com/aboulch/snapnet
+// The IoUs (per class and average) and the accuracy are computed for each scene
+// that is in the folder passed as argument, and then the global IoUs and global
+// accuracy are computed and saved. More information below.
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -13,12 +11,12 @@
 #include <Eigen/Dense>
 #include <algorithm>
 
-class Interpolation_labels_container {
+class InterpolationLabelsContainer {
     std::vector<int> label_count;
     int label;
 
    public:
-    Interpolation_labels_container() {
+    InterpolationLabelsContainer() {
         label_count = std::vector<int>(9, 0);
         label = 0;
     }
@@ -32,7 +30,7 @@ class Interpolation_labels_container {
 };
 
 // comparator for voxels
-struct Vector3icomp {
+struct Vector3iComp {
     bool operator()(const Eigen::Vector3i& v1,
                     const Eigen::Vector3i& v2) const {
         if (v1[0] < v2[0]) {
@@ -48,6 +46,20 @@ struct Vector3icomp {
     }
 };
 
+// The pointnet2 network only takes up to a few thousand points at a time,
+// so we do not have the real results yet But we can get results on a
+// sparser point cloud (after decimation, and after we dynamically sample
+// inputs on the decimated point clouds. The job of this function is to take
+// a very sparse point cloud (a few hundred thousand points) with
+// predictions by the network and to interpolate the results to the much
+// denser raw point clouds. This is achieved by a division of the space into
+// a voxel grid, implemented as a map called voxels. First the sparse point
+// cloud is iterated and the map is constructed. We store for each voxel and
+// each label the nb of points from the sparse cloud and with the right
+// label was in the voxel. Then we assign to each voxel the label which got
+// the most points. And finally we can iterate the dense point cloud and
+// dynamically assign labels according to the voxels. IoU per class and
+// accuracy are calculated at the end.
 std::pair<int, std::pair<std::vector<int>, std::vector<int>>>
 interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
                                    const std::string& input_sparse_dir,
@@ -55,22 +67,6 @@ interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
                                    const std::string& filename,
                                    const float& voxel_size,
                                    const bool& export_labels) {
-    /*
-     * The pointnet2 network only takes up to a few thousand points at a time,
-     * so we do not have the real results yet But we can get results on a
-     * sparser point cloud (after decimation, and after we dynamically sample
-     * inputs on the decimated point clouds. The job of this function is to take
-     * a very sparse point cloud (a few hundred thousand points) with
-     * predictions by the network and to interpolate the results to the much
-     * denser raw point clouds. This is achieved by a division of the space into
-     * a voxel grid, implemented as a map called voxels. First the sparse point
-     * cloud is iterated and the map is constructed. We store for each voxel and
-     * each label the nb of points from the sparse cloud and with the right
-     * label was in the voxel. Then we assign to each voxel the label which got
-     * the most points. And finally we can iterate the dense point cloud and
-     * dynamically assign labels according to the voxels. IoU per class and
-     * accuracy are calculated at the end.
-     */
     std::string filename_sparse =
         input_sparse_dir + "/" + filename + "_aggregated.txt";
     std::string filename_labels_sparse =
@@ -87,7 +83,7 @@ interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
     std::string line_labels;
     int pt_id = 0;
 
-    std::map<Eigen::Vector3i, Interpolation_labels_container, Vector3icomp>
+    std::map<Eigen::Vector3i, InterpolationLabelsContainer, Vector3iComp>
         voxels;
     while (getline(ifs, line)) {
         pt_id++;
@@ -111,19 +107,19 @@ interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
         Eigen::Vector3i vox(x_id, y_id, z_id);
 
         if (voxels.count(vox) == 0) {
-            Interpolation_labels_container ilc;
+            InterpolationLabelsContainer ilc;
             voxels[vox] = ilc;
         }
         voxels[vox].add_label(label);
     }
 
     int j = 0;
-    for (std::map<Eigen::Vector3i, Interpolation_labels_container>::iterator
-             it = voxels.begin();
+    for (std::map<Eigen::Vector3i, InterpolationLabelsContainer>::iterator it =
+             voxels.begin();
          it != voxels.end(); it++, j++) {
         it->second.calculate_label();
     }
-    std::cout << "nombre de voxels enregistres : " << j << std::endl;
+    std::cout << "number of registered voxels : " << j << std::endl;
 
     // now we move on to the dense cloud
     // don't know how to open only when necessary

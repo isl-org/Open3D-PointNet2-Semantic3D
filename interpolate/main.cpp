@@ -107,6 +107,7 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
         input_sparse_dir + "/" + file_prefix + "_pred.txt";
     std::string dense_points_path =
         input_dense_dir + "/" + file_prefix + ".txt";
+    std::string out_labels_path = output_dir + "/" + file_prefix + ".labels";
 
     std::ifstream sparse_points_file(sparse_points_path.c_str());
     if (sparse_points_file.fail()) {
@@ -120,6 +121,7 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
     if (dense_points_file.fail()) {
         std::cerr << dense_points_path << " not found" << std::endl;
     }
+    std::ofstream out_labels_file(out_labels_path.c_str());
 
     std::string line_point;
     std::string line_label;
@@ -157,8 +159,6 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
 
     // now we move on to the dense cloud
     // don't know how to open only when necessary
-    std::string out_label_filename = output_dir + "/" + file_prefix + ".labels";
-    std::ofstream out_label(out_label_filename.c_str());
 
     std::cout << "labeling raw point cloud";
     if (export_labels) std::cout << " and exporting labels";
@@ -199,9 +199,9 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
             label = voxels[vox].get_label();
         }
 
-        if (export_labels) out_label << label << std::endl;
+        if (export_labels) out_labels_file << label << std::endl;
     }
-    out_label.close();
+    out_labels_file.close();
 }
 
 int main(int argc, char** argv) {

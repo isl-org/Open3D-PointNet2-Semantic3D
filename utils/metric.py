@@ -84,10 +84,9 @@ class ConfusionMatrix:
                 pd_label = int(float(pd_line.strip()))
                 self.count_predicted(gt_label, pd_label)
 
-    def print_cm(
+    def print_metrics(
         self, labels, hide_zeroes=False, hide_diagonal=False, hide_threshold=None
     ):
-        """pretty print for confusion matrixes"""
         cm = self.get_confusion_matrix()
         columnwidth = max([len(x) for x in labels] + [5])  # 5 is value length
         empty_cell = " " * columnwidth
@@ -118,4 +117,4 @@ if __name__ == "__main__":
     CM.count_predicted(2, 2)
     CM.count_predicted(0, 1)
     CM.count_predicted(2, 0)
-    CM.print_cm(["test1", "test2", "test2"])
+    CM.print_metrics(["test1", "test2", "test2"])

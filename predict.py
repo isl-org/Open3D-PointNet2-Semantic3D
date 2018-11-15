@@ -157,6 +157,6 @@ if __name__ == "__main__":
         cm.increment_conf_matrix_from_file(gt_labels_path, pd_labels_path)
 
     print("Confusion matrix")
-    cm.print_cm(["0", "1", "2", "3", "4", "5", "6", "7", "8"])
+    cm.print_metrics(["0", "1", "2", "3", "4", "5", "6", "7", "8"])
     print("IoU per class")
     pprint(cm.get_intersection_union_per_class())

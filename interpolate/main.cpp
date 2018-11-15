@@ -46,12 +46,12 @@ static std::vector<std::string> possible_file_prefixes{
     // "stgallencathedral_station6_intensity_rgb"
 };
 
-class InterpolationLabelsContainer {
+class LabelContainer {
     std::vector<int> label_count;
     int label;
 
    public:
-    InterpolationLabelsContainer() {
+    LabelContainer() {
         label_count = std::vector<int>(9, 0);
         label = 0;
     }
@@ -64,7 +64,7 @@ class InterpolationLabelsContainer {
     void set_label(int l) { label = l; }
 };
 
-// comparator for voxels
+// comparator for map_voxel_to_label_container
 struct Vector3iComp {
     bool operator()(const Eigen::Vector3i& v1,
                     const Eigen::Vector3i& v2) const {
@@ -88,19 +88,20 @@ struct Vector3iComp {
 // a very sparse point cloud (a few hundred thousand points) with
 // predictions by the network and to interpolate the results to the much
 // denser raw point clouds. This is achieved by a division of the space into
-// a voxel grid, implemented as a map called voxels. First the sparse point
-// cloud is iterated and the map is constructed. We store for each voxel and
-// each label the nb of points from the sparse cloud and with the right
-// label was in the voxel. Then we assign to each voxel the label which got
-// the most points. And finally we can iterate the dense point cloud and
-// dynamically assign labels according to the voxels. IoU per class and
-// accuracy are calculated at the end.
+// a voxel grid, implemented as a map called map_voxel_to_label_container. First
+// the sparse point cloud is iterated and the map is constructed. We store for
+// each voxel and each label the nb of points from the sparse cloud and with the
+// right label was in the voxel. Then we assign to each voxel the label which
+// got the most points. And finally we can iterate the dense point cloud and
+// dynamically assign labels according to the map_voxel_to_label_container. IoU
+// per class and accuracy are calculated at the end.
 void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
                                         const std::string& input_sparse_dir,
                                         const std::string& output_dir,
                                         const std::string& file_prefix,
                                         const float& voxel_size,
                                         const bool& export_labels) {
+    // Load files
     std::string sparse_points_path =
         input_sparse_dir + "/" + file_prefix + "_aggregated.txt";
     std::string sparse_labels_path =
@@ -127,10 +128,11 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
         std::cerr << "Output file cannot be created" << std::endl;
     }
 
+    // Read sparse points and labels, build voxel to label container map
     std::string line_point;
     std::string line_label;
-    std::map<Eigen::Vector3i, InterpolationLabelsContainer, Vector3iComp>
-        voxels;
+    std::map<Eigen::Vector3i, LabelContainer, Vector3iComp>
+        map_voxel_to_label_container;
 
     while (getline(sparse_points_file, line_point) &&
            getline(sparse_labels_file, line_label)) {
@@ -148,27 +150,19 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
         int z_id = std::floor(z / voxel_size) + 0.5;
         Eigen::Vector3i vox(x_id, y_id, z_id);
 
-        if (voxels.count(vox) == 0) {
-            InterpolationLabelsContainer ilc;
-            voxels[vox] = ilc;
+        if (map_voxel_to_label_container.count(vox) == 0) {
+            LabelContainer ilc;
+            map_voxel_to_label_container[vox] = ilc;
         }
-        voxels[vox].add_label(label);
+        map_voxel_to_label_container[vox].add_label(label);
     }
 
-    int j = 0;
-    for (auto it = voxels.begin(); it != voxels.end(); it++, j++) {
+    for (auto it = map_voxel_to_label_container.begin();
+         it != map_voxel_to_label_container.end(); it++) {
         it->second.calculate_label();
     }
-    std::cout << "number of registered voxels : " << j << std::endl;
-
-    // now we move on to the dense cloud
-    // don't know how to open only when necessary
-
-    std::cout << "labeling raw point cloud";
-    if (export_labels) {
-        std::cout << " and exporting labels";
-    }
-    std::cout << std::endl;
+    std::cout << "Number of registered voxels: "
+              << map_voxel_to_label_container.size() << std::endl;
 
     size_t pt_id = 0;
     int nb_labeled_pts = 0;
@@ -193,7 +187,7 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
 
         int label;
         Eigen::Vector3i vox(x_id, y_id, z_id);
-        if (voxels.count(vox) == 0) {
+        if (map_voxel_to_label_container.count(vox) == 0) {
             holes_nb++;
             // std::cout << "voxel unlabeled. fetching closest voxel" <<
             // std::endl;
@@ -202,7 +196,7 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
             // neighbor search using octree ?)
             label = 0;
         } else {
-            label = voxels[vox].get_label();
+            label = map_voxel_to_label_container[vox].get_label();
         }
 
         if (export_labels) {

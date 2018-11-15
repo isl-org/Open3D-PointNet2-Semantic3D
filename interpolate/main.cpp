@@ -98,6 +98,7 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
                                         const std::string& file_prefix,
                                         const float& voxel_size,
                                         const bool& export_labels) {
+    // File names
     std::string filename_sparse =
         input_sparse_dir + "/" + file_prefix + "_aggregated.txt";
     std::string filename_labels_sparse =
@@ -105,22 +106,21 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
     std::string filename_dense = input_dense_dir + "/" + file_prefix + ".txt";
     std::string filename_labels_dense =
         input_dense_dir + "/" + file_prefix + ".labels";
+
     std::ifstream ifs(filename_sparse.c_str());
-    if (ifs.fail()) std::cerr << filename_sparse << " not found" << std::endl;
     std::ifstream ifs_labels(filename_labels_sparse.c_str());
-    if (ifs_labels.fail())
+    if (ifs.fail()) {
+        std::cerr << filename_sparse << " not found" << std::endl;
+    }
+    if (ifs_labels.fail()) {
         std::cerr << filename_labels_sparse << " not found" << std::endl;
+    }
     std::string line;
     std::string line_labels;
-    int pt_id = 0;
 
     std::map<Eigen::Vector3i, InterpolationLabelsContainer, Vector3iComp>
         voxels;
     while (getline(ifs, line)) {
-        pt_id++;
-        if ((pt_id + 1) % 1000000 == 0) {
-            std::cout << (pt_id + 1) / 1000000 << " M" << std::endl;
-        }
         getline(ifs_labels, line_labels);
         std::stringstream sstr_label(line_labels);
         int label;
@@ -166,7 +166,8 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
         std::cout << filename_labels_dense
                   << " not found, assuming this is testing dataset"
                   << std::endl;
-    pt_id = 0;
+
+    size_t pt_id = 0;
     int nb_labeled_pts = 0;
     std::vector<int> successes(9, 0);
     std::vector<int> unions(9, 0);

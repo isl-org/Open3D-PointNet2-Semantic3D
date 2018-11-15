@@ -22,11 +22,11 @@ static std::vector<std::string> possible_file_prefixes{
     // "sg27_station1_intensity_rgb",
     // "sg27_station2_intensity_rgb",
 
-    // "sg27_station4_intensity_rgb",
+    "sg27_station4_intensity_rgb",
     // "sg27_station5_intensity_rgb",
     // "sg27_station9_intensity_rgb",
     // "sg28_station4_intensity_rgb",
-    "untermaederbrunnen_station1_xyz_intensity_rgb",
+    // "untermaederbrunnen_station1_xyz_intensity_rgb",
     // "untermaederbrunnen_station3_xyz_intensity_rgb",
 
     // "birdfountain_station1_xyz_intensity_rgb",
@@ -153,9 +153,6 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
         int r, g, b;
         std::string v;
         sstr >> v >> x >> y >> z >> r >> g >> b;
-        int x_id = std::floor(x / voxel_size) + 0.5;
-        int y_id = std::floor(y / voxel_size) + 0.5;
-        int z_id = std::floor(z / voxel_size) + 0.5;
         Eigen::Vector3i voxel = get_voxel(x, y, z, voxel_size);
 
         if (voxels_map.count(voxel) == 0) {
@@ -181,12 +178,8 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
         int intensity, r, g, b;
         sstr >> x >> y >> z >> intensity >> r >> g >> b;
 
-        int x_id = std::floor(x / voxel_size) + 0.5;
-        int y_id = std::floor(y / voxel_size) + 0.5;
-        int z_id = std::floor(z / voxel_size) + 0.5;
-
         int label;
-        Eigen::Vector3i voxel(x_id, y_id, z_id);
+        Eigen::Vector3i voxel = get_voxel(x, y, z, voxel_size);
         if (voxels_map.count(voxel) == 0) {
             num_fallback_points++;
             label = 0;

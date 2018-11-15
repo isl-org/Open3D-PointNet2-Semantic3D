@@ -48,20 +48,29 @@ static std::vector<std::string> possible_file_prefixes{
 
 class LabelCounter {
    public:
-    LabelCounter() {
-        label_counters_ = std::vector<int>(9, 0);
-        label = 0;
+    void increment(int label) {
+        if (finalized_) {
+            throw std::runtime_error("Counter finalized");
+        }
+        label_counters_[label]++;
     }
-    void increment(int label) { label_counters_[label]++; }
-    void calculate_label() {
-        label = max_element(label_counters_.begin(), label_counters_.end()) -
-                label_counters_.begin();
+    void finalize_label() {
+        auto max_element_it =
+            std::max_element(label_counters_.begin(), label_counters_.end());
+        label_ = std::distance(label_counters_.begin(), max_element_it);
+        finalized_ = true;
     }
-    int get_label() { return label; }
+    int get_label() {
+        if (!finalized_) {
+            throw std::runtime_error("Counter not finalized");
+        }
+        return label_;
+    }
 
    private:
-    std::vector<int> label_counters_;
-    int label;
+    std::vector<int> label_counters_ = std::vector<int>(9, 0);
+    int label_ = 0;
+    bool finalized_ = false;
 };
 
 // comparator for map_voxel_to_label_counter
@@ -165,7 +174,7 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
 
     for (auto it = map_voxel_to_label_counter.begin();
          it != map_voxel_to_label_counter.end(); it++) {
-        it->second.calculate_label();
+        it->second.finalize_label();
     }
     std::cout << "Number of registered voxels: "
               << map_voxel_to_label_counter.size() << std::endl;

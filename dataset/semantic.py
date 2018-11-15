@@ -105,9 +105,13 @@ class Dataset:
     def load_data(self):
         """
         Fills:
-        - self.list_points
-        - self.list_labels
-        - self.list_colors
+            self.list_file_path
+            self.list_points
+            self.list_points_min_raw
+            self.list_points_min
+            self.list_points_max
+            self.list_labels
+            self.list_colors
         """
         print("Loading semantic data...")
 
@@ -126,11 +130,23 @@ class Dataset:
         self.list_points = list()
         self.list_labels = list()
         self.list_colors = list()
+        self.list_points_max = list()
+        self.list_points_min = list()
+        self.list_points_min_raw = list()
 
         for file_path in self.list_file_path:
             # Load points
             points = np.load(file_path + "_vertices.npz")
             points = points[points.files[0]]
+
+            # Shift points to min (0, 0, 0)
+            # Training: use the normalized points for training
+            # Testing: use the normalized points for testing. However, when writing back
+            #          point clouds, the shift should be added back.
+            points_min_raw = np.min(points, axis=0)
+            points = points - points_min_raw
+            points_min = np.min(points, axis=0)
+            points_max = np.max(points, axis=0)
 
             # Load label. In pure test set, fill with zero
             if self.split == "test_full":
@@ -152,22 +168,11 @@ class Dataset:
 
             # Append to list
             self.list_points.append(points)
+            self.list_points_min_raw.append(points_min_raw)
+            self.list_points_min.append(points_min)
+            self.list_points_max.append(points_max)
             self.list_labels.append(labels.astype(np.int8))
             self.list_colors.append(colors)
-
-        # Shift point cloud to min (0, 0, 0)
-        # Training: use the normalized points for training
-        # Testing: use the normalized points for testing. However, when writing back
-        #          point clouds, the shift should be added back.
-        self.list_points_max = list()
-        self.list_points_min = list()
-        self.list_raw_points_min = list()
-        for i in range(len(self.list_points)):
-            points_min = np.min(self.list_points[i], axis=0)
-            self.list_raw_points_min.append(points_min)
-            self.list_points[i] = self.list_points[i] - points_min
-            self.list_points_max.append(np.max(self.list_points[i], axis=0))
-            self.list_points_min.append(np.min(self.list_points[i], axis=0))
 
     def __getitem__(self, index):
         """
@@ -284,7 +289,7 @@ class Dataset:
             return (
                 scene_index,
                 data,
-                raw_data + self.list_raw_points_min[scene_index],
+                raw_data + self.list_points_min_raw[scene_index],
                 labels,
                 colors,
                 weights,

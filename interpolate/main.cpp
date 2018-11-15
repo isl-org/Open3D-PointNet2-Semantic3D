@@ -110,18 +110,19 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
     std::string out_labels_path = output_dir + "/" + file_prefix + ".labels";
 
     std::ifstream sparse_points_file(sparse_points_path.c_str());
+    std::ifstream sparse_labels_file(sparse_labels_path.c_str());
+    std::ifstream dense_points_file(dense_points_path.c_str());
+    std::ofstream out_labels_file(out_labels_path.c_str());
+
     if (sparse_points_file.fail()) {
         std::cerr << sparse_points_path << " not found" << std::endl;
     }
-    std::ifstream sparse_labels_file(sparse_labels_path.c_str());
     if (sparse_labels_file.fail()) {
         std::cerr << sparse_labels_path << " not found" << std::endl;
     }
-    std::ifstream dense_points_file(dense_points_path.c_str());
     if (dense_points_file.fail()) {
         std::cerr << dense_points_path << " not found" << std::endl;
     }
-    std::ofstream out_labels_file(out_labels_path.c_str());
     if (out_labels_file.fail()) {
         std::cerr << "Output file cannot be created" << std::endl;
     }

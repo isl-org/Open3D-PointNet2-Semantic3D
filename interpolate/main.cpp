@@ -92,13 +92,12 @@ struct Vector3iComp {
 // the most points. And finally we can iterate the dense point cloud and
 // dynamically assign labels according to the voxels. IoU per class and
 // accuracy are calculated at the end.
-std::pair<int, std::pair<std::vector<int>, std::vector<int>>>
-interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
-                                   const std::string& input_sparse_dir,
-                                   const std::string& output_dir,
-                                   const std::string& file_prefix,
-                                   const float& voxel_size,
-                                   const bool& export_labels) {
+void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
+                                        const std::string& input_sparse_dir,
+                                        const std::string& output_dir,
+                                        const std::string& file_prefix,
+                                        const float& voxel_size,
+                                        const bool& export_labels) {
     std::string filename_sparse =
         input_sparse_dir + "/" + file_prefix + "_aggregated.txt";
     std::string filename_labels_sparse =
@@ -176,7 +175,7 @@ interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
         pt_id++;
         if ((pt_id + 1) % 1000000 == 0) {
             std::cout << (pt_id + 1) / 1000000 << " M. " << holes_nb
-                      << " holes encoutered so far " << std::endl;
+                      << " holes encountered so far " << std::endl;
         }
         std::stringstream sstr(line);
         float x, y, z;
@@ -221,33 +220,6 @@ interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
         }
     }
     out_label.close();
-
-    std::string perf_filename = output_dir + "/" + file_prefix + "_perf.txt";
-    std::ofstream output(perf_filename.c_str());
-    if (compute_perfs) output << "Performances of " + file_prefix << std::endl;
-    std::string classes[9] = {
-        "unlabeled",       "man-made terrain",   "natural terrain",
-        "high vegetation", "low vegetation",     "buildings",
-        "hard scape",      "scanning artefacts", "cars"};
-    int nb_of_successes = 0;
-    float sum_IoUs = 0;
-    std::vector<float> IoUs(9, 0);
-    if (compute_perfs) {
-        for (int i = 0; i < 9; i++) {
-            IoUs[i] = successes[i] / float(unions[i]);
-            sum_IoUs += IoUs[i];
-            std::cout << IoUs[i] << " ";
-            output << "IoU of " << classes[i] << IoUs[i] << std::endl;
-            nb_of_successes += successes[i];
-        }
-        output << "global accuracy : "
-               << nb_of_successes / float(nb_labeled_pts) << std::endl;
-        output << "IoU averaged on 8 classes : " << sum_IoUs / 8. << std::endl;
-        std::cout << std::endl << nb_labeled_pts << std::endl;
-    }
-    return std::pair<int, std::pair<std::vector<int>, std::vector<int>>>(
-        nb_labeled_pts,
-        std::pair<std::vector<int>, std::vector<int>>(successes, unions));
 }
 
 int main(int argc, char** argv) {
@@ -279,13 +251,11 @@ int main(int argc, char** argv) {
         ifs.close();
     }
 
-    int total_nb_labeled_pts = 0;
     for (unsigned int i = 0; i < file_prefixes.size(); i++) {
         std::cout << "interpolation for " + file_prefixes[i] << std::endl;
-        std::pair<int, std::pair<std::vector<int>, std::vector<int>>>
-            scene_perfs = interpolate_labels_one_point_cloud(
-                input_dense_dir, input_sparse_dir, output_dir, file_prefixes[i],
-                voxel_size, export_labels);
+        interpolate_labels_one_point_cloud(input_dense_dir, input_sparse_dir,
+                                           output_dir, file_prefixes[i],
+                                           voxel_size, export_labels);
     }
 
     return 0;

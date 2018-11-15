@@ -46,25 +46,25 @@ static std::vector<std::string> possible_file_prefixes{
     // "stgallencathedral_station6_intensity_rgb"
 };
 
-class LabelContainer {
-    std::vector<int> label_count;
-    int label;
-
+class LabelCounter {
    public:
-    LabelContainer() {
-        label_count = std::vector<int>(9, 0);
+    LabelCounter() {
+        label_counters_ = std::vector<int>(9, 0);
         label = 0;
     }
-    void add_label(int label) { label_count[label]++; }
+    void increment(int label) { label_counters_[label]++; }
     void calculate_label() {
-        label = max_element(label_count.begin(), label_count.end()) -
-                label_count.begin();
+        label = max_element(label_counters_.begin(), label_counters_.end()) -
+                label_counters_.begin();
     }
     int get_label() { return label; }
-    void set_label(int l) { label = l; }
+
+   private:
+    std::vector<int> label_counters_;
+    int label;
 };
 
-// comparator for voxels_map
+// comparator for map_voxel_to_label_counter
 struct Vector3iComp {
     bool operator()(const Eigen::Vector3i& v1,
                     const Eigen::Vector3i& v2) const {
@@ -95,13 +95,13 @@ Eigen::Vector3i get_voxel(float x, float y, float z, float voxel_size) {
 // a very sparse point cloud (a few hundred thousand points) with
 // predictions by the network and to interpolate the results to the much
 // denser raw point clouds. This is achieved by a division of the space into
-// a voxel grid, implemented as a map called voxels_map.
+// a voxel grid, implemented as a map called map_voxel_to_label_counter.
 // First the sparse point cloud is iterated and the map is constructed. We store
 // for each voxel and each label the nb of points from the sparse cloud
 // and with the right label was in the voxel. Then we assign to each
 // voxel the label which got the most points. And finally we can iterate
 // the dense point cloud and dynamically assign labels according to the
-// voxels_map. IoU per class and accuracy are calculated at
+// map_voxel_to_label_counter. IoU per class and accuracy are calculated at
 // the end.
 void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
                                         const std::string& input_sparse_dir,
@@ -140,7 +140,8 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
     // Read sparse points and labels, build voxel to label container map
     std::string line_point;
     std::string line_label;
-    std::map<Eigen::Vector3i, LabelContainer, Vector3iComp> voxels_map;
+    std::map<Eigen::Vector3i, LabelCounter, Vector3iComp>
+        map_voxel_to_label_counter;
 
     while (getline(sparse_points_file, line_point) &&
            getline(sparse_labels_file, line_label)) {
@@ -155,18 +156,19 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
         sstr >> v >> x >> y >> z >> r >> g >> b;
         Eigen::Vector3i voxel = get_voxel(x, y, z, voxel_size);
 
-        if (voxels_map.count(voxel) == 0) {
-            LabelContainer ilc;
-            voxels_map[voxel] = ilc;
+        if (map_voxel_to_label_counter.count(voxel) == 0) {
+            LabelCounter ilc;
+            map_voxel_to_label_counter[voxel] = ilc;
         }
-        voxels_map[voxel].add_label(label);
+        map_voxel_to_label_counter[voxel].increment(label);
     }
 
-    for (auto it = voxels_map.begin(); it != voxels_map.end(); it++) {
+    for (auto it = map_voxel_to_label_counter.begin();
+         it != map_voxel_to_label_counter.end(); it++) {
         it->second.calculate_label();
     }
-    std::cout << "Number of registered voxels: " << voxels_map.size()
-              << std::endl;
+    std::cout << "Number of registered voxels: "
+              << map_voxel_to_label_counter.size() << std::endl;
 
     // Interpolate to dense point cloud
     // TODO: change to nearest neighbor search
@@ -180,11 +182,11 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
 
         int label;
         Eigen::Vector3i voxel = get_voxel(x, y, z, voxel_size);
-        if (voxels_map.count(voxel) == 0) {
+        if (map_voxel_to_label_counter.count(voxel) == 0) {
             num_fallback_points++;
             label = 0;
         } else {
-            label = voxels_map[voxel].get_label();
+            label = map_voxel_to_label_counter[voxel].get_label();
         }
         out_labels_file << label << std::endl;
 

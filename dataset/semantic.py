@@ -97,10 +97,10 @@ class Dataset:
             # Then, an heuristic gives the weights : 1/log(1.2 + probability of occurrence)
             label_weights = label_weights.astype(np.float32)
             label_weights = label_weights / np.sum(label_weights)
-            self.labelweights = 1 / np.log(1.2 + label_weights)
+            self.label_weights = 1 / np.log(1.2 + label_weights)
 
         elif split == "test" or split == "test_short" or split == "test_full":
-            self.labelweights = np.ones(9)
+            self.label_weights = np.ones(9)
 
     def load_data(self):
         print("Loading semantic data...")
@@ -110,13 +110,9 @@ class Dataset:
             file_names = self.file_names_test
         elif self.split == "full":
             file_names = self.file_names_train + self.file_names_test
-        elif self.split == "test_full":
+        else:
+            assert self.split == "test_full":
             file_names = self.file_names_real_test
-        # train on a smaller, easier dataset to speed up computation
-        elif self.split == "train_short":
-            file_names = self.file_names_train[0:2]
-        elif self.split == "test_short":
-            file_names = self.file_names_train[2:3]
 
         self.data_filenames = [os.path.join(self.path, file) for file in file_names]
         self.scene_points_list = list()
@@ -273,7 +269,7 @@ class Dataset:
                 colors = colors[sample_mask]
 
             # Compute the weights
-            weights = self.labelweights[labels]
+            weights = self.label_weights[labels]
 
             # Optional dropout
             if dropout:

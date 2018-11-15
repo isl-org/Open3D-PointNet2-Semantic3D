@@ -251,6 +251,7 @@ interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
 }
 
 int main(int argc, char** argv) {
+    // Parse arguments
     if (argc < 6) {
         std::cerr << "USAGE: " << argv[0] << " input_dense_dir"
                   << " input_sparse_dir"
@@ -258,13 +259,17 @@ int main(int argc, char** argv) {
                   << " export_labels" << std::endl;
         exit(1);
     }
+    std::string input_dense_dir = argv[1];
+    std::string input_sparse_dir = argv[2];
+    std::string output_dir = argv[3];
     float voxel_size = strtof(argv[4], NULL);
+    bool export_labels = std::string(argv[5]) == "1";
 
     // Collect all existing files
     std::vector<std::string> file_prefixes;
     for (unsigned int i = 0; i < possible_file_prefixes.size(); i++) {
-        std::string filename_labels_sparse = std::string(argv[2]) + "/" +
-                                             possible_file_prefixes[i] +
+        std::string filename_labels_sparse = std::string(input_sparse_dir) +
+                                             "/" + possible_file_prefixes[i] +
                                              "_pred.txt";
         std::ifstream ifs(filename_labels_sparse.c_str());
         if (!ifs.fail()) {
@@ -281,8 +286,8 @@ int main(int argc, char** argv) {
         std::cout << "interpolation for " + file_prefixes[i] << std::endl;
         std::pair<int, std::pair<std::vector<int>, std::vector<int>>>
             scene_perfs = interpolate_labels_one_point_cloud(
-                argv[1], argv[2], argv[3], file_prefixes[i], voxel_size,
-                (std::string(argv[5]) == "1"));
+                input_dense_dir, input_sparse_dir, output_dir, file_prefixes[i],
+                voxel_size, export_labels);
         for (int j = 0; j < 9; j++) {
             successes[j] += scene_perfs.second.first[j];
             unions[j] += scene_perfs.second.second[j];
@@ -297,7 +302,7 @@ int main(int argc, char** argv) {
         return 0;
     }
     if (total_nb_labeled_pts != 0) {
-        std::string perf_filename = std::string(argv[3]) + "/global_perf.txt";
+        std::string perf_filename = output_dir + "/global_perf.txt";
         std::ofstream output((perf_filename).c_str());
         output << "Global performances on files ";
         for (unsigned int i = 0; i < file_prefixes.size(); i++)

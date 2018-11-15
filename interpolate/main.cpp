@@ -164,43 +164,36 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
     std::cout << "Number of registered voxels: "
               << map_voxel_to_label_container.size() << std::endl;
 
-    size_t pt_id = 0;
-    int nb_labeled_pts = 0;
-    int holes_nb = 0;
+    // Interpolate to dense point cloud
+    // TODO: change to nearest neighbor search
+    size_t num_processed_points = 0;
+    size_t num_fallback_points = 0;
     while (getline(dense_points_file, line_point)) {
-        pt_id++;
-        if ((pt_id + 1) % 1000000 == 0) {
-            std::cout << (pt_id + 1) / 1000000 << " M. " << holes_nb
-                      << " holes encountered so far " << std::endl;
-        }
         std::stringstream sstr(line_point);
         float x, y, z;
         int intensity, r, g, b;
         sstr >> x >> y >> z >> intensity >> r >> g >> b;
 
-        int x_id = std::floor(x / voxel_size) +
-                   0.5;  // + 0.5, centre du voxel (k1*res, k2*res)
+        int x_id = std::floor(x / voxel_size) + 0.5;
         int y_id = std::floor(y / voxel_size) + 0.5;
         int z_id = std::floor(z / voxel_size) + 0.5;
 
         int label;
         Eigen::Vector3i voxel(x_id, y_id, z_id);
         if (map_voxel_to_label_container.count(voxel) == 0) {
-            holes_nb++;
-            // std::cout << "voxel unlabeled. fetching closest voxel" <<
-            // std::endl;
-            // here no point in the voxel was in the aggregated point cloud
-            // we assign it the label 0 for now (TODO : improve by nearest
-            // neighbor search using octree ?)
+            num_fallback_points++;
             label = 0;
         } else {
             label = map_voxel_to_label_container[voxel].get_label();
         }
-
         if (export_labels) {
             out_labels_file << label << std::endl;
         }
     }
+
+    sparse_points_file.close();
+    sparse_labels_file.close();
+    dense_points_file.close();
     out_labels_file.close();
 }
 

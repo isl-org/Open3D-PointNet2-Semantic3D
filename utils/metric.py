@@ -57,6 +57,20 @@ class ConfusionMatrix:
 
         return [float(matrix_diagonal[i]) / divisor[i] for i in range(self.num_classes)]
 
+    def get_per_class_iou2(self):
+        ious = []
+        for c in range(self.num_classes):
+            intersection = self.confusion_matrix[c, c]
+            union = (
+                np.sum(self.confusion_matrix[c, :])
+                + np.sum(self.confusion_matrix[:, c])
+                - intersection
+            )
+            if union == 0:
+                union = 1
+            ious.append(float(intersection) / union)
+        return ious
+
     def get_overall_accuracy(self):
         """returns 64-bit float"""
         matrix_diagonal = 0
@@ -116,6 +130,8 @@ class ConfusionMatrix:
         # 2. IoU per class
         print("IoU per class:")
         pprint(self.get_per_class_iou())
+        print("IoU per class 2:")
+        pprint(self.get_per_class_iou2())
 
         # 3. Mean IoU
         # Warning: excluding class 0

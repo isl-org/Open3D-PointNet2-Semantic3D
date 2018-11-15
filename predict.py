@@ -51,10 +51,13 @@ NUM_CLASSES = dataset.num_classes
 
 # Outputs
 OUTPUT_DIR = os.path.join("visu", "semantic_" + SET)
+OUTPUT_DIR_FULL_PC = os.path.join(OUTPUT_DIR, "full_scenes_predictions")
 if not os.path.exists("visu"):
     os.mkdir("visu")
 if not os.path.exists(OUTPUT_DIR):
     os.mkdir(OUTPUT_DIR)
+if not os.path.exists(OUTPUT_DIR_FULL_PC):
+    os.mkdir(OUTPUT_DIR_FULL_PC)
 
 
 def predict_one_input(sess, ops, data):
@@ -67,7 +70,7 @@ def predict_one_input(sess, ops, data):
     return pred_val
 
 
-def predict():
+if __name__ == "__main__":
     """
     Load the selected checkpoint and predict the labels
     Write in the output directories both groundtruth and prediction
@@ -107,9 +110,6 @@ def predict():
         "pred": pred,
     }
 
-    OUTPUT_DIR_FULL_PC = os.path.join(OUTPUT_DIR, "full_scenes_predictions")
-    if not os.path.exists(OUTPUT_DIR_FULL_PC):
-        os.mkdir(OUTPUT_DIR_FULL_PC)
     nscenes = len(dataset)
     p = 6 if PARAMS["use_color"] else 3
     scene_points = [np.array([]).reshape((0, p)) for i in range(nscenes)]
@@ -161,10 +161,5 @@ def predict():
             ground_truth[f].reshape((-1, 1)),
             delimiter=" ",
         )
-    print("done.")
 
 
-if __name__ == "__main__":
-    print("pid: %s" % (str(os.getpid())))
-    with tf.Graph().as_default():
-        predict()

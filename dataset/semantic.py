@@ -172,19 +172,6 @@ class SemanticDataset:
             self.list_labels.append(labels.astype(np.int8))
             self.list_colors.append(colors)
 
-    def __getitem__(self, index):
-        """
-        input : index of a scene
-        output: the whole scene of npointsx3 (xyz) points of the scene and their
-                 labels, and colors if colors are used
-        """
-        point_set = self.list_points[index]
-        labels = self.list_labels[index].astype(np.int32)
-        if self.use_color:
-            colors = self.list_colors[index]
-            return point_set, labels, colors
-        return point_set, labels
-
     def next_batch(self, batch_size, augment=True):
         batch_data = []
         batch_label = []

@@ -11,6 +11,38 @@
 #include <Eigen/Dense>
 #include <algorithm>
 
+static std::vector<std::string> possible_file_prefixes{
+    "bildstein_station1_xyz_intensity_rgb",
+    "bildstein_station3_xyz_intensity_rgb",
+    "bildstein_station5_xyz_intensity_rgb",
+    "domfountain_station1_xyz_intensity_rgb",
+    "domfountain_station2_xyz_intensity_rgb",
+    "domfountain_station3_xyz_intensity_rgb",
+    "neugasse_station1_xyz_intensity_rgb",
+    "sg27_station1_intensity_rgb",
+    "sg27_station2_intensity_rgb",
+    "sg27_station4_intensity_rgb",
+    "sg27_station5_intensity_rgb",
+    "sg27_station9_intensity_rgb",
+    "sg28_station4_intensity_rgb",
+    "untermaederbrunnen_station1_xyz_intensity_rgb",
+    "untermaederbrunnen_station3_xyz_intensity_rgb",
+    "birdfountain_station1_xyz_intensity_rgb",
+    "castleblatten_station1_intensity_rgb",
+    "castleblatten_station5_xyz_intensity_rgb",
+    "marketplacefeldkirch_station1_intensity_rgb",
+    "marketplacefeldkirch_station4_intensity_rgb",
+    "marketplacefeldkirch_station7_intensity_rgb",
+    "sg27_station10_intensity_rgb",
+    "sg27_station3_intensity_rgb",
+    "sg27_station6_intensity_rgb",
+    "sg27_station8_intensity_rgb",
+    "sg28_station2_intensity_rgb",
+    "sg28_station5_xyz_intensity_rgb",
+    "stgallencathedral_station1_intensity_rgb",
+    "stgallencathedral_station3_intensity_rgb",
+    "stgallencathedral_station6_intensity_rgb"};
+
 class InterpolationLabelsContainer {
     std::vector<int> label_count;
     int label;
@@ -229,47 +261,18 @@ int main(int argc, char** argv) {
         exit(1);
     }
     float voxel_size = strtof(argv[4], NULL);
-    std::vector<std::string> PossibleFileNames(30);
-    PossibleFileNames[0] = "bildstein_station1_xyz_intensity_rgb";
-    PossibleFileNames[1] = "bildstein_station3_xyz_intensity_rgb";
-    PossibleFileNames[2] = "bildstein_station5_xyz_intensity_rgb";
-    PossibleFileNames[3] = "domfountain_station1_xyz_intensity_rgb";
-    PossibleFileNames[4] = "domfountain_station2_xyz_intensity_rgb";
-    PossibleFileNames[5] = "domfountain_station3_xyz_intensity_rgb";
-    PossibleFileNames[6] = "neugasse_station1_xyz_intensity_rgb";
-    PossibleFileNames[7] = "sg27_station1_intensity_rgb";
-    PossibleFileNames[8] = "sg27_station2_intensity_rgb";
-    PossibleFileNames[9] = "sg27_station4_intensity_rgb";
-    PossibleFileNames[10] = "sg27_station5_intensity_rgb";
-    PossibleFileNames[11] = "sg27_station9_intensity_rgb";
-    PossibleFileNames[12] = "sg28_station4_intensity_rgb";
-    PossibleFileNames[13] = "untermaederbrunnen_station1_xyz_intensity_rgb";
-    PossibleFileNames[14] = "untermaederbrunnen_station3_xyz_intensity_rgb";
-    PossibleFileNames[15] = "birdfountain_station1_xyz_intensity_rgb";
-    PossibleFileNames[16] = "castleblatten_station1_intensity_rgb";
-    PossibleFileNames[17] = "castleblatten_station5_xyz_intensity_rgb";
-    PossibleFileNames[18] = "marketplacefeldkirch_station1_intensity_rgb";
-    PossibleFileNames[19] = "marketplacefeldkirch_station4_intensity_rgb";
-    PossibleFileNames[20] = "marketplacefeldkirch_station7_intensity_rgb";
-    PossibleFileNames[21] = "sg27_station10_intensity_rgb";
-    PossibleFileNames[22] = "sg27_station3_intensity_rgb";
-    PossibleFileNames[23] = "sg27_station6_intensity_rgb";
-    PossibleFileNames[24] = "sg27_station8_intensity_rgb";
-    PossibleFileNames[25] = "sg28_station2_intensity_rgb";
-    PossibleFileNames[26] = "sg28_station5_xyz_intensity_rgb";
-    PossibleFileNames[27] = "stgallencathedral_station1_intensity_rgb";
-    PossibleFileNames[28] = "stgallencathedral_station3_intensity_rgb";
-    PossibleFileNames[29] = "stgallencathedral_station6_intensity_rgb";
     // we try to open the files one by one in order to know which ones are
     // present in the folder
+
     std::vector<std::string> fileNames;
-    for (unsigned int i = 0; i < PossibleFileNames.size(); i++) {
-        std::string filename_labels_sparse =
-            std::string(argv[2]) + "/" + PossibleFileNames[i] + "_pred.txt";
+    for (unsigned int i = 0; i < possible_file_prefixes.size(); i++) {
+        std::string filename_labels_sparse = std::string(argv[2]) + "/" +
+                                             possible_file_prefixes[i] +
+                                             "_pred.txt";
         std::ifstream ifs(filename_labels_sparse.c_str());
         if (!ifs.fail()) {
-            fileNames.push_back(PossibleFileNames[i]);
-            std::cout << "Found " + PossibleFileNames[i] << std::endl;
+            fileNames.push_back(possible_file_prefixes[i]);
+            std::cout << "Found " + possible_file_prefixes[i] << std::endl;
         }
         ifs.close();
     }

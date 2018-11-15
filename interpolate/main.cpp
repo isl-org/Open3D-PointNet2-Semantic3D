@@ -148,13 +148,13 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
         int x_id = std::floor(x / voxel_size) + 0.5;
         int y_id = std::floor(y / voxel_size) + 0.5;
         int z_id = std::floor(z / voxel_size) + 0.5;
-        Eigen::Vector3i vox(x_id, y_id, z_id);
+        Eigen::Vector3i voxel(x_id, y_id, z_id);
 
-        if (map_voxel_to_label_container.count(vox) == 0) {
+        if (map_voxel_to_label_container.count(voxel) == 0) {
             LabelContainer ilc;
-            map_voxel_to_label_container[vox] = ilc;
+            map_voxel_to_label_container[voxel] = ilc;
         }
-        map_voxel_to_label_container[vox].add_label(label);
+        map_voxel_to_label_container[voxel].add_label(label);
     }
 
     for (auto it = map_voxel_to_label_container.begin();
@@ -186,8 +186,8 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
         int z_id = std::floor(z / voxel_size) + 0.5;
 
         int label;
-        Eigen::Vector3i vox(x_id, y_id, z_id);
-        if (map_voxel_to_label_container.count(vox) == 0) {
+        Eigen::Vector3i voxel(x_id, y_id, z_id);
+        if (map_voxel_to_label_container.count(voxel) == 0) {
             holes_nb++;
             // std::cout << "voxel unlabeled. fetching closest voxel" <<
             // std::endl;
@@ -196,7 +196,7 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
             // neighbor search using octree ?)
             label = 0;
         } else {
-            label = map_voxel_to_label_container[vox].get_label();
+            label = map_voxel_to_label_container[voxel].get_label();
         }
 
         if (export_labels) {

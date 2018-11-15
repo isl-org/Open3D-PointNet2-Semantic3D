@@ -146,9 +146,7 @@ interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
     }
 
     int j = 0;
-    for (std::map<Eigen::Vector3i, InterpolationLabelsContainer>::iterator it =
-             voxels.begin();
-         it != voxels.end(); it++, j++) {
+    for (auto it = voxels.begin(); it != voxels.end(); it++, j++) {
         it->second.calculate_label();
     }
     std::cout << "number of registered voxels : " << j << std::endl;

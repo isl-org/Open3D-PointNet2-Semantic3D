@@ -100,6 +100,8 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
                                         const std::string& output_dir,
                                         const std::string& file_prefix,
                                         float voxel_size) {
+    std::cout << "[Interpolating] " + file_prefix << std::endl;
+
     // Load files
     std::string sparse_points_path =
         input_sparse_dir + "/" + file_prefix + "_aggregated.txt";
@@ -212,6 +214,7 @@ int main(int argc, char** argv) {
     std::string input_sparse_dir = argv[2];
     std::string output_dir = argv[3];
     float voxel_size = strtof(argv[4], NULL);
+    std::cout << "Using voxel size: " << voxel_size << std::endl;
 
     // Collect all existing files
     std::vector<std::string> file_prefixes;
@@ -222,16 +225,15 @@ int main(int argc, char** argv) {
         std::ifstream sparse_points_file(sparse_labels_path.c_str());
         if (!sparse_points_file.fail()) {
             file_prefixes.push_back(possible_file_prefixes[i]);
-            std::cout << "Found " + possible_file_prefixes[i] << std::endl;
+            std::cout << "Found: " + possible_file_prefixes[i] << std::endl;
         }
         sparse_points_file.close();
     }
 
-    for (unsigned int i = 0; i < file_prefixes.size(); i++) {
-        std::cout << "interpolation for " + file_prefixes[i] << std::endl;
+    // Interpolate
+    for (const std::string& file_prefix : file_prefixes) {
         interpolate_labels_one_point_cloud(input_dense_dir, input_sparse_dir,
-                                           output_dir, file_prefixes[i],
-                                           voxel_size);
+                                           output_dir, file_prefix, voxel_size);
     }
 
     return 0;

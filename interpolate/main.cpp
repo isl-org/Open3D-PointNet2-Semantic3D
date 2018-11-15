@@ -122,6 +122,9 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
         std::cerr << dense_points_path << " not found" << std::endl;
     }
     std::ofstream out_labels_file(out_labels_path.c_str());
+    if (out_labels_file.fail()) {
+        std::cerr << "Output file cannot be created" << std::endl;
+    }
 
     std::string line_point;
     std::string line_label;

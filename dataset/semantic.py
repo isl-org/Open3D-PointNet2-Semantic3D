@@ -111,7 +111,7 @@ class Dataset:
         elif self.split == "full":
             file_names = self.file_names_train + self.file_names_test
         else:
-            assert self.split == "test_full":
+            assert self.split == "test_full"
             file_names = self.file_names_real_test
 
         self.data_filenames = [os.path.join(self.path, file) for file in file_names]

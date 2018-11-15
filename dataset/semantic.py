@@ -103,8 +103,15 @@ class Dataset:
             self.label_weights = np.ones(9)
 
     def load_data(self):
+        """
+        Fills:
+        - self.list_points
+        - self.list_labels
+        - self.list_colors
+        """
         print("Loading semantic data...")
 
+        # Get file names to load
         if self.split == "train":
             file_names = self.file_names_train
         elif self.split == "test":
@@ -118,53 +125,49 @@ class Dataset:
         self.list_file_path = [os.path.join(self.path, file) for file in file_names]
         self.list_points = list()
         self.list_labels = list()
-
-        if self.use_color:
-            self.list_colors = list()
+        self.list_colors = list()
 
         for file_path in self.list_file_path:
+            # Load points
             points = np.load(file_path + "_vertices.npz")
-            if self.split == "test_full":
-                data_labels = np.zeros(len(points[points.files[0]])).astype(bool)
-            else:
-                data_labels = np.load(file_path + "_labels.npz")
-            if self.use_color:
-                data_colors = np.load(file_path + "_colors.npz")
-            # sort according to x to speed up computation of boxes and z-boxes
             points = points[points.files[0]]
-            if self.split != "test_full":
-                data_labels = data_labels[data_labels.files[0]]
-            if self.use_color:
-                data_colors = data_colors[data_colors.files[0]]
+
+            # Load label. In pure test set, fill with zero
+            if self.split == "test_full":
+                labels = np.zeros(len(points)).astype(bool)
+            else:
+                labels = np.load(file_path + "_labels.npz")
+                labels = labels[labels.files[0]]
+
+            # Load colors, regardless of whether use_color is true
+            colors = np.load(file_path + "_colors.npz")
+            colors = colors[colors.files[0]]
+            colors = colors.astype(np.float32) / 255.0 # Normalize RGB to 0~1
+
+            # Sort according to x to speed up computation of boxes and z-boxes
             sort_idx = np.argsort(points[:, 0])
             points = points[sort_idx]
-            data_labels = data_labels[sort_idx]
-            if self.use_color:
-                data_colors = data_colors[sort_idx]
-            self.list_points.append(points)
-            self.list_labels.append(data_labels.astype(np.int8))
-            if self.use_color:
-                self.list_colors.append(data_colors)
+            labels = labels[sort_idx]
+            colors = colors[sort_idx]
 
-        # Normalize RGB
-        for i in range(len(self.list_colors)):
-            self.list_colors[i] = (
-                self.list_colors[i].astype("float32") / 255
-            )
+            # Append to list
+            self.list_points.append(points)
+            self.list_labels.append(labels.astype(np.int8))
+            self.list_colors.append(colors)
 
         # Shift point cloud to min (0, 0, 0)
         # Training: use the normalized points for training
         # Testing: use the normalized points for testing. However, when writing back
         #          point clouds, the shift should be added back.
-        self.scene_max_list = list()
-        self.scene_min_list = list()
-        self.raw_scene_min_list = list()
+        self.list_points_max = list()
+        self.list_points_min = list()
+        self.list_raw_points_min = list()
         for i in range(len(self.list_points)):
-            raw_scene_min = np.min(self.list_points[i], axis=0)
-            self.raw_scene_min_list.append(raw_scene_min)
-            self.list_points[i] = self.list_points[i] - raw_scene_min
-            self.scene_max_list.append(np.max(self.list_points[i], axis=0))
-            self.scene_min_list.append(np.min(self.list_points[i], axis=0))
+            points_min = np.min(self.list_points[i], axis=0)
+            self.list_raw_points_min.append(points_min)
+            self.list_points[i] = self.list_points[i] - points_min
+            self.list_points_max.append(np.max(self.list_points[i], axis=0))
+            self.list_points_min.append(np.min(self.list_points[i], axis=0))
 
     def __getitem__(self, index):
         """
@@ -281,7 +284,7 @@ class Dataset:
             return (
                 scene_index,
                 data,
-                raw_data + self.raw_scene_min_list[scene_index],
+                raw_data + self.list_raw_points_min[scene_index],
                 labels,
                 colors,
                 weights,
@@ -353,8 +356,8 @@ class Dataset:
         ## TAKES LOT OF TIME !! THINK OF AN ALTERNATIVE !
         # 2D crop, takes all the z axis
 
-        scene_max = self.scene_max_list[scene_idx]
-        scene_min = self.scene_min_list[scene_idx]
+        scene_max = self.list_points_max[scene_idx]
+        scene_min = self.list_points_min[scene_idx]
         scene_z_size = scene_max[2] - scene_min[2]
         box_min = seed - [self.box_size / 2, self.box_size / 2, scene_z_size]
         box_max = seed + [self.box_size / 2, self.box_size / 2, scene_z_size]

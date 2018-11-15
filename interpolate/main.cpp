@@ -96,16 +96,16 @@ std::pair<int, std::pair<std::vector<int>, std::vector<int>>>
 interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
                                    const std::string& input_sparse_dir,
                                    const std::string& output_dir,
-                                   const std::string& filename,
+                                   const std::string& file_prefix,
                                    const float& voxel_size,
                                    const bool& export_labels) {
     std::string filename_sparse =
-        input_sparse_dir + "/" + filename + "_aggregated.txt";
+        input_sparse_dir + "/" + file_prefix + "_aggregated.txt";
     std::string filename_labels_sparse =
-        input_sparse_dir + "/" + filename + "_pred.txt";
-    std::string filename_dense = input_dense_dir + "/" + filename + ".txt";
+        input_sparse_dir + "/" + file_prefix + "_pred.txt";
+    std::string filename_dense = input_dense_dir + "/" + file_prefix + ".txt";
     std::string filename_labels_dense =
-        input_dense_dir + "/" + filename + ".labels";
+        input_dense_dir + "/" + file_prefix + ".labels";
     std::ifstream ifs(filename_sparse.c_str());
     if (ifs.fail()) std::cerr << filename_sparse << " not found" << std::endl;
     std::ifstream ifs_labels(filename_labels_sparse.c_str());
@@ -153,7 +153,7 @@ interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
 
     // now we move on to the dense cloud
     // don't know how to open only when necessary
-    std::string out_label_filename = output_dir + "/" + filename + ".labels";
+    std::string out_label_filename = output_dir + "/" + file_prefix + ".labels";
     std::ofstream out_label(out_label_filename.c_str());
     std::ifstream ifs2(filename_dense.c_str());
     if (ifs2.fail()) std::cerr << filename_dense << " not found" << std::endl;
@@ -222,9 +222,9 @@ interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
     }
     out_label.close();
 
-    std::string perf_filename = output_dir + "/" + filename + "_perf.txt";
+    std::string perf_filename = output_dir + "/" + file_prefix + "_perf.txt";
     std::ofstream output(perf_filename.c_str());
-    if (compute_perfs) output << "Performances of " + filename << std::endl;
+    if (compute_perfs) output << "Performances of " + file_prefix << std::endl;
     std::string classes[9] = {
         "unlabeled",       "man-made terrain",   "natural terrain",
         "high vegetation", "low vegetation",     "buildings",
@@ -259,9 +259,8 @@ int main(int argc, char** argv) {
         exit(1);
     }
     float voxel_size = strtof(argv[4], NULL);
-    // we try to open the files one by one in order to know which ones are
-    // present in the folder
 
+    // Collect all existing files
     std::vector<std::string> file_prefixes;
     for (unsigned int i = 0; i < possible_file_prefixes.size(); i++) {
         std::string filename_labels_sparse = std::string(argv[2]) + "/" +
@@ -274,6 +273,7 @@ int main(int argc, char** argv) {
         }
         ifs.close();
     }
+
     std::vector<int> unions(9, 0);
     std::vector<int> successes(9, 0);
     int total_nb_labeled_pts = 0;
@@ -290,9 +290,8 @@ int main(int argc, char** argv) {
         total_nb_labeled_pts += scene_perfs.first;
     }
 
-    // now we agregate this data on the point clouds that were processed and we
+    // now we aggregate this data on the point clouds that were processed and we
     // write it into a file
-
     if (file_prefixes.size() == 0) {
         std::cout << "no file found" << std::endl;
         return 0;

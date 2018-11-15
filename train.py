@@ -418,7 +418,7 @@ def train_one_epoch(sess, ops, train_writer, stack):
         loss_sum += loss_val
     update_progress(1)
     log_string("mean loss: %f" % (loss_sum / float(num_batches)))
-    log_string("Overall accuracy : %f" % (confusion_matrix.get_overall_accuracy()))
+    log_string("Overall accuracy : %f" % (confusion_matrix.get_accuracy()))
     log_string("Average IoU : %f" % (confusion_matrix.get_mean_iou()))
     iou_per_class = confusion_matrix.get_per_class_iou()
     for i in range(1, NUM_CLASSES):
@@ -483,13 +483,13 @@ def eval_one_epoch(sess, ops, test_writer, stack):
 
     # Display metrics
     log_string("mean loss: %f" % (loss_sum / float(num_batches)))
-    log_string("Overall accuracy : %f" % (confusion_matrix.get_overall_accuracy()))
+    log_string("Overall accuracy : %f" % (confusion_matrix.get_accuracy()))
     log_string("Average IoU : %f" % (confusion_matrix.get_mean_iou()))
     for i in range(1, NUM_CLASSES):
         log_string("IoU of %s : %f" % (TEST_DATASET.labels_names[i], iou_per_class[i]))
 
     EPOCH_CNT += 5
-    return confusion_matrix.get_overall_accuracy()
+    return confusion_matrix.get_accuracy()
 
 
 if __name__ == "__main__":

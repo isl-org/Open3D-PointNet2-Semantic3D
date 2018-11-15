@@ -152,6 +152,6 @@ if __name__ == "__main__":
         np.savetxt(
             gt_labels_path, ground_truth[scene_index].reshape((-1, 1)), delimiter=" "
         )
-        cm.increment_conf_matrix_from_file(gt_labels_path, pd_labels_path)
+        cm.increment_from_file(gt_labels_path, pd_labels_path)
 
     cm.print_metrics()

@@ -279,8 +279,6 @@ int main(int argc, char** argv) {
         ifs.close();
     }
 
-    std::vector<int> unions(9, 0);
-    std::vector<int> successes(9, 0);
     int total_nb_labeled_pts = 0;
     for (unsigned int i = 0; i < file_prefixes.size(); i++) {
         std::cout << "interpolation for " + file_prefixes[i] << std::endl;
@@ -288,44 +286,7 @@ int main(int argc, char** argv) {
             scene_perfs = interpolate_labels_one_point_cloud(
                 input_dense_dir, input_sparse_dir, output_dir, file_prefixes[i],
                 voxel_size, export_labels);
-        for (int j = 0; j < 9; j++) {
-            successes[j] += scene_perfs.second.first[j];
-            unions[j] += scene_perfs.second.second[j];
-        }
-        total_nb_labeled_pts += scene_perfs.first;
     }
 
-    // now we aggregate this data on the point clouds that were processed and we
-    // write it into a file
-    if (file_prefixes.size() == 0) {
-        std::cout << "no file found" << std::endl;
-        return 0;
-    }
-    if (total_nb_labeled_pts != 0) {
-        std::string perf_filename = output_dir + "/global_perf.txt";
-        std::ofstream output((perf_filename).c_str());
-        output << "Global performances on files ";
-        for (unsigned int i = 0; i < file_prefixes.size(); i++)
-            output << file_prefixes[i] << " ";
-        output << std::endl;
-        std::string classes[9] = {
-            "unlabeled",       "man-made terrain",   "natural terrain",
-            "high vegetation", "low vegetation",     "buildings",
-            "hard scape",      "scanning artefacts", "cars"};
-        int total_nb_of_successes = 0;
-        float sum_IoUs = 0;
-        std::vector<float> IoUs(9);
-        for (int i = 0; i < 9; i++) {
-            IoUs[i] = successes[i] / float(unions[i]);
-            sum_IoUs += IoUs[i];
-            std::cout << IoUs[i] << " ";
-            output << "IoU of " << classes[i] << IoUs[i] << std::endl;
-            total_nb_of_successes += successes[i];
-        }
-        output << "global accuracy : "
-               << total_nb_of_successes / float(total_nb_labeled_pts)
-               << std::endl;
-        output << "IoU averaged on 8 classes : " << sum_IoUs / 8. << std::endl;
-        std::cout << std::endl << total_nb_labeled_pts << std::endl;
-    }
+    return 0;
 }

@@ -21,9 +21,6 @@ class Dataset:
         box_size (int): Defaults to 10. The size of the extracted cube.
         path (float): Defaults to 'dataset/semantic_data/'.
         dropout_max (float): Defaults to 0.875. Maximum dropout to apply on the inputs.
-        accept_rate (float): Minimum rate (between 0.0 and 1.0) of points in the box to
-                             accept it. E.g : npoints = 100, then you need at least 50
-                             points.
         """
         # Dataset parameters
         self.npoints = npoints
@@ -44,7 +41,7 @@ class Dataset:
             "scanning artefacts",
             "cars",
         ]
-        self.filenames_train = [
+        self.file_names_train = [
             "bildstein_station1_xyz_intensity_rgb",
             "bildstein_station3_xyz_intensity_rgb",
             "bildstein_station5_xyz_intensity_rgb",
@@ -55,7 +52,7 @@ class Dataset:
             "sg27_station1_intensity_rgb",
             "sg27_station2_intensity_rgb",
         ]
-        self.filenames_test = [
+        self.file_names_test = [
             "sg27_station4_intensity_rgb",
             "sg27_station5_intensity_rgb",
             "sg27_station9_intensity_rgb",
@@ -63,7 +60,7 @@ class Dataset:
             "untermaederbrunnen_station1_xyz_intensity_rgb",
             "untermaederbrunnen_station3_xyz_intensity_rgb",
         ]
-        self.real_test_filenames = [
+        self.file_names_real_test = [
             "birdfountain_station1_xyz_intensity_rgb",
             "castleblatten_station1_intensity_rgb",
             "castleblatten_station5_xyz_intensity_rgb",
@@ -84,23 +81,23 @@ class Dataset:
         # Load the data
         self.load_data()
 
-        # Precompute the random scene probabilities, and zmax
+        # Pre-compute the random scene probabilities, and zmax
         self.compute_random_scene_index_proba()
         self.set_pc_zmax_zmin()
 
         # Prepare the points weights if it is a training set
         if split == "train" or split == "train_short" or split == "full":
             # Compute the weights
-            labelweights = np.zeros(9)
+            label_weights = np.zeros(9)
             # First, compute the histogram of each labels
             for seg in self.semantic_labels_list:
                 tmp, _ = np.histogram(seg, range(10))
-                labelweights += tmp
+                label_weights += tmp
 
             # Then, an heuristic gives the weights : 1/log(1.2 + probability of occurrence)
-            labelweights = labelweights.astype(np.float32)
-            labelweights = labelweights / np.sum(labelweights)
-            self.labelweights = 1 / np.log(1.2 + labelweights)
+            label_weights = label_weights.astype(np.float32)
+            label_weights = label_weights / np.sum(label_weights)
+            self.labelweights = 1 / np.log(1.2 + label_weights)
 
         elif split == "test" or split == "test_short" or split == "test_full":
             self.labelweights = np.ones(9)
@@ -108,20 +105,20 @@ class Dataset:
     def load_data(self):
         print("Loading semantic data...")
         if self.split == "train":
-            filenames = self.filenames_train
+            file_names = self.file_names_train
         elif self.split == "test":
-            filenames = self.filenames_test
+            file_names = self.file_names_test
         elif self.split == "full":
-            filenames = self.filenames_train + self.filenames_test
+            file_names = self.file_names_train + self.file_names_test
         elif self.split == "test_full":
-            filenames = self.real_test_filenames
+            file_names = self.file_names_real_test
         # train on a smaller, easier dataset to speed up computation
         elif self.split == "train_short":
-            filenames = self.filenames_train[0:2]
+            file_names = self.file_names_train[0:2]
         elif self.split == "test_short":
-            filenames = self.filenames_train[2:3]
+            file_names = self.file_names_train[2:3]
 
-        self.data_filenames = [os.path.join(self.path, file) for file in filenames]
+        self.data_filenames = [os.path.join(self.path, file) for file in file_names]
         self.scene_points_list = list()
         self.semantic_labels_list = list()
         if self.use_color:

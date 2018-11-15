@@ -252,8 +252,8 @@ interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
 
 int main(int argc, char** argv) {
     if (argc < 6) {
-        std::cerr << "USAGE: " << argv[0] << " raw_point_cloud_dir"
-                  << " sparse_prediction_dir"
+        std::cerr << "USAGE: " << argv[0] << " input_dense_dir"
+                  << " input_sparse_dir"
                   << " output_dir "
                   << " export_labels" << std::endl;
         exit(1);
@@ -262,14 +262,14 @@ int main(int argc, char** argv) {
     // we try to open the files one by one in order to know which ones are
     // present in the folder
 
-    std::vector<std::string> fileNames;
+    std::vector<std::string> file_prefixes;
     for (unsigned int i = 0; i < possible_file_prefixes.size(); i++) {
         std::string filename_labels_sparse = std::string(argv[2]) + "/" +
                                              possible_file_prefixes[i] +
                                              "_pred.txt";
         std::ifstream ifs(filename_labels_sparse.c_str());
         if (!ifs.fail()) {
-            fileNames.push_back(possible_file_prefixes[i]);
+            file_prefixes.push_back(possible_file_prefixes[i]);
             std::cout << "Found " + possible_file_prefixes[i] << std::endl;
         }
         ifs.close();
@@ -277,11 +277,11 @@ int main(int argc, char** argv) {
     std::vector<int> unions(9, 0);
     std::vector<int> successes(9, 0);
     int total_nb_labeled_pts = 0;
-    for (unsigned int i = 0; i < fileNames.size(); i++) {
-        std::cout << "interpolation for " + fileNames[i] << std::endl;
+    for (unsigned int i = 0; i < file_prefixes.size(); i++) {
+        std::cout << "interpolation for " + file_prefixes[i] << std::endl;
         std::pair<int, std::pair<std::vector<int>, std::vector<int>>>
             scene_perfs = interpolate_labels_one_point_cloud(
-                argv[1], argv[2], argv[3], fileNames[i], voxel_size,
+                argv[1], argv[2], argv[3], file_prefixes[i], voxel_size,
                 (std::string(argv[5]) == "1"));
         for (int j = 0; j < 9; j++) {
             successes[j] += scene_perfs.second.first[j];
@@ -293,7 +293,7 @@ int main(int argc, char** argv) {
     // now we agregate this data on the point clouds that were processed and we
     // write it into a file
 
-    if (fileNames.size() == 0) {
+    if (file_prefixes.size() == 0) {
         std::cout << "no file found" << std::endl;
         return 0;
     }
@@ -301,8 +301,8 @@ int main(int argc, char** argv) {
         std::string perf_filename = std::string(argv[3]) + "/global_perf.txt";
         std::ofstream output((perf_filename).c_str());
         output << "Global performances on files ";
-        for (unsigned int i = 0; i < fileNames.size(); i++)
-            output << fileNames[i] << " ";
+        for (unsigned int i = 0; i < file_prefixes.size(); i++)
+            output << file_prefixes[i] << " ";
         output << std::endl;
         std::string classes[9] = {
             "unlabeled",       "man-made terrain",   "natural terrain",

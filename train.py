@@ -414,7 +414,7 @@ def train_one_epoch(sess, ops, train_writer, stack):
         # Update metrics
         for i in range(len(pred_val)):
             for j in range(len(pred_val[i])):
-                confusion_matrix.count_predicted(batch_label[i][j], pred_val[i][j])
+                confusion_matrix.increment(batch_label[i][j], pred_val[i][j])
         loss_sum += loss_val
     update_progress(1)
     log_string("mean loss: %f" % (loss_sum / float(num_batches)))
@@ -474,7 +474,7 @@ def eval_one_epoch(sess, ops, test_writer, stack):
         # Update metrics
         for i in range(len(pred_val)):
             for j in range(len(pred_val[i])):
-                confusion_matrix.count_predicted(batch_label[i][j], pred_val[i][j])
+                confusion_matrix.increment(batch_label[i][j], pred_val[i][j])
         loss_sum += loss_val
 
     update_progress(1)

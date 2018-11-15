@@ -11,13 +11,24 @@ class ConfusionMatrix:
         self.num_classes = num_classes
         self.confusion_matrix = np.zeros((self.num_classes, self.num_classes))
 
-    def count_predicted(self, gt_label, pd_label):
+    def increment(self, gt_label, pd_label):
         valid_labels = set(range(self.num_classes))
         if gt_label not in valid_labels:
             raise ValueError("Invalid value for gt_label")
         if pd_label not in valid_labels:
             raise ValueError("Invalid value for pd_label")
         self.confusion_matrix[gt_label][pd_label] += 1
+
+    def increment_from_file(self, gt_file, pd_file):
+        """
+        For Semantic3D: num_classes == 9, and both gt_file and pd_file only contains
+        label 1, 2, ..., 8. Label 0 is not used at all.
+        """
+        with open(gt_file, "r") as gt_f, open(pd_file, "r") as pd_f:
+            for gt_line, pd_line in zip(gt_f, pd_f):
+                gt_label = int(float(gt_line.strip()))
+                pd_label = int(float(pd_line.strip()))
+                self.increment(gt_label, pd_label)
 
     def get_per_class_iou(self):
         ious = []
@@ -33,25 +44,14 @@ class ConfusionMatrix:
             ious.append(float(intersection) / union)
         return ious
 
-    def get_accuracy(self):
-        return np.trace(self.confusion_matrix) / np.sum(self.confusion_matrix)
-
     def get_mean_iou(self):
         """
         Warning: Semantic3D assumes label 0 is not used for computing mean
         """
         return np.sum(self.get_per_class_iou()) / (self.num_classes - 1)
 
-    def increment_from_file(self, gt_file, pd_file):
-        """
-        For Semantic3D: num_classes == 9, and both gt_file and pd_file only contains
-        label 1, 2, ..., 8. Label 0 is not used at all.
-        """
-        with open(gt_file, "r") as gt_f, open(pd_file, "r") as pd_f:
-            for gt_line, pd_line in zip(gt_f, pd_f):
-                gt_label = int(float(gt_line.strip()))
-                pd_label = int(float(pd_line.strip()))
-                self.count_predicted(gt_label, pd_label)
+    def get_accuracy(self):
+        return np.trace(self.confusion_matrix) / np.sum(self.confusion_matrix)
 
     def print_metrics(self, labels=None):
         # 1. Confusion matrix

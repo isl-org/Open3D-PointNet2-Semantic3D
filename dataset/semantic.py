@@ -12,9 +12,7 @@ import utils.provider as provider
 
 
 class Dataset:
-    def __init__(
-        self, npoints, split, use_color, box_size, path, dropout_max, z_feature
-    ):
+    def __init__(self, npoints, split, use_color, box_size, path, dropout_max):
         """Create a dataset holder
         npoints (int): Defaults to 8192. The number of point in each input
         split (str): Defaults to 'train'. The selected part of the data (train, test,
@@ -23,11 +21,7 @@ class Dataset:
         box_size (int): Defaults to 10. The size of the extracted cube.
         path (float): Defaults to 'dataset/semantic_data/'.
         dropout_max (float): Defaults to 0.875. Maximum dropout to apply on the inputs.
-        accept_rate (float): Minimum rate (between 0.0 and 1.0) of points in the box to
-                             accept it. E.g : npoints = 100, then you need at least 50
-                             points.
         """
-        self.z_feature = z_feature
         # Dataset parameters
         self.npoints = npoints
         self.split = split
@@ -47,26 +41,7 @@ class Dataset:
             "scanning artefacts",
             "cars",
         ]
-        self.short_labels_names = [
-            "unlbl.",
-            "m.m. terr.",
-            "nat. terr.",
-            "high veg.",
-            "low veg.",
-            "build.",
-            "hard sc.",
-            "scan. art.",
-            "cars",
-        ]
-        self.filenames_test = [
-            "sg27_station4_intensity_rgb",
-            "sg27_station5_intensity_rgb",
-            "sg27_station9_intensity_rgb",
-            "sg28_station4_intensity_rgb",
-            "untermaederbrunnen_station1_xyz_intensity_rgb",
-            "untermaederbrunnen_station3_xyz_intensity_rgb",
-        ]
-        self.filenames_train = [
+        self.file_names_train = [
             "bildstein_station1_xyz_intensity_rgb",
             "bildstein_station3_xyz_intensity_rgb",
             "bildstein_station5_xyz_intensity_rgb",
@@ -77,8 +52,15 @@ class Dataset:
             "sg27_station1_intensity_rgb",
             "sg27_station2_intensity_rgb",
         ]
-
-        self.real_test_filenames = [
+        self.file_names_test = [
+            "sg27_station4_intensity_rgb",
+            "sg27_station5_intensity_rgb",
+            "sg27_station9_intensity_rgb",
+            "sg28_station4_intensity_rgb",
+            "untermaederbrunnen_station1_xyz_intensity_rgb",
+            "untermaederbrunnen_station3_xyz_intensity_rgb",
+        ]
+        self.file_names_real_test = [
             "birdfountain_station1_xyz_intensity_rgb",
             "castleblatten_station1_intensity_rgb",
             "castleblatten_station5_xyz_intensity_rgb",
@@ -99,91 +81,98 @@ class Dataset:
         # Load the data
         self.load_data()
 
-        # Precompute the random scene probabilities, and zmax
+        # Pre-compute the random scene probabilities, and zmax
         self.compute_random_scene_index_proba()
         self.set_pc_zmax_zmin()
 
         # Prepare the points weights if it is a training set
         if split == "train" or split == "train_short" or split == "full":
             # Compute the weights
-            labelweights = np.zeros(9)
+            label_weights = np.zeros(9)
             # First, compute the histogram of each labels
-            for seg in self.semantic_labels_list:
+            for seg in self.list_labels:
                 tmp, _ = np.histogram(seg, range(10))
-                labelweights += tmp
+                label_weights += tmp
 
             # Then, an heuristic gives the weights : 1/log(1.2 + probability of occurrence)
-            labelweights = labelweights.astype(np.float32)
-            labelweights = labelweights / np.sum(labelweights)
-            self.labelweights = 1 / np.log(1.2 + labelweights)
+            label_weights = label_weights.astype(np.float32)
+            label_weights = label_weights / np.sum(label_weights)
+            self.label_weights = 1 / np.log(1.2 + label_weights)
 
         elif split == "test" or split == "test_short" or split == "test_full":
-            self.labelweights = np.ones(9)
+            self.label_weights = np.ones(9)
 
     def load_data(self):
+        """
+        Fills:
+            self.list_file_path
+            self.list_points
+            self.list_points_min_raw
+            self.list_points_min
+            self.list_points_max
+            self.list_labels
+            self.list_colors
+        """
         print("Loading semantic data...")
+
+        # Get file names to load
         if self.split == "train":
-            filenames = self.filenames_train
+            file_names = self.file_names_train
         elif self.split == "test":
-            filenames = self.filenames_test
+            file_names = self.file_names_test
         elif self.split == "full":
-            filenames = self.filenames_train + self.filenames_test
-        elif self.split == "test_full":
-            filenames = self.real_test_filenames
-        # train on a smaller, easier dataset to speed up computation
-        elif self.split == "train_short":
-            filenames = self.filenames_train[0:2]
-        elif self.split == "test_short":
-            filenames = self.filenames_train[2:3]
+            file_names = self.file_names_train + self.file_names_test
+        else:
+            assert self.split == "test_full"
+            file_names = self.file_names_real_test
 
-        self.data_filenames = [os.path.join(self.path, file) for file in filenames]
-        self.scene_points_list = list()
-        self.semantic_labels_list = list()
-        if self.use_color:
-            self.scene_colors_list = list()
-        for filename in self.data_filenames:
-            data_points = np.load(filename + "_vertices.npz")
+        self.list_file_path = [os.path.join(self.path, file) for file in file_names]
+        self.list_points = list()
+        self.list_labels = list()
+        self.list_colors = list()
+        self.list_points_max = list()
+        self.list_points_min = list()
+        self.list_points_min_raw = list()
+
+        for file_path in self.list_file_path:
+            # Load points
+            points = np.load(file_path + "_vertices.npz")
+            points = points[points.files[0]]
+
+            # Shift points to min (0, 0, 0)
+            # Training: use the normalized points for training
+            # Testing: use the normalized points for testing. However, when writing back
+            #          point clouds, the shift should be added back.
+            points_min_raw = np.min(points, axis=0)
+            points = points - points_min_raw
+            points_min = np.min(points, axis=0)
+            points_max = np.max(points, axis=0)
+
+            # Load label. In pure test set, fill with zero
             if self.split == "test_full":
-                data_labels = np.zeros(len(data_points[data_points.files[0]])).astype(
-                    bool
-                )
+                labels = np.zeros(len(points)).astype(bool)
             else:
-                data_labels = np.load(filename + "_labels.npz")
-            if self.use_color:
-                data_colors = np.load(filename + "_colors.npz")
-            # sort according to x to speed up computation of boxes and z-boxes
-            data_points = data_points[data_points.files[0]]
-            if self.split != "test_full":
-                data_labels = data_labels[data_labels.files[0]]
-            if self.use_color:
-                data_colors = data_colors[data_colors.files[0]]
-            sort_idx = np.argsort(data_points[:, 0])
-            data_points = data_points[sort_idx]
-            data_labels = data_labels[sort_idx]
-            if self.use_color:
-                data_colors = data_colors[sort_idx]
-            self.scene_points_list.append(data_points)
-            self.semantic_labels_list.append(data_labels.astype(np.int8))
-            if self.use_color:
-                self.scene_colors_list.append(data_colors)
+                labels = np.load(file_path + "_labels.npz")
+                labels = labels[labels.files[0]]
 
-        # Normalize RGB
-        for i in range(len(self.scene_colors_list)):
-            self.scene_colors_list[i] = (
-                self.scene_colors_list[i].astype("float32") / 255
-            )
+            # Load colors, regardless of whether use_color is true
+            colors = np.load(file_path + "_colors.npz")
+            colors = colors[colors.files[0]]
+            colors = colors.astype(np.float32) / 255.0 # Normalize RGB to 0~1
 
-        # Set min to (0,0,0)
-        self.scene_max_list = list()
-        self.scene_min_list = list()
-        self.raw_scene_min_list = list()
-        for i in range(len(self.scene_points_list)):
-            self.raw_scene_min_list.append(np.min(self.scene_points_list[i], axis=0))
-            self.scene_points_list[i] = self.scene_points_list[i] - np.min(
-                self.scene_points_list[i], axis=0
-            )
-            self.scene_max_list.append(np.max(self.scene_points_list[i], axis=0))
-            self.scene_min_list.append(np.min(self.scene_points_list[i], axis=0))
+            # Sort according to x to speed up computation of boxes and z-boxes
+            sort_idx = np.argsort(points[:, 0])
+            points = points[sort_idx]
+            labels = labels[sort_idx]
+            colors = colors[sort_idx]
+
+            # Append to list
+            self.list_points.append(points)
+            self.list_points_min_raw.append(points_min_raw)
+            self.list_points_min.append(points_min)
+            self.list_points_max.append(points_max)
+            self.list_labels.append(labels.astype(np.int8))
+            self.list_colors.append(colors)
 
     def __getitem__(self, index):
         """
@@ -191,10 +180,10 @@ class Dataset:
         output: the whole scene of npointsx3 (xyz) points of the scene and their
                  labels, and colors if colors are used
         """
-        point_set = self.scene_points_list[index]
-        labels = self.semantic_labels_list[index].astype(np.int32)
+        point_set = self.list_points[index]
+        labels = self.list_labels[index].astype(np.int32)
         if self.use_color:
-            colors = self.scene_colors_list[index]
+            colors = self.list_colors[index]
             return point_set, labels, colors
         return point_set, labels
 
@@ -204,18 +193,10 @@ class Dataset:
         batch_weights = []
         feature_size = 0
         for _ in range(batch_size):
-            if not self.z_feature:
-                data, label, colors, weights = self.next_input(dropout)
-                if self.use_color:
-                    feature_size = 3
-                    data = np.hstack((data, colors))
-            else:
-                feature_size = 1
-                data, z_norm, label, colors, weights = self.next_input(dropout)
-                if self.use_color:
-                    feature_size = 4
-                    data = np.hstack((data, colors))
-                data = np.hstack((data, z_norm))
+            data, label, colors, weights = self.next_input(dropout)
+            if self.use_color:
+                feature_size = 3
+                data = np.hstack((data, colors))
             batch_data.append(data)
             batch_label.append(label)
             batch_weights.append(weights)
@@ -232,9 +213,7 @@ class Dataset:
 
         return batch_data, batch_label, batch_weights
 
-    def next_input(
-        self, dropout=False, sample=True, verbose=False, visu=False, predicting=False
-    ):
+    def next_input(self, dropout=False, sample=True, verbose=False, predicting=False):
 
         input_ok = False
         count_try = 0
@@ -247,19 +226,14 @@ class Dataset:
             scene_index = self.get_random_scene_index()
 
             # Randomly choose a seed
-            scene = self.scene_points_list[scene_index]  # [[x,y,z],...[x,y,z]]
-            scene_labels = self.semantic_labels_list[scene_index]
+            scene = self.list_points[scene_index]  # [[x,y,z],...[x,y,z]]
+            scene_labels = self.list_labels[scene_index]
             if self.use_color:
-                scene_colors = self.scene_colors_list[scene_index]
+                scene_colors = self.list_colors[scene_index]
 
             # Random (on points)
             seed_index = np.random.randint(0, len(scene))
             seed = scene[seed_index]  # [x,y,z]
-
-            # Random (space)
-            # scene_max = np.max(scene,axis=0)
-            # scene_min = np.min(scene,axis=0)
-            # seed = np.random.uniform(scene_min,scene_max,3)
 
             # Crop a z-box around that seed
             scene_extract_mask = self.extract_z_box(seed, scene, scene_index)
@@ -274,13 +248,6 @@ class Dataset:
                         "There are %i points in the box" % (np.sum(scene_extract_mask))
                     )
                 input_ok = True
-                if visu:
-                    return (
-                        scene_index,
-                        scene_extract_mask,
-                        np.histogram(scene_labels[scene_extract_mask], range(10))[0],
-                        seed,
-                    )
 
             data = scene[scene_extract_mask]
             labels = scene_labels[scene_extract_mask]
@@ -311,48 +278,37 @@ class Dataset:
                 colors = colors[sample_mask]
 
             # Compute the weights
-            weights = self.labelweights[labels]
+            weights = self.label_weights[labels]
 
             # Optional dropout
             if dropout:
                 drop_index = self.input_dropout(data)
                 weights[drop_index] *= 0
 
-            if self.z_feature:
-                # Rotion is not a problem as it is done along z-axis
-                # z_feature is a new experimental feature
-                z_norm = (data[:, 2] - self.pc_zmin[scene_index]) / (
-                    self.pc_zmax[scene_index] - self.pc_zmin[scene_index]
-                )
-                z_norm = z_norm.reshape(self.npoints, 1)
-
         if predicting:
             return (
                 scene_index,
                 data,
-                raw_data + self.raw_scene_min_list[scene_index],
+                raw_data + self.list_points_min_raw[scene_index],
                 labels,
                 colors,
                 weights,
             )
         else:
-            if self.z_feature:
-                return data, z_norm, labels, colors, weights
-
             return data, labels, colors, weights
 
     def set_pc_zmax_zmin(self):
         self.pc_zmin = []
         self.pc_zmax = []
         for scene_index in range(len(self)):
-            self.pc_zmin.append(np.min(self.scene_points_list[scene_index], axis=0)[2])
-            self.pc_zmax.append(np.max(self.scene_points_list[scene_index], axis=0)[2])
+            self.pc_zmin.append(np.min(self.list_points[scene_index], axis=0)[2])
+            self.pc_zmax.append(np.max(self.list_points[scene_index], axis=0)[2])
 
     def get_random_scene_index(self):
         # Does not take into account the scene number of points
-        # return np.random.randint(0,len(self.scene_points_list))
+        # return np.random.randint(0,len(self.list_points))
         return np.random.choice(
-            np.arange(0, len(self.scene_points_list)), p=self.scenes_proba
+            np.arange(0, len(self.list_points)), p=self.scenes_proba
         )
 
     def compute_random_scene_index_proba(self):
@@ -361,9 +317,8 @@ class Dataset:
         # in order to pick more seeds in bigger scenes
         self.scenes_proba = []
         total = self.get_total_num_points()
-        proba = 0
         for scene_index in range(len(self)):
-            proba = float(len(self.scene_points_list[scene_index])) / float(total)
+            proba = float(len(self.list_points[scene_index])) / float(total)
             self.scenes_proba.append(proba)
 
     def center_box(self, data):
@@ -406,8 +361,8 @@ class Dataset:
         ## TAKES LOT OF TIME !! THINK OF AN ALTERNATIVE !
         # 2D crop, takes all the z axis
 
-        scene_max = self.scene_max_list[scene_idx]
-        scene_min = self.scene_min_list[scene_idx]
+        scene_max = self.list_points_max[scene_idx]
+        scene_min = self.list_points_min[scene_idx]
         scene_z_size = scene_max[2] - scene_min[2]
         box_min = seed - [self.box_size / 2, self.box_size / 2, scene_z_size]
         box_max = seed + [self.box_size / 2, self.box_size / 2, scene_z_size]
@@ -440,34 +395,17 @@ class Dataset:
     def get_total_num_points(self):
         total = 0
         for scene_index in range(len(self)):
-            total += len(self.scene_points_list[scene_index])
+            total += len(self.list_points[scene_index])
         return total
 
     def get_num_batches(self, batch_size):
         return int(self.get_total_num_points() / (batch_size * self.npoints))
 
     def __len__(self):
-        return len(self.scene_points_list)
-
-    def get_hist(self):
-        labelweights = np.zeros(9)
-        # First, compute the histogram of each labels
-        for seg in self.semantic_labels_list:
-            tmp, _ = np.histogram(seg, range(10))
-            labelweights += tmp
-        return labelweights
-
-    def get_list_classes_str(self):
-        return "unlabeled, man-made terrain, natural terrain, high vegetation, low vegetation, buildings, hard scape, scanning artefacts, cars"
+        return len(self.list_points)
 
     def get_data_filenames(self):
-        return self.data_filenames
-
-    def get_scene_shape(self, scene_index):
-        return self.scene_points_list[scene_index].shape
-
-    def get_scene(self, scene_index):
-        return self.scene_points_list[scene_index]
+        return self.list_file_path
 
 
 if __name__ == "__main__":

@@ -71,7 +71,6 @@ TRAIN_DATASET = data.Dataset(
     use_color=PARAMS["use_color"],
     dropout_max=PARAMS["input_dropout"],
     path=PARAMS["data_path"],
-    z_feature=PARAMS["use_z_feature"],
 )
 TEST_DATASET = data.Dataset(
     npoints=NUM_POINT,
@@ -80,7 +79,6 @@ TEST_DATASET = data.Dataset(
     use_color=PARAMS["use_color"],
     dropout_max=PARAMS["input_dropout"],
     path=PARAMS["data_path"],
-    z_feature=PARAMS["use_z_feature"],
 )
 NUM_CLASSES = TRAIN_DATASET.num_classes
 
@@ -120,44 +118,6 @@ def update_progress(progress):
     )
     sys.stdout.write(text)
     sys.stdout.flush()
-
-
-def average_gradients(tower_grads):
-    """Calculate the average gradient for each shared variable across all towers.
-  Note that this function provides a synchronization point across all towers.
-  From tensorflow tutorial: cifar10/cifar10_multi_gpu_train.py
-  Args:
-    tower_grads: List of lists of (gradient, variable) tuples. The outer list
-      is over individual gradients. The inner list is over the gradient
-      calculation for each tower.
-  Returns:
-     List of pairs of (gradient, variable) where the gradient has been averaged
-     across all towers.
-  """
-    average_grads = []
-    for grad_and_vars in zip(*tower_grads):
-        # Note that each grad_and_vars looks like the following:
-        #   ((grad0_gpu0, var0_gpu0), ... , (grad0_gpuN, var0_gpuN))
-        grads = []
-        # for g, _ in grad_and_vars:
-        for g, v in grad_and_vars:
-            # Add 0 dimension to the gradients to represent the tower.
-            expanded_g = tf.expand_dims(g, 0)
-
-            # Append on a 'tower' dimension which we will average over below.
-            grads.append(expanded_g)
-
-        # Average over the 'tower' dimension.
-        grad = tf.concat(axis=0, values=grads)
-        grad = tf.reduce_mean(grad, 0)
-
-        # Keep in mind that the Variables are redundant because they are shared
-        # across towers. So .. we will just return the first tower's pointer to
-        # the Variable.
-        v = grad_and_vars[0][1]
-        grad_and_var = (grad, v)
-        average_grads.append(grad_and_var)
-    return average_grads
 
 
 def get_learning_rate(batch):
@@ -210,18 +170,26 @@ def get_batch(split):
         return TEST_DATASET.next_batch(BATCH_SIZE, False, False)
 
 
-def fill_queues(stack_train, stack_test, maxsize_train, maxsize_test):
+def fill_queues(stack_train, stack_test, num_train_batches, num_test_batches):
+    """
+
+    Args:
+        stack_train: mp.Queue to be filled asynchronously
+        stack_test: mp.Queue to be filled asynchronously
+        num_train_batches: total number of training batches
+        num_test_batches: total number of test batches
+    """
     pool = mp.Pool(processes=mp.cpu_count())
     launched_train = 0
     launched_test = 0
-    results_train = []
-    results_test = []
+    results_train = [] # Temp buffer before filling the stack_train
+    results_test = [] # Temp buffer before filling the stack_test
     # Launch as much as n
     while True:
-        if stack_train.qsize() + launched_train < maxsize_train:
+        if stack_train.qsize() + launched_train < num_train_batches:
             results_train.append(pool.apply_async(get_batch, args=("train",)))
             launched_train += 1
-        elif stack_test.qsize() + launched_test < maxsize_test:
+        elif stack_test.qsize() + launched_test < num_test_batches:
             results_test.append(pool.apply_async(get_batch, args=("test",)))
             launched_test += 1
         for p in results_train:
@@ -239,6 +207,12 @@ def fill_queues(stack_train, stack_test, maxsize_train, maxsize_test):
 
 
 def init_stacking():
+    """
+    Returns:
+        stacker: mp.Process object
+        stack_test: mp.Queue, use stack_test.get() to read a batch
+        stack_train: mp.Queue, use stack_train.get() to read a batch
+    """
     with tf.device("/cpu:0"):
         # Queues that contain several batches in advance
         num_train_batches = TRAIN_DATASET.get_num_batches(BATCH_SIZE)

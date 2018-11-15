@@ -3,49 +3,49 @@ import numpy as np
 
 
 class ConfusionMatrix:
-    """Streaming interface to allow for any source of predictions. Initialize it, count predictions one by one, then print confusion matrix and intersection-union score"""
+    """Streaming interface to allow for any source of predictions. Initialize it, count
+       predictions one by one, then print confusion matrix and intersection-union score"""
 
-    def __init__(self, number_of_labels=2):
-        self.number_of_labels = number_of_labels
-        self.confusion_matrix = np.zeros(
-            shape=(self.number_of_labels, self.number_of_labels)
-        )
+    def __init__(self, num_classes):
+        """
+        label must be {0, 1, 2, ..., num_classes - 1}
+        """
+        self.num_classes = num_classes
+        self.confusion_matrix = np.zeros((self.num_classes, self.num_classes))
 
-    def count_predicted(self, ground_truth, predicted, number_of_added_elements=1):
-        self.confusion_matrix[ground_truth][predicted] += number_of_added_elements
+    def count_predicted(self, gt_label, pd_label):
+        # TODO: add checks
+        self.confusion_matrix[gt_label][pd_label] += 1
 
-    """labels are integers from 0 to number_of_labels-1"""
-
-    def get_count(self, ground_truth, predicted):
-        return self.confusion_matrix[ground_truth][predicted]
-
-    """returns list of lists of integers; use it as result[ground_truth][predicted]
-     to know how many samples of class ground_truth were reported as class predicted"""
+    def get_count(self, gt_label, pd_label):
+        """labels are integers from 0 to num_classes-1"""
+        return self.confusion_matrix[gt_label][pd_label]
 
     def get_confusion_matrix(self):
+        """
+        result[gt_label][pd_label]: # of gt_label are predicted as pd_label
+        """
         return self.confusion_matrix
 
-    """returns list of 64-bit floats"""
-
     def get_intersection_union_per_class(self):
-        matrix_diagonal = [
-            self.confusion_matrix[i][i] for i in range(self.number_of_labels)
-        ]
-        errors_summed_by_row = [0] * self.number_of_labels
-        for row in range(self.number_of_labels):
-            for column in range(self.number_of_labels):
+        """returns list of 64-bit floats"""
+
+        matrix_diagonal = [self.confusion_matrix[i][i] for i in range(self.num_classes)]
+        errors_summed_by_row = [0] * self.num_classes
+        for row in range(self.num_classes):
+            for column in range(self.num_classes):
                 if row != column:
                     errors_summed_by_row[row] += self.confusion_matrix[row][column]
-        errors_summed_by_column = [0] * self.number_of_labels
-        for column in range(self.number_of_labels):
-            for row in range(self.number_of_labels):
+        errors_summed_by_column = [0] * self.num_classes
+        for column in range(self.num_classes):
+            for row in range(self.num_classes):
                 if row != column:
                     errors_summed_by_column[column] += self.confusion_matrix[row][
                         column
                     ]
 
-        divisor = [0] * self.number_of_labels
-        for i in range(self.number_of_labels):
+        divisor = [0] * self.num_classes
+        for i in range(self.num_classes):
             divisor[i] = (
                 matrix_diagonal[i]
                 + errors_summed_by_row[i]
@@ -54,17 +54,14 @@ class ConfusionMatrix:
             if matrix_diagonal[i] == 0:
                 divisor[i] = 1
 
-        return [
-            float(matrix_diagonal[i]) / divisor[i] for i in range(self.number_of_labels)
-        ]
-
-    """returns 64-bit float"""
+        return [float(matrix_diagonal[i]) / divisor[i] for i in range(self.num_classes)]
 
     def get_overall_accuracy(self):
+        """returns 64-bit float"""
         matrix_diagonal = 0
         all_values = 0
-        for row in range(self.number_of_labels):
-            for column in range(self.number_of_labels):
+        for row in range(self.num_classes):
+            for column in range(self.num_classes):
                 all_values += self.confusion_matrix[row][column]
                 if row == column:
                     matrix_diagonal += self.confusion_matrix[row][column]
@@ -76,31 +73,16 @@ class ConfusionMatrix:
         values = self.get_intersection_union_per_class()
         return sum(values) / len(values)
 
-    def build_conf_matrix_from_file(self, ground_truth_file, classified_file):
-        # read line by line without storing everything in ram
-        with open(ground_truth_file, "r") as f_gt, open(classified_file, "r") as f_cl:
-            for index, (line_gt, line_cl) in enumerate(izip(f_gt, f_cl)):
-                label_gt = int(line_gt)
-                label_cl_ = int(line_cl)
-                label_cl = max(
-                    [min([label_cl_, 10000]), 1]
-                )  # protection against erroneous submissions: no infinite labels (for instance NaN) or classes smaller 1
-                if label_cl_ != label_cl:
-                    return -1
-                max_label = max([label_gt, label_cl])
-                if max_label > self.number_of_labels:
-                    # resize to larger confusion matrix
-                    b = np.zeros((max_label, max_label))
-                    for row in range(self.number_of_labels):
-                        for column in range(self.number_of_labels):
-                            b[row][column] = self.confusion_matrix[row][column]
-                    self.confusion_matrix = b
-                    self.number_of_labels = max_label
-
-                if label_gt == 0:
-                    continue
-                self.confusion_matrix[label_gt - 1][label_cl - 1] += 1
-                return 0
+    def increment_conf_matrix_from_file(self, gt_file, pd_file):
+        """
+        Typical use case: num_classes == 9, and both gt_file and pd_file only contains
+                          label 1, 2, ..., 8. Label 0 is not used at all.
+        """
+        with open(gt_file, "r") as gt_f, open(pd_file, "r") as pd_f:
+            for gt_line, pd_line in zip(gt_f, pd_f):
+                gt_label = int(float(gt_line.strip()))
+                pd_label = int(float(pd_line.strip()))
+                self.count_predicted(gt_label, pd_label)
 
     def print_cm(
         self, labels, hide_zeroes=False, hide_diagonal=False, hide_threshold=None
@@ -131,9 +113,9 @@ class ConfusionMatrix:
 
 if __name__ == "__main__":
     CM = ConfusionMatrix(3)
-    CM.count_predicted(0, 0, 3)
-    CM.count_predicted(1, 1, 4)
-    CM.count_predicted(2, 2, 2)
-    CM.count_predicted(0, 1, 1)
-    CM.count_predicted(2, 0, 1)
+    CM.count_predicted(0, 0)
+    CM.count_predicted(1, 1)
+    CM.count_predicted(2, 2)
+    CM.count_predicted(0, 1)
+    CM.count_predicted(2, 0)
     CM.print_cm(["test1", "test2", "test2"])

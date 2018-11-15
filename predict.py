@@ -55,7 +55,6 @@ DATASET = data_module.Dataset(
     use_color=PARAMS["use_color"],
     dropout_max=PARAMS["input_dropout"],
     path=PARAMS["data_path"],
-    z_feature=PARAMS["use_z_feature"],
 )
 NUM_CLASSES = DATASET.num_classes
 
@@ -154,18 +153,21 @@ def predict():
             ground_truth[f],
             OUTPUT_DIR_FULL_PC
             + "/{}_groundtruth.txt".format(os.path.basename(filename)),
-            NUM_CLASSES,
         )
         pc_util.write_ply_color(
             scene_points[f][:, 0:3],
             predicted_labels[f],
             OUTPUT_DIR_FULL_PC
             + "/{}_aggregated.txt".format(os.path.basename(filename)),
-            NUM_CLASSES,
         )
         np.savetxt(
             OUTPUT_DIR_FULL_PC + "/{}_pred.txt".format(os.path.basename(filename)),
             predicted_labels[f].reshape((-1, 1)),
+            delimiter=" ",
+        )
+        np.savetxt(
+            OUTPUT_DIR_FULL_PC + "/{}_gt.txt".format(os.path.basename(filename)),
+            ground_truth[f].reshape((-1, 1)),
             delimiter=" ",
         )
     print("done.")

@@ -6,7 +6,6 @@
     "max_epoch": 201,
 
     "use_color": 1,
-    "use_z_feature": 0,
     "data_path": "dataset/semantic_data/",
     "box_size": 10,
 
@@ -19,7 +18,7 @@
     "learning_rate_decay_rate": 0.7,
     "input_dropout": 0.875,
     "accept_rate": 1.0,
-    
+
     "bn_init_decay": 0.5,
     "bn_decay_decay_rate": 0.5,
     "bn_decay_clip": 0.99,

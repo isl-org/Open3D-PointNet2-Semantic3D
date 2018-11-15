@@ -104,6 +104,7 @@ class Dataset:
 
     def load_data(self):
         print("Loading semantic data...")
+
         if self.split == "train":
             file_names = self.file_names_train
         elif self.split == "test":
@@ -114,12 +115,13 @@ class Dataset:
             assert self.split == "test_full"
             file_names = self.file_names_real_test
 
-        self.data_filenames = [os.path.join(self.path, file) for file in file_names]
+        self.file_paths = [os.path.join(self.path, file) for file in file_names]
         self.scene_points_list = list()
         self.semantic_labels_list = list()
+
         if self.use_color:
             self.scene_colors_list = list()
-        for filename in self.data_filenames:
+        for filename in self.file_paths:
             data_points = np.load(filename + "_vertices.npz")
             if self.split == "test_full":
                 data_labels = np.zeros(len(data_points[data_points.files[0]])).astype(
@@ -396,7 +398,7 @@ class Dataset:
         return len(self.scene_points_list)
 
     def get_data_filenames(self):
-        return self.data_filenames
+        return self.file_paths
 
 
 if __name__ == "__main__":

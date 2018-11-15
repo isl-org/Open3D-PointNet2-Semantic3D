@@ -38,27 +38,6 @@ SET = FLAGS.set
 N = FLAGS.n
 print("N", N)
 
-# Import dataset
-dataset = SemanticDataset(
-    npoints=NUM_POINT,
-    split=SET,
-    box_size=PARAMS["box_size"],
-    use_color=PARAMS["use_color"],
-    dropout_max=PARAMS["input_dropout"],
-    path=PARAMS["data_path"],
-)
-NUM_CLASSES = dataset.num_classes
-
-# Outputs
-OUTPUT_DIR = os.path.join("visu", "semantic_" + SET)
-OUTPUT_DIR_FULL_PC = os.path.join(OUTPUT_DIR, "full_scenes_predictions")
-if not os.path.exists("visu"):
-    os.mkdir("visu")
-if not os.path.exists(OUTPUT_DIR):
-    os.mkdir(OUTPUT_DIR)
-if not os.path.exists(OUTPUT_DIR_FULL_PC):
-    os.mkdir(OUTPUT_DIR_FULL_PC)
-
 
 def predict_one_input(sess, ops, data):
     is_training = False
@@ -71,12 +50,20 @@ def predict_one_input(sess, ops, data):
 
 
 if __name__ == "__main__":
-    """
-    Load the selected checkpoint and predict the labels
-    Write in the output directories both groundtruth and prediction
-    This enable to visualize side to side the prediction and the true labels,
-    and helps to debug the network
-    """
+    # Create output dir
+    output_dir = os.path.join("visu", "semantic_test", "full_scenes_predictions")
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Import dataset
+    dataset = SemanticDataset(
+        npoints=NUM_POINT,
+        split=SET,
+        box_size=PARAMS["box_size"],
+        use_color=PARAMS["use_color"],
+        dropout_max=PARAMS["input_dropout"],
+        path=PARAMS["data_path"],
+    )
+
     with tf.device("/gpu:0"):
         pointclouds_pl, labels_pl, _ = MODEL.placeholder_inputs(
             1, NUM_POINT, hyperparams=PARAMS
@@ -84,9 +71,9 @@ if __name__ == "__main__":
         print(tf.shape(pointclouds_pl))
         is_training_pl = tf.placeholder(tf.bool, shape=())
 
-        # simple model
+        # Simple model
         pred, _ = MODEL.get_model(
-            pointclouds_pl, is_training_pl, NUM_CLASSES, hyperparams=PARAMS
+            pointclouds_pl, is_training_pl, dataset.num_classes, hyperparams=PARAMS
         )
 
         # Add ops to save and restore all the variables.
@@ -142,24 +129,22 @@ if __name__ == "__main__":
         pc_util.write_ply_color(
             scene_points[f][:, 0:3],
             ground_truth[f],
-            OUTPUT_DIR_FULL_PC
+            output_dir
             + "/{}_groundtruth.txt".format(os.path.basename(filename)),
         )
         pc_util.write_ply_color(
             scene_points[f][:, 0:3],
             predicted_labels[f],
-            OUTPUT_DIR_FULL_PC
+            output_dir
             + "/{}_aggregated.txt".format(os.path.basename(filename)),
         )
         np.savetxt(
-            OUTPUT_DIR_FULL_PC + "/{}_pred.txt".format(os.path.basename(filename)),
+            output_dir + "/{}_pred.txt".format(os.path.basename(filename)),
             predicted_labels[f].reshape((-1, 1)),
             delimiter=" ",
         )
         np.savetxt(
-            OUTPUT_DIR_FULL_PC + "/{}_gt.txt".format(os.path.basename(filename)),
+            output_dir + "/{}_gt.txt".format(os.path.basename(filename)),
             ground_truth[f].reshape((-1, 1)),
             delimiter=" ",
         )
-
-

@@ -166,8 +166,6 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
 
     size_t pt_id = 0;
     int nb_labeled_pts = 0;
-    std::vector<int> successes(9, 0);
-    std::vector<int> unions(9, 0);
     int holes_nb = 0;
     while (getline(dense_points_file, line_point)) {
         pt_id++;

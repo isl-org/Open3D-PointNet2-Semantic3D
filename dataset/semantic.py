@@ -158,15 +158,17 @@ class Dataset:
                 self.scene_colors_list[i].astype("float32") / 255
             )
 
-        # Set min to (0,0,0)
+        # Shift point cloud to min (0, 0, 0)
+        # Training: use the normalized points for training
+        # Testing: use the normalized points for testing. However, when writing back
+        #          point clouds, the shift should be added back.
         self.scene_max_list = list()
         self.scene_min_list = list()
         self.raw_scene_min_list = list()
         for i in range(len(self.scene_points_list)):
-            self.raw_scene_min_list.append(np.min(self.scene_points_list[i], axis=0))
-            self.scene_points_list[i] = self.scene_points_list[i] - np.min(
-                self.scene_points_list[i], axis=0
-            )
+            raw_scene_min = np.min(self.scene_points_list[i], axis=0)
+            self.raw_scene_min_list.append(raw_scene_min)
+            self.scene_points_list[i] = self.scene_points_list[i] - raw_scene_min
             self.scene_max_list.append(np.max(self.scene_points_list[i], axis=0))
             self.scene_min_list.append(np.min(self.scene_points_list[i], axis=0))
 

@@ -222,11 +222,10 @@ interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
 
 int main(int argc, char** argv) {
     if (argc < 6) {
-        std::cerr
-            << "USAGE : " << argv[0]
-            << " path/to/raw/point/clouds/  path/to/agregated/point/clouds/  "
-               "path/for/results/   export_labels"
-            << std::endl;
+        std::cerr << "USAGE: " << argv[0] << " raw_point_cloud_dir"
+                  << " sparse_prediction_dir"
+                  << " output_dir "
+                  << " export_labels" << std::endl;
         exit(1);
     }
     float voxel_size = strtof(argv[4], NULL);

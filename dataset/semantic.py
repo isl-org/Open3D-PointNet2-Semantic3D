@@ -11,8 +11,8 @@ import numpy as np
 import utils.provider as provider
 
 
-class Dataset:
-    def __init__(self, npoints, split, use_color, box_size, path, dropout_max):
+class SemanticDataset:
+    def __init__(self, npoints, split, use_color, box_size, path):
         """Create a dataset holder
         npoints (int): Defaults to 8192. The number of point in each input
         split (str): Defaults to 'train'. The selected part of the data (train, test,
@@ -20,14 +20,12 @@ class Dataset:
         color (bool): Defaults to True. Whether to use colors or not
         box_size (int): Defaults to 10. The size of the extracted cube.
         path (float): Defaults to 'dataset/semantic_data/'.
-        dropout_max (float): Defaults to 0.875. Maximum dropout to apply on the inputs.
         """
         # Dataset parameters
         self.npoints = npoints
         self.split = split
         self.use_color = use_color
         self.box_size = box_size
-        self.dropout_max = dropout_max
         self.num_classes = 9
         self.path = path
         self.labels_names = [
@@ -158,7 +156,7 @@ class Dataset:
             # Load colors, regardless of whether use_color is true
             colors = np.load(file_path + "_colors.npz")
             colors = colors[colors.files[0]]
-            colors = colors.astype(np.float32) / 255.0 # Normalize RGB to 0~1
+            colors = colors.astype(np.float32) / 255.0  # Normalize RGB to 0~1
 
             # Sort according to x to speed up computation of boxes and z-boxes
             sort_idx = np.argsort(points[:, 0])
@@ -174,26 +172,13 @@ class Dataset:
             self.list_labels.append(labels.astype(np.int8))
             self.list_colors.append(colors)
 
-    def __getitem__(self, index):
-        """
-        input : index of a scene
-        output: the whole scene of npointsx3 (xyz) points of the scene and their
-                 labels, and colors if colors are used
-        """
-        point_set = self.list_points[index]
-        labels = self.list_labels[index].astype(np.int32)
-        if self.use_color:
-            colors = self.list_colors[index]
-            return point_set, labels, colors
-        return point_set, labels
-
-    def next_batch(self, batch_size, augment=True, dropout=True):
+    def next_batch(self, batch_size, augment=True):
         batch_data = []
         batch_label = []
         batch_weights = []
         feature_size = 0
         for _ in range(batch_size):
-            data, label, colors, weights = self.next_input(dropout)
+            data, label, colors, weights = self.next_input()
             if self.use_color:
                 feature_size = 3
                 data = np.hstack((data, colors))
@@ -213,7 +198,7 @@ class Dataset:
 
         return batch_data, batch_label, batch_weights
 
-    def next_input(self, dropout=False, sample=True, verbose=False, predicting=False):
+    def next_input(self, sample=True, verbose=False, predicting=False):
 
         input_ok = False
         count_try = 0
@@ -279,11 +264,6 @@ class Dataset:
 
             # Compute the weights
             weights = self.label_weights[labels]
-
-            # Optional dropout
-            if dropout:
-                drop_index = self.input_dropout(data)
-                weights[drop_index] *= 0
 
         if predicting:
             return (
@@ -386,11 +366,6 @@ class Dataset:
 
         # mask = np.sum((scene>=box_min)*(scene<=box_max),axis=1) == 3
         return mask
-
-    def input_dropout(self, input):
-        dropout_ratio = np.random.random() * self.dropout_max
-        drop_index = np.where(np.random.random((input.shape[0])) <= dropout_ratio)[0]
-        return drop_index
 
     def get_total_num_points(self):
         total = 0

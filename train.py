@@ -16,6 +16,7 @@ import tensorflow as tf
 import utils.metric as metric
 import multiprocessing as mp
 import time
+from dataset.semantic import SemanticDataset
 
 # Uncomment to shut down TF warnings
 # os.environ["TF_CPP_MIN_LOG_LEVEL"]="2"
@@ -63,21 +64,18 @@ BN_DECAY_DECAY_STEP = float(DECAY_STEP)
 BN_DECAY_CLIP = PARAMS["bn_decay_clip"]
 
 # Import dataset
-data = importlib.import_module("dataset." + DATASET_NAME)
-TRAIN_DATASET = data.Dataset(
+TRAIN_DATASET = SemanticDataset(
     npoints=NUM_POINT,
     split="train",
     box_size=PARAMS["box_size"],
     use_color=PARAMS["use_color"],
-    dropout_max=PARAMS["input_dropout"],
     path=PARAMS["data_path"],
 )
-TEST_DATASET = data.Dataset(
+TEST_DATASET = SemanticDataset(
     npoints=NUM_POINT,
     split="test",
     box_size=PARAMS["box_size"],
     use_color=PARAMS["use_color"],
-    dropout_max=PARAMS["input_dropout"],
     path=PARAMS["data_path"],
 )
 NUM_CLASSES = TRAIN_DATASET.num_classes
@@ -165,9 +163,9 @@ def get_bn_decay(batch):
 def get_batch(split):
     np.random.seed()
     if split == "train":
-        return TRAIN_DATASET.next_batch(BATCH_SIZE, True, True)
+        return TRAIN_DATASET.next_batch(BATCH_SIZE, augment=True)
     else:
-        return TEST_DATASET.next_batch(BATCH_SIZE, False, False)
+        return TEST_DATASET.next_batch(BATCH_SIZE, augment=False)
 
 
 def fill_queues(stack_train, stack_test, num_train_batches, num_test_batches):
@@ -182,8 +180,8 @@ def fill_queues(stack_train, stack_test, num_train_batches, num_test_batches):
     pool = mp.Pool(processes=mp.cpu_count())
     launched_train = 0
     launched_test = 0
-    results_train = [] # Temp buffer before filling the stack_train
-    results_test = [] # Temp buffer before filling the stack_test
+    results_train = []  # Temp buffer before filling the stack_train
+    results_test = []  # Temp buffer before filling the stack_test
     # Launch as much as n
     while True:
         if stack_train.qsize() + launched_train < num_train_batches:
@@ -420,9 +418,9 @@ def train_one_epoch(sess, ops, train_writer, stack):
         loss_sum += loss_val
     update_progress(1)
     log_string("mean loss: %f" % (loss_sum / float(num_batches)))
-    log_string("Overall accuracy : %f" % (confusion_matrix.get_overall_accuracy()))
-    log_string("Average IoU : %f" % (confusion_matrix.get_average_intersection_union()))
-    iou_per_class = confusion_matrix.get_intersection_union_per_class()
+    log_string("Overall accuracy : %f" % (confusion_matrix.get_accuracy()))
+    log_string("Average IoU : %f" % (confusion_matrix.get_mean_iou()))
+    iou_per_class = confusion_matrix.get_per_class_iou()
     for i in range(1, NUM_CLASSES):
         log_string("IoU of %s : %f" % (TRAIN_DATASET.labels_names[i], iou_per_class[i]))
 
@@ -481,17 +479,17 @@ def eval_one_epoch(sess, ops, test_writer, stack):
 
     update_progress(1)
 
-    iou_per_class = confusion_matrix.get_intersection_union_per_class()
+    iou_per_class = confusion_matrix.get_per_class_iou()
 
     # Display metrics
     log_string("mean loss: %f" % (loss_sum / float(num_batches)))
-    log_string("Overall accuracy : %f" % (confusion_matrix.get_overall_accuracy()))
-    log_string("Average IoU : %f" % (confusion_matrix.get_average_intersection_union()))
+    log_string("Overall accuracy : %f" % (confusion_matrix.get_accuracy()))
+    log_string("Average IoU : %f" % (confusion_matrix.get_mean_iou()))
     for i in range(1, NUM_CLASSES):
         log_string("IoU of %s : %f" % (TEST_DATASET.labels_names[i], iou_per_class[i]))
 
     EPOCH_CNT += 5
-    return confusion_matrix.get_overall_accuracy()
+    return confusion_matrix.get_accuracy()
 
 
 if __name__ == "__main__":

@@ -164,7 +164,9 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
     // don't know how to open only when necessary
 
     std::cout << "labeling raw point cloud";
-    if (export_labels) std::cout << " and exporting labels";
+    if (export_labels) {
+        std::cout << " and exporting labels";
+    }
     std::cout << std::endl;
 
     size_t pt_id = 0;
@@ -202,7 +204,9 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
             label = voxels[vox].get_label();
         }
 
-        if (export_labels) out_labels_file << label << std::endl;
+        if (export_labels) {
+            out_labels_file << label << std::endl;
+        }
     }
     out_labels_file.close();
 }

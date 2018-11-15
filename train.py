@@ -182,8 +182,8 @@ def fill_queues(stack_train, stack_test, num_train_batches, num_test_batches):
     pool = mp.Pool(processes=mp.cpu_count())
     launched_train = 0
     launched_test = 0
-    results_train = []
-    results_test = []
+    results_train = [] # Temp buffer before filling the stack_train
+    results_test = [] # Temp buffer before filling the stack_test
     # Launch as much as n
     while True:
         if stack_train.qsize() + launched_train < num_train_batches:

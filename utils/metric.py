@@ -73,12 +73,11 @@ class ConfusionMatrix:
         values = self.get_intersection_union_per_class()
         return sum(values) / len(values)
 
-    def build_conf_matrix_from_file(self, gt_file, pd_file):
+    def increment_conf_matrix_from_file(self, gt_file, pd_file):
         """
         Typical use case: num_classes == 9, and both gt_file and pd_file only contains
                           label 1, 2, ..., 8. Label 0 is not used at all.
         """
-        self.confusion_matrix = np.zeros((self.num_classes, self.num_classes))
         with open(gt_file, "r") as gt_f, open(pd_file, "r") as pd_f:
             for gt_line, pd_line in zip(gt_f, pd_f):
                 gt_label = int(float(gt_line.strip()))

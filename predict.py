@@ -14,7 +14,7 @@ import models.model as MODEL
 import utils.pc_util as pc_util
 from dataset.semantic import SemanticDataset
 from utils.metric import ConfusionMatrix
-from pprint import pprint
+
 
 # Parser
 parser = argparse.ArgumentParser()
@@ -134,12 +134,12 @@ if __name__ == "__main__":
         pc_util.write_ply_color(
             scene_points[scene_index][:, 0:3],
             ground_truth[scene_index],
-            os.path.join(output_dir, file_prefix + "_groundtruth.txt")
+            os.path.join(output_dir, file_prefix + "_groundtruth.txt"),
         )
         pc_util.write_ply_color(
             scene_points[scene_index][:, 0:3],
             predicted_labels[scene_index],
-            os.path.join(output_dir, file_prefix + "_aggregated.txt")
+            os.path.join(output_dir, file_prefix + "_aggregated.txt"),
         )
 
         pd_labels_path = os.path.join(output_dir, file_prefix + "_pred.txt")
@@ -150,13 +150,8 @@ if __name__ == "__main__":
         )
         gt_labels_path = os.path.join(output_dir, file_prefix + "_gt.txt")
         np.savetxt(
-            gt_labels_path,
-            ground_truth[scene_index].reshape((-1, 1)),
-            delimiter=" ",
+            gt_labels_path, ground_truth[scene_index].reshape((-1, 1)), delimiter=" "
         )
         cm.increment_conf_matrix_from_file(gt_labels_path, pd_labels_path)
 
-    print("Confusion matrix")
-    cm.print_metrics(["0", "1", "2", "3", "4", "5", "6", "7", "8"])
-    print("IoU per class")
-    pprint(cm.get_intersection_union_per_class())
+    cm.print_metrics()

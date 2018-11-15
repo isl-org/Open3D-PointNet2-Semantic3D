@@ -1,5 +1,6 @@
 from __future__ import print_function
 import numpy as np
+from pprint import pprint
 
 
 class ConfusionMatrix:
@@ -27,7 +28,7 @@ class ConfusionMatrix:
         """
         return self.confusion_matrix
 
-    def get_intersection_union_per_class(self):
+    def get_per_class_iou(self):
         """returns list of 64-bit floats"""
 
         matrix_diagonal = [self.confusion_matrix[i][i] for i in range(self.num_classes)]
@@ -69,9 +70,9 @@ class ConfusionMatrix:
             all_values = 1
         return float(matrix_diagonal) / all_values
 
-    def get_average_intersection_union(self):
-        values = self.get_intersection_union_per_class()
-        return sum(values) / len(values)
+    def get_mean_iou(self):
+        print("get_mean_iou assumes label 0 is not used for computing mean")
+        return np.sum(self.get_per_class_iou()) / (self.num_classes - 1)
 
     def increment_conf_matrix_from_file(self, gt_file, pd_file):
         """
@@ -84,30 +85,46 @@ class ConfusionMatrix:
                 pd_label = int(float(pd_line.strip()))
                 self.count_predicted(gt_label, pd_label)
 
-    def print_metrics(
-        self, labels, hide_zeroes=False, hide_diagonal=False, hide_threshold=None
-    ):
-        cm = self.get_confusion_matrix()
-        columnwidth = max([len(x) for x in labels] + [5])  # 5 is value length
-        empty_cell = " " * columnwidth
+    def print_metrics(self, labels=None):
+        # 1. Confusion matrix
+        print("Confusion matrix:")
+
+        # Fill default labels: ["0", "1", "2", ...]
+        if labels == None:
+            labels = [str(val) for val in range(self.num_classes)]
+        elif len(labels) != self.num_classes:
+            raise ValueError("len(labels) != self.num_classes")
+
+        # Formatting helpers
+        column_width = max([len(x) for x in labels] + [7])
+        empty_cell = " " * column_width
+
         # Print header
         print("    " + empty_cell, end=" ")
         for label in labels:
-            print("%{0}s".format(columnwidth) % label, end=" ")
+            print("%{0}s".format(column_width) % label, end=" ")
         print()
+
         # Print rows
-        for i, label1 in enumerate(labels):
-            print("    %{0}s".format(columnwidth) % label1, end=" ")
+        for i, label in enumerate(labels):
+            print("    %{0}s".format(column_width) % label, end=" ")
             for j in range(len(labels)):
-                cell = "%{0}.0f".format(columnwidth) % cm[i, j]
-                if hide_zeroes:
-                    cell = cell if float(cm[i, j]) != 0 else empty_cell
-                if hide_diagonal:
-                    cell = cell if i != j else empty_cell
-                if hide_threshold:
-                    cell = cell if cm[i, j] > hide_threshold else empty_cell
+                cell = "%{0}.0f".format(column_width) % self.confusion_matrix[i, j]
                 print(cell, end=" ")
             print()
+
+        # 2. IoU per class
+        print("IoU per class:")
+        pprint(self.get_per_class_iou())
+
+        # 3. Mean IoU
+        # Warning: excluding class 0
+        print("mIoU:")
+        print(self.get_mean_iou())
+
+        # 4. Overall accuracy
+        print("Overall accuracy")
+        print(self.get_overall_accuracy())
 
 
 if __name__ == "__main__":

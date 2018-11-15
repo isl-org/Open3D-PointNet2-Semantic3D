@@ -101,7 +101,6 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
                                         const std::string& file_prefix,
                                         const float& voxel_size,
                                         const bool& export_labels) {
-    // File names
     std::string sparse_points_path =
         input_sparse_dir + "/" + file_prefix + "_aggregated.txt";
     std::string sparse_labels_path =
@@ -110,31 +109,35 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
         input_dense_dir + "/" + file_prefix + ".txt";
 
     std::ifstream sparse_points_file(sparse_points_path.c_str());
-    std::ifstream sparse_labels_file(sparse_labels_path.c_str());
     if (sparse_points_file.fail()) {
         std::cerr << sparse_points_path << " not found" << std::endl;
     }
+    std::ifstream sparse_labels_file(sparse_labels_path.c_str());
     if (sparse_labels_file.fail()) {
         std::cerr << sparse_labels_path << " not found" << std::endl;
     }
+    std::ifstream dense_points_file(dense_points_path.c_str());
+    if (dense_points_file.fail()) {
+        std::cerr << dense_points_path << " not found" << std::endl;
+    }
 
-    std::string line;
-    std::string line_labels;
+    std::string line_point;
+    std::string line_label;
     std::map<Eigen::Vector3i, InterpolationLabelsContainer, Vector3iComp>
         voxels;
-    while (getline(sparse_points_file, line)) {
-        getline(sparse_labels_file, line_labels);
-        std::stringstream sstr_label(line_labels);
+
+    while (getline(sparse_points_file, line_point) &&
+           getline(sparse_labels_file, line_label)) {
+        std::stringstream sstr_label(line_label);
         int label;
         sstr_label >> label;
 
-        std::stringstream sstr(line);
+        std::stringstream sstr(line_point);
         float x, y, z;
         int r, g, b;
         std::string v;
         sstr >> v >> x >> y >> z >> r >> g >> b;
-        int x_id = std::floor(x / voxel_size) +
-                   0.5;  // + 0.5, centre du voxel (k1*res, k2*res)
+        int x_id = std::floor(x / voxel_size) + 0.5;
         int y_id = std::floor(y / voxel_size) + 0.5;
         int z_id = std::floor(z / voxel_size) + 0.5;
         Eigen::Vector3i vox(x_id, y_id, z_id);
@@ -156,9 +159,6 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
     // don't know how to open only when necessary
     std::string out_label_filename = output_dir + "/" + file_prefix + ".labels";
     std::ofstream out_label(out_label_filename.c_str());
-    std::ifstream ifs2(dense_points_path.c_str());
-    if (ifs2.fail())
-        std::cerr << dense_points_path << " not found" << std::endl;
 
     std::cout << "labeling raw point cloud";
     if (export_labels) std::cout << " and exporting labels";
@@ -169,13 +169,13 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
     std::vector<int> successes(9, 0);
     std::vector<int> unions(9, 0);
     int holes_nb = 0;
-    while (getline(ifs2, line)) {
+    while (getline(dense_points_file, line_point)) {
         pt_id++;
         if ((pt_id + 1) % 1000000 == 0) {
             std::cout << (pt_id + 1) / 1000000 << " M. " << holes_nb
                       << " holes encountered so far " << std::endl;
         }
-        std::stringstream sstr(line);
+        std::stringstream sstr(line_point);
         float x, y, z;
         int intensity, r, g, b;
         sstr >> x >> y >> z >> intensity >> r >> g >> b;

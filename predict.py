@@ -13,6 +13,8 @@ import tensorflow as tf
 import models.model as MODEL
 import utils.pc_util as pc_util
 from dataset.semantic import SemanticDataset
+from utils.metric import ConfusionMatrix
+from pprint import pprint
 
 # Parser
 parser = argparse.ArgumentParser()
@@ -105,45 +107,56 @@ if __name__ == "__main__":
     for i in range(N * nscenes):
         if i % 100 == 0 and i > 0:
             print("{} inputs generated".format(i))
-        f, data, raw_data, true_labels, col, _ = dataset.next_input(
+        scene_index, data, raw_data, true_labels, col, _ = dataset.next_input(
             sample=True, verbose=False, predicting=True
         )
         if p == 6:
             raw_data = np.hstack((raw_data, col))
             data = np.hstack((data, col))
         pred_labels = predict_one_input(sess, ops, data)
-        scene_points[f] = np.vstack((scene_points[f], raw_data))
-        ground_truth[f] = np.hstack((ground_truth[f], true_labels))
-        predicted_labels[f] = np.hstack((predicted_labels[f], pred_labels))
+        scene_points[scene_index] = np.vstack((scene_points[scene_index], raw_data))
+        ground_truth[scene_index] = np.hstack((ground_truth[scene_index], true_labels))
+        predicted_labels[scene_index] = np.hstack(
+            (predicted_labels[scene_index], pred_labels)
+        )
 
     file_names = dataset.get_data_filenames()
     print("{} point clouds to export".format(len(file_names)))
+    cm = ConfusionMatrix(9)
 
-    for f, filename in enumerate(file_names):
+    for scene_index, file_name in enumerate(file_names):
+        file_prefix = os.path.basename(file_name)
         print(
             "exporting file {} which has {} points".format(
-                os.path.basename(filename), len(ground_truth[f])
+                file_prefix, len(ground_truth[scene_index])
             )
         )
         pc_util.write_ply_color(
-            scene_points[f][:, 0:3],
-            ground_truth[f],
-            output_dir
-            + "/{}_groundtruth.txt".format(os.path.basename(filename)),
+            scene_points[scene_index][:, 0:3],
+            ground_truth[scene_index],
+            os.path.join(output_dir, file_prefix + "_groundtruth.txt")
         )
         pc_util.write_ply_color(
-            scene_points[f][:, 0:3],
-            predicted_labels[f],
-            output_dir
-            + "/{}_aggregated.txt".format(os.path.basename(filename)),
+            scene_points[scene_index][:, 0:3],
+            predicted_labels[scene_index],
+            os.path.join(output_dir, file_prefix + "_aggregated.txt")
         )
+
+        pd_labels_path = os.path.join(output_dir, file_prefix + "_pred.txt")
         np.savetxt(
-            output_dir + "/{}_pred.txt".format(os.path.basename(filename)),
-            predicted_labels[f].reshape((-1, 1)),
+            pd_labels_path,
+            predicted_labels[scene_index].reshape((-1, 1)),
             delimiter=" ",
         )
+        gt_labels_path = os.path.join(output_dir, file_prefix + "_gt.txt")
         np.savetxt(
-            output_dir + "/{}_gt.txt".format(os.path.basename(filename)),
-            ground_truth[f].reshape((-1, 1)),
+            gt_labels_path,
+            ground_truth[scene_index].reshape((-1, 1)),
             delimiter=" ",
         )
+        cm.increment_conf_matrix_from_file(gt_labels_path, pd_labels_path)
+
+    print("Confusion matrix")
+    cm.print_cm(["0", "1", "2", "3", "4", "5", "6", "7", "8"])
+    print("IoU per class")
+    pprint(cm.get_intersection_union_per_class())

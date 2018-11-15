@@ -99,8 +99,7 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
                                         const std::string& input_sparse_dir,
                                         const std::string& output_dir,
                                         const std::string& file_prefix,
-                                        const float& voxel_size,
-                                        const bool& export_labels) {
+                                        float voxel_size) {
     // Load files
     std::string sparse_points_path =
         input_sparse_dir + "/" + file_prefix + "_aggregated.txt";
@@ -186,8 +185,12 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
         } else {
             label = map_voxel_to_label_container[voxel].get_label();
         }
-        if (export_labels) {
-            out_labels_file << label << std::endl;
+        out_labels_file << label << std::endl;
+
+        num_processed_points++;
+        if (num_processed_points % 1000000 == 0) {
+            std::cout << num_processed_points << " processed, "
+                      << num_fallback_points << " fallbacked" << std::endl;
         }
     }
 
@@ -199,18 +202,16 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
 
 int main(int argc, char** argv) {
     // Parse arguments
-    if (argc < 6) {
+    if (argc < 5) {
         std::cerr << "USAGE: " << argv[0] << " input_dense_dir"
                   << " input_sparse_dir"
-                  << " output_dir "
-                  << " export_labels" << std::endl;
+                  << " output_dir " << std::endl;
         exit(1);
     }
     std::string input_dense_dir = argv[1];
     std::string input_sparse_dir = argv[2];
     std::string output_dir = argv[3];
     float voxel_size = strtof(argv[4], NULL);
-    bool export_labels = std::string(argv[5]) == "1";
 
     // Collect all existing files
     std::vector<std::string> file_prefixes;
@@ -230,7 +231,7 @@ int main(int argc, char** argv) {
         std::cout << "interpolation for " + file_prefixes[i] << std::endl;
         interpolate_labels_one_point_cloud(input_dense_dir, input_sparse_dir,
                                            output_dir, file_prefixes[i],
-                                           voxel_size, export_labels);
+                                           voxel_size);
     }
 
     return 0;

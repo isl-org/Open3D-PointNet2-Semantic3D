@@ -12,36 +12,39 @@
 #include <algorithm>
 
 static std::vector<std::string> possible_file_prefixes{
-    "bildstein_station1_xyz_intensity_rgb",
-    "bildstein_station3_xyz_intensity_rgb",
-    "bildstein_station5_xyz_intensity_rgb",
-    "domfountain_station1_xyz_intensity_rgb",
-    "domfountain_station2_xyz_intensity_rgb",
-    "domfountain_station3_xyz_intensity_rgb",
-    "neugasse_station1_xyz_intensity_rgb",
-    "sg27_station1_intensity_rgb",
-    "sg27_station2_intensity_rgb",
-    "sg27_station4_intensity_rgb",
-    "sg27_station5_intensity_rgb",
-    "sg27_station9_intensity_rgb",
-    "sg28_station4_intensity_rgb",
+    // "bildstein_station1_xyz_intensity_rgb",
+    // "bildstein_station3_xyz_intensity_rgb",
+    // "bildstein_station5_xyz_intensity_rgb",
+    // "domfountain_station1_xyz_intensity_rgb",
+    // "domfountain_station2_xyz_intensity_rgb",
+    // "domfountain_station3_xyz_intensity_rgb",
+    // "neugasse_station1_xyz_intensity_rgb",
+    // "sg27_station1_intensity_rgb",
+    // "sg27_station2_intensity_rgb",
+
+    // "sg27_station4_intensity_rgb",
+    // "sg27_station5_intensity_rgb",
+    // "sg27_station9_intensity_rgb",
+    // "sg28_station4_intensity_rgb",
     "untermaederbrunnen_station1_xyz_intensity_rgb",
-    "untermaederbrunnen_station3_xyz_intensity_rgb",
-    "birdfountain_station1_xyz_intensity_rgb",
-    "castleblatten_station1_intensity_rgb",
-    "castleblatten_station5_xyz_intensity_rgb",
-    "marketplacefeldkirch_station1_intensity_rgb",
-    "marketplacefeldkirch_station4_intensity_rgb",
-    "marketplacefeldkirch_station7_intensity_rgb",
-    "sg27_station10_intensity_rgb",
-    "sg27_station3_intensity_rgb",
-    "sg27_station6_intensity_rgb",
-    "sg27_station8_intensity_rgb",
-    "sg28_station2_intensity_rgb",
-    "sg28_station5_xyz_intensity_rgb",
-    "stgallencathedral_station1_intensity_rgb",
-    "stgallencathedral_station3_intensity_rgb",
-    "stgallencathedral_station6_intensity_rgb"};
+    // "untermaederbrunnen_station3_xyz_intensity_rgb",
+
+    // "birdfountain_station1_xyz_intensity_rgb",
+    // "castleblatten_station1_intensity_rgb",
+    // "castleblatten_station5_xyz_intensity_rgb",
+    // "marketplacefeldkirch_station1_intensity_rgb",
+    // "marketplacefeldkirch_station4_intensity_rgb",
+    // "marketplacefeldkirch_station7_intensity_rgb",
+    // "sg27_station10_intensity_rgb",
+    // "sg27_station3_intensity_rgb",
+    // "sg27_station6_intensity_rgb",
+    // "sg27_station8_intensity_rgb",
+    // "sg28_station2_intensity_rgb",
+    // "sg28_station5_xyz_intensity_rgb",
+    // "stgallencathedral_station1_intensity_rgb",
+    // "stgallencathedral_station3_intensity_rgb",
+    // "stgallencathedral_station6_intensity_rgb"
+};
 
 class InterpolationLabelsContainer {
     std::vector<int> label_count;
@@ -104,8 +107,6 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
     std::string filename_labels_sparse =
         input_sparse_dir + "/" + file_prefix + "_pred.txt";
     std::string filename_dense = input_dense_dir + "/" + file_prefix + ".txt";
-    std::string filename_labels_dense =
-        input_dense_dir + "/" + file_prefix + ".labels";
 
     std::ifstream ifs(filename_sparse.c_str());
     std::ifstream ifs_labels(filename_labels_sparse.c_str());
@@ -156,16 +157,10 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
     std::ofstream out_label(out_label_filename.c_str());
     std::ifstream ifs2(filename_dense.c_str());
     if (ifs2.fail()) std::cerr << filename_dense << " not found" << std::endl;
-    std::ifstream ifs_labels2(filename_labels_dense.c_str());
-    bool compute_perfs = (!ifs_labels2.fail());
+
     std::cout << "labeling raw point cloud";
     if (export_labels) std::cout << " and exporting labels";
-    if (compute_perfs) std::cout << " and computing performances";
     std::cout << std::endl;
-    if (!compute_perfs)
-        std::cout << filename_labels_dense
-                  << " not found, assuming this is testing dataset"
-                  << std::endl;
 
     size_t pt_id = 0;
     int nb_labeled_pts = 0;
@@ -203,22 +198,6 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
         }
 
         if (export_labels) out_label << label << std::endl;
-
-        if (compute_perfs) {
-            getline(ifs_labels2, line_labels);
-            std::stringstream sstr_label(line_labels);
-            int ground_truth;
-            sstr_label >> ground_truth;
-            // continue if point is unlabeled
-            if (ground_truth == 0) continue;
-            unions[ground_truth]++;
-            nb_labeled_pts++;
-            if (label == ground_truth) {
-                successes[label]++;
-            } else {
-                unions[label]++;
-            }
-        }
     }
     out_label.close();
 }

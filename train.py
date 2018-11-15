@@ -16,6 +16,7 @@ import tensorflow as tf
 import utils.metric as metric
 import multiprocessing as mp
 import time
+from dataset.semantic import SemanticDataset
 
 # Uncomment to shut down TF warnings
 # os.environ["TF_CPP_MIN_LOG_LEVEL"]="2"
@@ -63,8 +64,7 @@ BN_DECAY_DECAY_STEP = float(DECAY_STEP)
 BN_DECAY_CLIP = PARAMS["bn_decay_clip"]
 
 # Import dataset
-data = importlib.import_module("dataset." + DATASET_NAME)
-TRAIN_DATASET = data.Dataset(
+TRAIN_DATASET = SemanticDataset(
     npoints=NUM_POINT,
     split="train",
     box_size=PARAMS["box_size"],
@@ -72,7 +72,7 @@ TRAIN_DATASET = data.Dataset(
     dropout_max=PARAMS["input_dropout"],
     path=PARAMS["data_path"],
 )
-TEST_DATASET = data.Dataset(
+TEST_DATASET = SemanticDataset(
     npoints=NUM_POINT,
     split="test",
     box_size=PARAMS["box_size"],
@@ -182,8 +182,8 @@ def fill_queues(stack_train, stack_test, num_train_batches, num_test_batches):
     pool = mp.Pool(processes=mp.cpu_count())
     launched_train = 0
     launched_test = 0
-    results_train = [] # Temp buffer before filling the stack_train
-    results_test = [] # Temp buffer before filling the stack_test
+    results_train = []  # Temp buffer before filling the stack_train
+    results_test = []  # Temp buffer before filling the stack_test
     # Launch as much as n
     while True:
         if stack_train.qsize() + launched_train < num_train_batches:

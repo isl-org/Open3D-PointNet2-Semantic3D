@@ -11,7 +11,7 @@ import numpy as np
 import utils.provider as provider
 
 
-class Dataset:
+class SemanticDataset:
     def __init__(self, npoints, split, use_color, box_size, path, dropout_max):
         """Create a dataset holder
         npoints (int): Defaults to 8192. The number of point in each input
@@ -158,7 +158,7 @@ class Dataset:
             # Load colors, regardless of whether use_color is true
             colors = np.load(file_path + "_colors.npz")
             colors = colors[colors.files[0]]
-            colors = colors.astype(np.float32) / 255.0 # Normalize RGB to 0~1
+            colors = colors.astype(np.float32) / 255.0  # Normalize RGB to 0~1
 
             # Sort according to x to speed up computation of boxes and z-boxes
             sort_idx = np.argsort(points[:, 0])

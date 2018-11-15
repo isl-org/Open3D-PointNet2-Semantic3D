@@ -6,26 +6,24 @@ performances.
 """
 
 import argparse
-import importlib
 import os
 import json
 import numpy as np
 import tensorflow as tf
 import models.model as MODEL
 import utils.pc_util as pc_util
+from dataset.semantic import SemanticDataset
 
 # Parser
 parser = argparse.ArgumentParser()
-parser.add_argument("--gpu", type=int, default=0, help="GPU to use [default: GPU 0]")
 parser.add_argument(
-    "--n", type=int, default=8, help="Number of inputs you want [default : 8]"
+    "--n", type=int, default=8, help="# samples, each contains num_point points"
 )
 parser.add_argument("--ckpt", default="", help="Checkpoint file")
 parser.add_argument(
     "--num_point", type=int, default=8192, help="Point Number [default: 8192]"
 )
 parser.add_argument("--set", default="test", help="train or test [default: test]")
-parser.add_argument("--dataset", default="semantic", help="Dataset [default: semantic]")
 FLAGS = parser.parse_args()
 
 JSON_DATA_CUSTOM = open("semantic.json").read()
@@ -35,20 +33,13 @@ PARAMS = json.loads(JSON_DATA)
 PARAMS.update(CUSTOM)
 
 CHECKPOINT = FLAGS.ckpt
-GPU_INDEX = FLAGS.gpu
 NUM_POINT = FLAGS.num_point
 SET = FLAGS.set
-DATASET_NAME = FLAGS.dataset
 N = FLAGS.n
 print("N", N)
 
-# Fix GPU use
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"  # see issue #152
-os.environ["CUDA_VISIBLE_DEVICES"] = str(GPU_INDEX)
-
 # Import dataset
-data_module = importlib.import_module("dataset." + DATASET_NAME)
-DATASET = data_module.Dataset(
+dataset = SemanticDataset(
     npoints=NUM_POINT,
     split=SET,
     box_size=PARAMS["box_size"],
@@ -56,10 +47,10 @@ DATASET = data_module.Dataset(
     dropout_max=PARAMS["input_dropout"],
     path=PARAMS["data_path"],
 )
-NUM_CLASSES = DATASET.num_classes
+NUM_CLASSES = dataset.num_classes
 
 # Outputs
-OUTPUT_DIR = os.path.join("visu", DATASET_NAME + "_" + SET)
+OUTPUT_DIR = os.path.join("visu", "semantic_" + SET)
 if not os.path.exists("visu"):
     os.mkdir("visu")
 if not os.path.exists(OUTPUT_DIR):
@@ -71,7 +62,7 @@ def predict_one_input(sess, ops, data):
     batch_data = np.array([data])  # 1 x NUM_POINT x 3
     feed_dict = {ops["pointclouds_pl"]: batch_data, ops["is_training_pl"]: is_training}
     pred_val = sess.run([ops["pred"]], feed_dict=feed_dict)
-    pred_val = pred_val[0][0]  # NUMPOINTSx9
+    pred_val = pred_val[0][0]  # NUM_POINT x 9
     pred_val = np.argmax(pred_val, 1)
     return pred_val
 
@@ -83,7 +74,7 @@ def predict():
     This enable to visualize side to side the prediction and the true labels,
     and helps to debug the network
     """
-    with tf.device("/gpu:" + str(GPU_INDEX)):
+    with tf.device("/gpu:0"):
         pointclouds_pl, labels_pl, _ = MODEL.placeholder_inputs(
             1, NUM_POINT, hyperparams=PARAMS
         )
@@ -119,7 +110,7 @@ def predict():
     OUTPUT_DIR_FULL_PC = os.path.join(OUTPUT_DIR, "full_scenes_predictions")
     if not os.path.exists(OUTPUT_DIR_FULL_PC):
         os.mkdir(OUTPUT_DIR_FULL_PC)
-    nscenes = len(DATASET)
+    nscenes = len(dataset)
     p = 6 if PARAMS["use_color"] else 3
     scene_points = [np.array([]).reshape((0, p)) for i in range(nscenes)]
     ground_truth = [np.array([]) for i in range(nscenes)]
@@ -128,7 +119,7 @@ def predict():
     for i in range(N * nscenes):
         if i % 100 == 0 and i > 0:
             print("{} inputs generated".format(i))
-        f, data, raw_data, true_labels, col, _ = DATASET.next_input(
+        f, data, raw_data, true_labels, col, _ = dataset.next_input(
             dropout=False, sample=True, verbose=False, predicting=True
         )
         if p == 6:
@@ -139,7 +130,7 @@ def predict():
         ground_truth[f] = np.hstack((ground_truth[f], true_labels))
         predicted_labels[f] = np.hstack((predicted_labels[f], pred_labels))
 
-    file_names = DATASET.get_data_filenames()
+    file_names = dataset.get_data_filenames()
     print("{} point clouds to export".format(len(file_names)))
 
     for f, filename in enumerate(file_names):

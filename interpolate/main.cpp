@@ -102,27 +102,28 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
                                         const float& voxel_size,
                                         const bool& export_labels) {
     // File names
-    std::string filename_sparse =
+    std::string sparse_points_path =
         input_sparse_dir + "/" + file_prefix + "_aggregated.txt";
-    std::string filename_labels_sparse =
+    std::string sparse_labels_path =
         input_sparse_dir + "/" + file_prefix + "_pred.txt";
-    std::string filename_dense = input_dense_dir + "/" + file_prefix + ".txt";
+    std::string dense_points_path =
+        input_dense_dir + "/" + file_prefix + ".txt";
 
-    std::ifstream ifs(filename_sparse.c_str());
-    std::ifstream ifs_labels(filename_labels_sparse.c_str());
-    if (ifs.fail()) {
-        std::cerr << filename_sparse << " not found" << std::endl;
+    std::ifstream sparse_points_file(sparse_points_path.c_str());
+    std::ifstream sparse_labels_file(sparse_labels_path.c_str());
+    if (sparse_points_file.fail()) {
+        std::cerr << sparse_points_path << " not found" << std::endl;
     }
-    if (ifs_labels.fail()) {
-        std::cerr << filename_labels_sparse << " not found" << std::endl;
+    if (sparse_labels_file.fail()) {
+        std::cerr << sparse_labels_path << " not found" << std::endl;
     }
+
     std::string line;
     std::string line_labels;
-
     std::map<Eigen::Vector3i, InterpolationLabelsContainer, Vector3iComp>
         voxels;
-    while (getline(ifs, line)) {
-        getline(ifs_labels, line_labels);
+    while (getline(sparse_points_file, line)) {
+        getline(sparse_labels_file, line_labels);
         std::stringstream sstr_label(line_labels);
         int label;
         sstr_label >> label;
@@ -155,8 +156,9 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
     // don't know how to open only when necessary
     std::string out_label_filename = output_dir + "/" + file_prefix + ".labels";
     std::ofstream out_label(out_label_filename.c_str());
-    std::ifstream ifs2(filename_dense.c_str());
-    if (ifs2.fail()) std::cerr << filename_dense << " not found" << std::endl;
+    std::ifstream ifs2(dense_points_path.c_str());
+    if (ifs2.fail())
+        std::cerr << dense_points_path << " not found" << std::endl;
 
     std::cout << "labeling raw point cloud";
     if (export_labels) std::cout << " and exporting labels";
@@ -220,15 +222,15 @@ int main(int argc, char** argv) {
     // Collect all existing files
     std::vector<std::string> file_prefixes;
     for (unsigned int i = 0; i < possible_file_prefixes.size(); i++) {
-        std::string filename_labels_sparse = std::string(input_sparse_dir) +
-                                             "/" + possible_file_prefixes[i] +
-                                             "_pred.txt";
-        std::ifstream ifs(filename_labels_sparse.c_str());
-        if (!ifs.fail()) {
+        std::string sparse_labels_path = std::string(input_sparse_dir) + "/" +
+                                         possible_file_prefixes[i] +
+                                         "_pred.txt";
+        std::ifstream sparse_points_file(sparse_labels_path.c_str());
+        if (!sparse_points_file.fail()) {
             file_prefixes.push_back(possible_file_prefixes[i]);
             std::cout << "Found " + possible_file_prefixes[i] << std::endl;
         }
-        ifs.close();
+        sparse_points_file.close();
     }
 
     for (unsigned int i = 0; i < file_prefixes.size(); i++) {

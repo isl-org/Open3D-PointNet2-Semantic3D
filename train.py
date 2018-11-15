@@ -69,7 +69,6 @@ TRAIN_DATASET = SemanticDataset(
     split="train",
     box_size=PARAMS["box_size"],
     use_color=PARAMS["use_color"],
-    dropout_max=PARAMS["input_dropout"],
     path=PARAMS["data_path"],
 )
 TEST_DATASET = SemanticDataset(
@@ -77,7 +76,6 @@ TEST_DATASET = SemanticDataset(
     split="test",
     box_size=PARAMS["box_size"],
     use_color=PARAMS["use_color"],
-    dropout_max=PARAMS["input_dropout"],
     path=PARAMS["data_path"],
 )
 NUM_CLASSES = TRAIN_DATASET.num_classes
@@ -165,9 +163,9 @@ def get_bn_decay(batch):
 def get_batch(split):
     np.random.seed()
     if split == "train":
-        return TRAIN_DATASET.next_batch(BATCH_SIZE, True, True)
+        return TRAIN_DATASET.next_batch(BATCH_SIZE, augment=True)
     else:
-        return TEST_DATASET.next_batch(BATCH_SIZE, False, False)
+        return TEST_DATASET.next_batch(BATCH_SIZE, augment=False)
 
 
 def fill_queues(stack_train, stack_test, num_train_batches, num_test_batches):

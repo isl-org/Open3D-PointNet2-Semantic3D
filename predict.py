@@ -60,7 +60,6 @@ if __name__ == "__main__":
         split=SET,
         box_size=PARAMS["box_size"],
         use_color=PARAMS["use_color"],
-        dropout_max=PARAMS["input_dropout"],
         path=PARAMS["data_path"],
     )
 
@@ -107,7 +106,7 @@ if __name__ == "__main__":
         if i % 100 == 0 and i > 0:
             print("{} inputs generated".format(i))
         f, data, raw_data, true_labels, col, _ = dataset.next_input(
-            dropout=False, sample=True, verbose=False, predicting=True
+            sample=True, verbose=False, predicting=True
         )
         if p == 6:
             raw_data = np.hstack((raw_data, col))

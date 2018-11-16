@@ -173,14 +173,14 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
         map_voxel_to_label_counter[voxel].increment(label);
         num_sparse_points++;
     }
-    std::cout << "# sparse points: " << num_sparse_points << std::endl;
+    std::cout << "Number of sparse points: " << num_sparse_points << std::endl;
 
     for (auto it = map_voxel_to_label_counter.begin();
          it != map_voxel_to_label_counter.end(); it++) {
         it->second.finalize_label();
     }
-    std::cout << "# registered voxels: " << map_voxel_to_label_counter.size()
-              << std::endl;
+    std::cout << "Number of registered voxels: "
+              << map_voxel_to_label_counter.size() << std::endl;
 
     // Interpolate to dense point cloud
     // TODO: change to nearest neighbor search
@@ -210,6 +210,7 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
                       << " (" << hit_rate << "%) hit" << std::endl;
         }
     }
+    std::cout << "Label output: " << out_labels_path << std::endl;
 
     sparse_points_file.close();
     sparse_labels_file.close();

@@ -35,7 +35,7 @@ class ConfusionMatrix:
                 pd_label = int(float(pd_line.strip()))
                 self.increment(gt_label, pd_label)
 
-    def get_per_class_iou(self):
+    def get_per_class_ious(self):
         ious = []
         for c in range(self.num_classes):
             intersection = self.confusion_matrix[c, c]
@@ -53,7 +53,8 @@ class ConfusionMatrix:
         """
         Warning: Semantic3D assumes label 0 is not used for computing mean
         """
-        return np.sum(self.get_per_class_iou()) / (self.num_classes - 1)
+        valid_per_class_ious = self.get_per_class_ious()[1:]
+        return np.sum(valid_per_class_ious) / len(valid_per_class_ious)
 
     def get_accuracy(self):
         return np.trace(self.confusion_matrix) / np.sum(self.confusion_matrix)
@@ -88,7 +89,7 @@ class ConfusionMatrix:
 
         # 2. IoU per class
         print("IoU per class:")
-        pprint(self.get_per_class_iou())
+        pprint(self.get_per_class_ious())
 
         # 3. Mean IoU
         # Warning: excluding class 0

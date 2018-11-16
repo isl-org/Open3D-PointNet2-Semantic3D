@@ -10,14 +10,19 @@ class ConfusionMatrix:
         """
         self.num_classes = num_classes
         self.confusion_matrix = np.zeros((self.num_classes, self.num_classes))
+        self.valid_labels = set(range(self.num_classes))
 
     def increment(self, gt_label, pd_label):
-        valid_labels = set(range(self.num_classes))
-        if gt_label not in valid_labels:
+        if gt_label not in self.valid_labels:
             raise ValueError("Invalid value for gt_label")
-        if pd_label not in valid_labels:
+        if pd_label not in self.valid_labels:
             raise ValueError("Invalid value for pd_label")
         self.confusion_matrix[gt_label][pd_label] += 1
+
+    def increment_from_list(self, gt_labels, pd_labels):
+        # TODO: vectorize this
+        for gt_label, pd_label in zip(gt_labels, pd_labels):
+            self.increment(gt_label, pd_label)
 
     def increment_from_file(self, gt_file, pd_file):
         """

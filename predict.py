@@ -45,15 +45,15 @@ def predict_one_input(sess, ops, data):
     is_training = False
     batch_data = np.array([data])  # 1 x NUM_POINT x 3
     feed_dict = {ops["pointclouds_pl"]: batch_data, ops["is_training_pl"]: is_training}
-    pred_val = sess.run([ops["pred"]], feed_dict=feed_dict)
-    pred_val = pred_val[0][0]  # NUM_POINT x 9
-    pred_val = np.argmax(pred_val, 1)
-    return pred_val
+    pd_val = sess.run([ops["pred"]], feed_dict=feed_dict)
+    pd_val = pd_val[0][0]  # NUM_POINT x 9
+    pd_label = np.argmax(pd_val, 1)
+    return pd_label
 
 
 if __name__ == "__main__":
     # Create output dir
-    output_dir = os.path.join("visu", "semantic_test", "full_scenes_predictions")
+    output_dir = os.path.join("results", "sparse")
     os.makedirs(output_dir, exist_ok=True)
 
     # Import dataset

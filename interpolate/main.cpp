@@ -22,11 +22,11 @@ static std::vector<std::string> possible_file_prefixes{
     // "sg27_station1_intensity_rgb",
     // "sg27_station2_intensity_rgb",
 
-    "sg27_station4_intensity_rgb",
+    // "sg27_station4_intensity_rgb",
     // "sg27_station5_intensity_rgb",
     // "sg27_station9_intensity_rgb",
     // "sg28_station4_intensity_rgb",
-    // "untermaederbrunnen_station1_xyz_intensity_rgb",
+    "untermaederbrunnen_station1_xyz_intensity_rgb",
     // "untermaederbrunnen_station3_xyz_intensity_rgb",
 
     // "birdfountain_station1_xyz_intensity_rgb",
@@ -152,6 +152,7 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
     std::map<Eigen::Vector3i, LabelCounter, Vector3iComp>
         map_voxel_to_label_counter;
 
+    size_t num_sparse_points = 0;
     while (getline(sparse_points_file, line_point) &&
            getline(sparse_labels_file, line_label)) {
         std::stringstream sstr_label(line_label);
@@ -170,19 +171,21 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
             map_voxel_to_label_counter[voxel] = ilc;
         }
         map_voxel_to_label_counter[voxel].increment(label);
+        num_sparse_points++;
     }
+    std::cout << "# sparse points: " << num_sparse_points << std::endl;
 
     for (auto it = map_voxel_to_label_counter.begin();
          it != map_voxel_to_label_counter.end(); it++) {
         it->second.finalize_label();
     }
-    std::cout << "Number of registered voxels: "
-              << map_voxel_to_label_counter.size() << std::endl;
+    std::cout << "# registered voxels: " << map_voxel_to_label_counter.size()
+              << std::endl;
 
     // Interpolate to dense point cloud
     // TODO: change to nearest neighbor search
     size_t num_processed_points = 0;
-    size_t num_fallback_points = 0;
+    size_t num_miss = 0;
     while (getline(dense_points_file, line_point)) {
         std::stringstream sstr(line_point);
         float x, y, z;
@@ -192,7 +195,7 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
         int label;
         Eigen::Vector3i voxel = get_voxel(x, y, z, voxel_size);
         if (map_voxel_to_label_counter.count(voxel) == 0) {
-            num_fallback_points++;
+            num_miss++;
             label = 0;
         } else {
             label = map_voxel_to_label_counter[voxel].get_label();
@@ -201,8 +204,10 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
 
         num_processed_points++;
         if (num_processed_points % 1000000 == 0) {
-            std::cout << num_processed_points << " processed, "
-                      << num_fallback_points << " fallbacked" << std::endl;
+            size_t num_hit = num_processed_points - num_miss;
+            float hit_rate = (float)num_hit / num_processed_points * 100;
+            std::cout << num_processed_points << " processed, " << num_hit
+                      << " (" << hit_rate << "%) hit" << std::endl;
         }
     }
 

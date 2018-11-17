@@ -28,11 +28,7 @@ parser.add_argument(
 parser.add_argument("--set", default="test", help="train or test [default: test]")
 flags = parser.parse_args()
 
-JSON_DATA_CUSTOM = open("semantic.json").read()
-CUSTOM = json.loads(JSON_DATA_CUSTOM)
-JSON_DATA = open("default.json").read()
-PARAMS = json.loads(JSON_DATA)
-PARAMS.update(CUSTOM)
+params = json.loads(open("semantic.json").read())
 
 CHECKPOINT = flags.ckpt
 NUM_POINT = flags.num_point
@@ -60,21 +56,21 @@ if __name__ == "__main__":
     dataset = SemanticDataset(
         npoints=NUM_POINT,
         split=SET,
-        box_size=PARAMS["box_size"],
-        use_color=PARAMS["use_color"],
-        path=PARAMS["data_path"],
+        box_size=params["box_size"],
+        use_color=params["use_color"],
+        path=params["data_path"],
     )
 
     with tf.device("/gpu:0"):
         pointclouds_pl, labels_pl, _ = MODEL.placeholder_inputs(
-            1, NUM_POINT, hyperparams=PARAMS
+            1, NUM_POINT, hyperparams=params
         )
         print(tf.shape(pointclouds_pl))
         is_training_pl = tf.placeholder(tf.bool, shape=())
 
         # Simple model
         pred, _ = MODEL.get_model(
-            pointclouds_pl, is_training_pl, dataset.num_classes, hyperparams=PARAMS
+            pointclouds_pl, is_training_pl, dataset.num_classes, hyperparams=params
         )
 
         # Add ops to save and restore all the variables.
@@ -99,7 +95,7 @@ if __name__ == "__main__":
     }
 
     nscenes = len(dataset)
-    p = 6 if PARAMS["use_color"] else 3
+    p = 6 if params["use_color"] else 3
     scene_points = [np.array([]).reshape((0, p)) for i in range(nscenes)]
     ground_truth = [np.array([]) for i in range(nscenes)]
     predicted_labels = [np.array([]) for i in range(nscenes)]

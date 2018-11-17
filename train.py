@@ -170,7 +170,6 @@ def get_batch(split):
 
 def fill_queues(stack_train, stack_test, num_train_batches, num_test_batches):
     """
-
     Args:
         stack_train: mp.Queue to be filled asynchronously
         stack_test: mp.Queue to be filled asynchronously

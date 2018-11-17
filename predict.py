@@ -12,6 +12,7 @@ import numpy as np
 import tensorflow as tf
 import models.model as MODEL
 import utils.pc_util as pc_util
+import open3d
 from dataset.semantic import SemanticDataset
 from utils.metric import ConfusionMatrix
 
@@ -115,7 +116,7 @@ if __name__ == "__main__":
     for scene_index, file_name in enumerate(file_names):
         file_prefix = os.path.basename(file_name)
         print(
-            "exporting file {} which has {} points".format(
+            "Exporting: {} with {} points".format(
                 file_prefix, len(ground_truth[scene_index])
             )
         )

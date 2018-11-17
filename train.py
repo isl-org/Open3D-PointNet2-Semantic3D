@@ -26,12 +26,6 @@ LOG_DIR = PARAMS["logdir"]
 if not os.path.exists(LOG_DIR):
     os.mkdir(LOG_DIR)
 
-# Batch normalisation
-BN_INIT_DECAY = PARAMS["bn_init_decay"]
-BN_DECAY_DECAY_RATE = PARAMS["bn_decay_decay_rate"]
-BN_DECAY_DECAY_STEP = float(PARAMS["decay_step"])
-BN_DECAY_CLIP = PARAMS["bn_decay_clip"]
-
 # Import dataset
 TRAIN_DATASET = SemanticDataset(
     npoints=PARAMS["num_point"],
@@ -119,13 +113,13 @@ def get_bn_decay(batch):
     """
 
     bn_momentum = tf.train.exponential_decay(
-        BN_INIT_DECAY,
+        PARAMS["bn_init_decay"],
         batch * PARAMS["batch_size"],
-        BN_DECAY_DECAY_STEP,
-        BN_DECAY_DECAY_RATE,
+        float(PARAMS["decay_step"]),
+        PARAMS["bn_decay_decay_rate"],
         staircase=True,
     )
-    bn_decay = tf.minimum(BN_DECAY_CLIP, 1 - bn_momentum)
+    bn_decay = tf.minimum(PARAMS["bn_decay_clip"], 1 - bn_momentum)
     return bn_decay
 
 

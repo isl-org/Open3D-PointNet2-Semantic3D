@@ -11,7 +11,6 @@ import json
 import numpy as np
 import tensorflow as tf
 import models.model as MODEL
-import utils.pc_util as pc_util
 import open3d
 from dataset.semantic import SemanticDataset
 from utils.metric import ConfusionMatrix
@@ -113,34 +112,24 @@ if __name__ == "__main__":
     print("{} point clouds to export".format(len(file_names)))
     cm = ConfusionMatrix(9)
 
-    for scene_index, file_name in enumerate(file_names):
-        file_prefix = os.path.basename(file_name)
-        print(
-            "Exporting: {} with {} points".format(
-                file_prefix, len(ground_truth[scene_index])
-            )
-        )
-        pc_util.write_ply_color(
-            scene_points[scene_index][:, 0:3],
-            ground_truth[scene_index],
-            os.path.join(output_dir, file_prefix + "_groundtruth.txt"),
-        )
-        pc_util.write_ply_color(
-            scene_points[scene_index][:, 0:3],
-            predicted_labels[scene_index],
-            os.path.join(output_dir, file_prefix + "_aggregated.txt"),
-        )
+    for scene_index in range(num_scenes):
+        file_prefix = os.path.basename(file_names[scene_index])
 
-        pd_labels_path = os.path.join(output_dir, file_prefix + "_pred.txt")
-        np.savetxt(
-            pd_labels_path,
-            predicted_labels[scene_index].reshape((-1, 1)),
-            delimiter=" ",
-        )
-        gt_labels_path = os.path.join(output_dir, file_prefix + "_gt.txt")
-        np.savetxt(
-            gt_labels_path, ground_truth[scene_index].reshape((-1, 1)), delimiter=" "
-        )
-        cm.increment_from_file(gt_labels_path, pd_labels_path)
+        # Save sparse point cloud
+        pcd = open3d.PointCloud()
+        pcd.points = open3d.Vector3dVector(scene_points[scene_index][:, 0:3])
+        open3d.write_point_cloud(os.path.join(output_dir, file_prefix + ".pcd"))
+
+        # Save predicted labels of the sparse point cloud
+        pd_labels = predicted_labels[scene_index].reshape((-1, 1))
+        gt_labels = ground_truth[scene_index].reshape((-1, 1))
+        pd_labels_path = os.path.join(output_dir, file_prefix + "_pd.txt")
+        np.savetxt(pd_labels_path, pd_labels, delimiter=" ")
+
+        # Increment confusion matrix
+        cm.increment_from_list(gt_labels, pd_labels)
+
+        # Print
+        print("Exported: {} with {} points".format(file_prefix, len(pd_labels)))
 
     cm.print_metrics()

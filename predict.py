@@ -26,23 +26,18 @@ parser.add_argument(
     "--num_point", type=int, default=8192, help="Point Number [default: 8192]"
 )
 parser.add_argument("--set", default="test", help="train or test [default: test]")
-flags = parser.parse_args()
 
-params = json.loads(open("semantic.json").read())
-
-CHECKPOINT = flags.ckpt
-NUM_POINT = flags.num_point
-SET = flags.set
-N = flags.n
-print("N", N)
+# Two global arg collections
+FLAGS = parser.parse_args()
+PARAMS = json.loads(open("semantic.json").read())
 
 
 def predict_one_input(sess, ops, data):
     is_training = False
-    batch_data = np.array([data])  # 1 x NUM_POINT x 3
+    batch_data = np.array([data])  # 1 x FLAGS.num_point x 3
     feed_dict = {ops["pointclouds_pl"]: batch_data, ops["is_training_pl"]: is_training}
     pd_val = sess.run([ops["pred"]], feed_dict=feed_dict)
-    pd_val = pd_val[0][0]  # NUM_POINT x 9
+    pd_val = pd_val[0][0]  # FLAGS.num_point x 9
     pd_label = np.argmax(pd_val, 1)
     return pd_label
 
@@ -54,23 +49,23 @@ if __name__ == "__main__":
 
     # Import dataset
     dataset = SemanticDataset(
-        npoints=NUM_POINT,
-        split=SET,
-        box_size=params["box_size"],
-        use_color=params["use_color"],
-        path=params["data_path"],
+        npoints=FLAGS.num_point,
+        split=FLAGS.set,
+        box_size=PARAMS["box_size"],
+        use_color=PARAMS["use_color"],
+        path=PARAMS["data_path"],
     )
 
     with tf.device("/gpu:0"):
         pointclouds_pl, labels_pl, _ = MODEL.placeholder_inputs(
-            1, NUM_POINT, hyperparams=params
+            1, FLAGS.num_point, hyperparams=PARAMS
         )
         print(tf.shape(pointclouds_pl))
         is_training_pl = tf.placeholder(tf.bool, shape=())
 
         # Simple model
         pred, _ = MODEL.get_model(
-            pointclouds_pl, is_training_pl, dataset.num_classes, hyperparams=params
+            pointclouds_pl, is_training_pl, dataset.num_classes, hyperparams=PARAMS
         )
 
         # Add ops to save and restore all the variables.
@@ -84,7 +79,7 @@ if __name__ == "__main__":
     sess = tf.Session(config=config)
 
     # Restore variables from disk.
-    saver.restore(sess, CHECKPOINT)
+    saver.restore(sess, FLAGS.ckpt)
     print("Model restored.")
 
     ops = {
@@ -95,12 +90,12 @@ if __name__ == "__main__":
     }
 
     nscenes = len(dataset)
-    p = 6 if params["use_color"] else 3
+    p = 6 if PARAMS["use_color"] else 3
     scene_points = [np.array([]).reshape((0, p)) for i in range(nscenes)]
     ground_truth = [np.array([]) for i in range(nscenes)]
     predicted_labels = [np.array([]) for i in range(nscenes)]
 
-    for i in range(N * nscenes):
+    for i in range(FLAGS.n * nscenes):
         if i % 100 == 0 and i > 0:
             print("{} inputs generated".format(i))
         scene_index, data, raw_data, true_labels, col, _ = dataset.next_input(

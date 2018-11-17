@@ -8,7 +8,6 @@ and multi-CPU support.
 import os
 import sys
 import importlib
-import argparse
 import json
 from datetime import datetime
 import numpy as np
@@ -18,20 +17,8 @@ import multiprocessing as mp
 import time
 from dataset.semantic import SemanticDataset
 
-# Uncomment to shut down TF warnings
-# os.environ["TF_CPP_MIN_LOG_LEVEL"]="2"
 
-PARSER = argparse.ArgumentParser()
-PARSER.add_argument(
-    "--config", type=str, default="semantic.json", metavar="N", help="config file"
-)
-ARGS = PARSER.parse_args()
-JSON_DATA_CUSTOM = open(ARGS.config).read()
-CUSTOM = json.loads(JSON_DATA_CUSTOM)
-JSON_DATA = open("default.json").read()
-PARAMS = json.loads(JSON_DATA)
-
-PARAMS.update(CUSTOM)
+PARAMS = json.loads(open("semantic.json").read())
 
 BATCH_SIZE = PARAMS["batch_size"]
 NUM_POINT = PARAMS["num_point"]

@@ -134,8 +134,9 @@ if __name__ == "__main__":
     # | 1 (gt) | (must be) 0 | 4           | 5           | 6           |
     # | 2 (gt) | (must be) 0 | 7           | 8           | 9           |
     # | 3 (gt) | (must be) 0 | 10          | 11          | 12          |
-    ref_confusion_matrix = np.array([[0, 1, 2, 3], [0, 4, 5, 6],
-                                     [0, 7, 8, 9], [0, 10, 11, 12]])
+    ref_confusion_matrix = np.array(
+        [[0, 1, 2, 3], [0, 4, 5, 6], [0, 7, 8, 9], [0, 10, 11, 12]]
+    )
 
     # Build CM
     cm = ConfusionMatrix(num_classes=4)
@@ -149,9 +150,13 @@ if __name__ == "__main__":
     print(cm.confusion_matrix)
 
     # Check IoU
-    ref_per_class_ious = np.array([4. / (4 + 7 + 10 + 5 + 6),
-                                   8. / (5 + 8 + 11 + 7 + 9),
-                                   12./ (6 + 9 + 12 + 10 + 11)])
+    ref_per_class_ious = np.array(
+        [
+            4.0 / (4 + 7 + 10 + 5 + 6),
+            8.0 / (5 + 8 + 11 + 7 + 9),
+            12.0 / (6 + 9 + 12 + 10 + 11),
+        ]
+    )
     np.testing.assert_allclose(cm.get_per_class_ious(), ref_per_class_ious)
     print(cm.get_per_class_ious())
 

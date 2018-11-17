@@ -87,13 +87,13 @@ if __name__ == "__main__":
         "pred": pred,
     }
 
-    nscenes = len(dataset)
+    num_scenes = len(dataset)
     p = 6 if PARAMS["use_color"] else 3
-    scene_points = [np.array([]).reshape((0, p)) for i in range(nscenes)]
-    ground_truth = [np.array([]) for i in range(nscenes)]
-    predicted_labels = [np.array([]) for i in range(nscenes)]
+    scene_points = [np.array([]).reshape((0, p)) for i in range(num_scenes)]
+    ground_truth = [np.array([]) for i in range(num_scenes)]
+    predicted_labels = [np.array([]) for i in range(num_scenes)]
 
-    for i in range(FLAGS.n * nscenes):
+    for i in range(FLAGS.n * num_scenes):
         if i % 100 == 0 and i > 0:
             print("{} inputs generated".format(i))
         scene_index, data, raw_data, true_labels, col, _ = dataset.next_input(

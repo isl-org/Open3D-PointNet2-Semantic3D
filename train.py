@@ -234,7 +234,9 @@ def train_single():
             learning_rate = get_learning_rate(batch)
             tf.summary.scalar("learning_rate", learning_rate)
             if PARAMS["optimizer"] == "momentum":
-                optimizer = tf.train.MomentumOptimizer(learning_rate, momentum=PARAMS["momentum"])
+                optimizer = tf.train.MomentumOptimizer(
+                    learning_rate, momentum=PARAMS["momentum"]
+                )
             else:
                 assert PARAMS["optimizer"] == "adam"
                 optimizer = tf.train.AdamOptimizer(learning_rate)
@@ -252,8 +254,12 @@ def train_single():
 
         # Add summary writers
         merged = tf.summary.merge_all()
-        train_writer = tf.summary.FileWriter(os.path.join(PARAMS["logdir"], "train"), sess.graph)
-        test_writer = tf.summary.FileWriter(os.path.join(PARAMS["logdir"], "test"), sess.graph)
+        train_writer = tf.summary.FileWriter(
+            os.path.join(PARAMS["logdir"], "train"), sess.graph
+        )
+        test_writer = tf.summary.FileWriter(
+            os.path.join(PARAMS["logdir"], "test"), sess.graph
+        )
 
         # Init variables
         sess.run(tf.global_variables_initializer())
@@ -306,7 +312,8 @@ def training_loop(
         if acc > best_acc:
             best_acc = acc
             save_path = saver.save(
-                sess, os.path.join(PARAMS["logdir"], "best_model_epoch_%03d.ckpt" % (epoch))
+                sess,
+                os.path.join(PARAMS["logdir"], "best_model_epoch_%03d.ckpt" % (epoch)),
             )
             log_string("Model saved in file: %s" % save_path)
             print("Model saved in file: %s" % save_path)

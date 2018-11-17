@@ -118,7 +118,7 @@ if __name__ == "__main__":
         # Save sparse point cloud
         pcd = open3d.PointCloud()
         pcd.points = open3d.Vector3dVector(scene_points[scene_index][:, 0:3])
-        open3d.write_point_cloud(os.path.join(output_dir, file_prefix + ".pcd"))
+        open3d.write_point_cloud(os.path.join(output_dir, file_prefix + ".pcd"), pcd)
 
         # Save predicted labels of the sparse point cloud
         pd_labels = predicted_labels[scene_index].reshape((-1, 1))

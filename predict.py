@@ -26,7 +26,7 @@ parser.add_argument(
     "--num_point", type=int, default=8192, help="Point Number [default: 8192]"
 )
 parser.add_argument("--set", default="test", help="train or test [default: test]")
-FLAGS = parser.parse_args()
+flags = parser.parse_args()
 
 JSON_DATA_CUSTOM = open("semantic.json").read()
 CUSTOM = json.loads(JSON_DATA_CUSTOM)
@@ -34,10 +34,10 @@ JSON_DATA = open("default.json").read()
 PARAMS = json.loads(JSON_DATA)
 PARAMS.update(CUSTOM)
 
-CHECKPOINT = FLAGS.ckpt
-NUM_POINT = FLAGS.num_point
-SET = FLAGS.set
-N = FLAGS.n
+CHECKPOINT = flags.ckpt
+NUM_POINT = flags.num_point
+SET = flags.set
+N = flags.n
 print("N", N)
 
 

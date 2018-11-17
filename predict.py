@@ -121,10 +121,10 @@ if __name__ == "__main__":
         open3d.write_point_cloud(os.path.join(output_dir, file_prefix + ".pcd"), pcd)
 
         # Save predicted labels of the sparse point cloud
-        pd_labels = predicted_labels[scene_index].reshape((-1, 1))
-        gt_labels = ground_truth[scene_index].reshape((-1, 1))
+        pd_labels = predicted_labels[scene_index].astype(int)
+        gt_labels = ground_truth[scene_index].astype(int)
         pd_labels_path = os.path.join(output_dir, file_prefix + "_pd.txt")
-        np.savetxt(pd_labels_path, pd_labels, delimiter=" ")
+        np.savetxt(pd_labels_path, pd_labels, fmt="%d")
 
         # Increment confusion matrix
         cm.increment_from_list(gt_labels, pd_labels)

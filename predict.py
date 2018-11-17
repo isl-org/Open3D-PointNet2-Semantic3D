@@ -22,9 +22,6 @@ parser.add_argument(
     "--n", type=int, default=8, help="# samples, each contains num_point points"
 )
 parser.add_argument("--ckpt", default="", help="Checkpoint file")
-parser.add_argument(
-    "--num_point", type=int, default=8192, help="Point Number [default: 8192]"
-)
 parser.add_argument("--set", default="test", help="train or test [default: test]")
 
 # Two global arg collections
@@ -34,10 +31,10 @@ PARAMS = json.loads(open("semantic.json").read())
 
 def predict_one_input(sess, ops, data):
     is_training = False
-    batch_data = np.array([data])  # 1 x FLAGS.num_point x 3
+    batch_data = np.array([data])  # 1 x PARAMS["num_point"] x 3
     feed_dict = {ops["pointclouds_pl"]: batch_data, ops["is_training_pl"]: is_training}
     pd_val = sess.run([ops["pred"]], feed_dict=feed_dict)
-    pd_val = pd_val[0][0]  # FLAGS.num_point x 9
+    pd_val = pd_val[0][0]  # PARAMS["num_point"] x 9
     pd_label = np.argmax(pd_val, 1)
     return pd_label
 
@@ -49,7 +46,7 @@ if __name__ == "__main__":
 
     # Import dataset
     dataset = SemanticDataset(
-        npoints=FLAGS.num_point,
+        npoints=PARAMS["num_point"],
         split=FLAGS.set,
         box_size=PARAMS["box_size"],
         use_color=PARAMS["use_color"],
@@ -58,7 +55,7 @@ if __name__ == "__main__":
 
     with tf.device("/gpu:0"):
         pointclouds_pl, labels_pl, _ = MODEL.placeholder_inputs(
-            1, FLAGS.num_point, hyperparams=PARAMS
+            1, PARAMS["num_point"], hyperparams=PARAMS
         )
         print(tf.shape(pointclouds_pl))
         is_training_pl = tf.placeholder(tf.bool, shape=())

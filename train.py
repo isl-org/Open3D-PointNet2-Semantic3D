@@ -243,7 +243,8 @@ def train_single():
             tf.summary.scalar("learning_rate", learning_rate)
             if PARAMS["optimizer"] == "momentum":
                 optimizer = tf.train.MomentumOptimizer(learning_rate, momentum=PARAMS["momentum"])
-            elif PARAMS["optimizer"] == "adam":
+            else:
+                assert PARAMS["optimizer"] == "adam"
                 optimizer = tf.train.AdamOptimizer(learning_rate)
             train_op = optimizer.minimize(loss, global_step=batch)
 

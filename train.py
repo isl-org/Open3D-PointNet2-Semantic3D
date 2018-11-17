@@ -7,7 +7,6 @@ and multi-CPU support.
 """
 import os
 import sys
-import importlib
 import json
 from datetime import datetime
 import numpy as np
@@ -16,15 +15,14 @@ import utils.metric as metric
 import multiprocessing as mp
 import time
 from dataset.semantic import SemanticDataset
+import models.model as MODEL
 
 
 PARAMS = json.loads(open("semantic.json").read())
 
 # Import model
-MODEL = importlib.import_module("models." + PARAMS["model"])
-LOG_DIR = PARAMS["logdir"]
-if not os.path.exists(LOG_DIR):
-    os.mkdir(LOG_DIR)
+if not os.path.exists(PARAMS["logdir"]):
+    os.mkdir(PARAMS["logdir"])
 
 # Import dataset
 TRAIN_DATASET = SemanticDataset(
@@ -44,7 +42,7 @@ TEST_DATASET = SemanticDataset(
 NUM_CLASSES = TRAIN_DATASET.num_classes
 
 # Start logging
-LOG_FOUT = open(os.path.join(LOG_DIR, "log_train.txt"), "w")
+LOG_FOUT = open(os.path.join(PARAMS["logdir"], "log_train.txt"), "w")
 
 EPOCH_CNT = 0
 
@@ -254,8 +252,8 @@ def train_single():
 
         # Add summary writers
         merged = tf.summary.merge_all()
-        train_writer = tf.summary.FileWriter(os.path.join(LOG_DIR, "train"), sess.graph)
-        test_writer = tf.summary.FileWriter(os.path.join(LOG_DIR, "test"), sess.graph)
+        train_writer = tf.summary.FileWriter(os.path.join(PARAMS["logdir"], "train"), sess.graph)
+        test_writer = tf.summary.FileWriter(os.path.join(PARAMS["logdir"], "test"), sess.graph)
 
         # Init variables
         sess.run(tf.global_variables_initializer())
@@ -308,14 +306,14 @@ def training_loop(
         if acc > best_acc:
             best_acc = acc
             save_path = saver.save(
-                sess, os.path.join(LOG_DIR, "best_model_epoch_%03d.ckpt" % (epoch))
+                sess, os.path.join(PARAMS["logdir"], "best_model_epoch_%03d.ckpt" % (epoch))
             )
             log_string("Model saved in file: %s" % save_path)
             print("Model saved in file: %s" % save_path)
 
         # Save the variables to disk.
         if epoch % 10 == 0:
-            save_path = saver.save(sess, os.path.join(LOG_DIR, "model.ckpt"))
+            save_path = saver.save(sess, os.path.join(PARAMS["logdir"], "model.ckpt"))
             log_string("Model saved in file: %s" % save_path)
             print("Model saved in file: %s" % save_path)
 

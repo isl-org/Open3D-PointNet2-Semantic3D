@@ -85,9 +85,7 @@ if __name__ == "__main__":
     ground_truth = [np.array([]) for i in range(num_scenes)]
     predicted_labels = [np.array([]) for i in range(num_scenes)]
 
-    for i in range(FLAGS.n * num_scenes):
-        if i % 100 == 0 and i > 0:
-            print("{} inputs generated".format(i))
+    for batch_index in range(FLAGS.n * num_scenes):
         scene_index, data, raw_data, true_labels, col, _ = dataset.next_input(
             sample=True, verbose=False, predicting=True
         )
@@ -100,6 +98,9 @@ if __name__ == "__main__":
         predicted_labels[scene_index] = np.hstack(
             (predicted_labels[scene_index], pred_labels)
         )
+
+        if batch_index % 100 == 0:
+            print("Batch {} predicted".format(batch_index))
 
     file_names = dataset.get_data_filenames()
     print("{} point clouds to export".format(len(file_names)))

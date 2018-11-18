@@ -153,11 +153,20 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
         std::cerr << "Output file cannot be created" << std::endl;
     }
 
-    // Read sparse points and labels, build voxel to label container map
-    std::string line_point;
-    std::string line_label;
+    // The main data structure. First build and finalize counter with sparse
+    // point could, then look up the map to interpolate the large point cloud.
     std::map<Eigen::Vector3i, LabelCounter, Vector3iComp>
         map_voxel_to_label_counter;
+
+    // Read sparse points and labels, build voxel to label container map
+    open3d::PointCloud sparse_pcd;
+    open3d::ReadPointCloud(sparse_points_path, sparse_pcd);
+    std::cout << sparse_pcd.points_.size() << " sparse points" << std::endl;
+
+    // std::vector<int> sparse_labels = read_labels(sparse_labels_path);
+
+    std::string line_point;
+    std::string line_label;
 
     size_t num_sparse_points = 0;
     while (getline(sparse_points_file, line_point) &&
@@ -243,7 +252,8 @@ int main(int argc, char** argv) {
     std::vector<std::string> file_prefixes;
     for (unsigned int i = 0; i < possible_file_prefixes.size(); i++) {
         std::string sparse_labels_path = std::string(input_sparse_dir) + "/" +
-                                         possible_file_prefixes[i] + "_pd.txt";
+                                         possible_file_prefixes[i] +
+                                         "_pd.labels";
         std::ifstream sparse_points_file(sparse_labels_path.c_str());
         if (!sparse_points_file.fail()) {
             file_prefixes.push_back(possible_file_prefixes[i]);

@@ -108,6 +108,18 @@ std::vector<int> read_labels(const std::string& file_path) {
     return labels;
 }
 
+void write_labels(const std::vector<int> labels, const std::string& file_path) {
+    std::ofstream out_file(file_path.c_str());
+    if (out_file.fail()) {
+        std::cerr << "Output file cannot be created" << std::endl;
+    } else {
+        for (const int& label : labels) {
+            out_file << label << std::endl;
+        }
+    }
+    out_file.close();
+}
+
 Eigen::Vector3i get_voxel(double x, double y, double z, double voxel_size) {
     int x_index = std::floor(x / voxel_size) + 0.5;
     int y_index = std::floor(y / voxel_size) + 0.5;
@@ -144,22 +156,11 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
     // Paths
     std::string dense_points_path =
         input_dense_dir + "/" + file_prefix + ".pcd";
-    std::string out_labels_path = output_dir + "/" + file_prefix + ".labels";
+    std::string dense_labels_path = output_dir + "/" + file_prefix + ".labels";
     std::string sparse_points_path =
         input_sparse_dir + "/" + file_prefix + ".pcd";
     std::string sparse_labels_path =
         input_sparse_dir + "/" + file_prefix + "_pd.labels";
-
-    // Read
-    std::ifstream dense_points_file(dense_points_path.c_str());
-    std::ofstream out_labels_file(out_labels_path.c_str());
-
-    if (dense_points_file.fail()) {
-        std::cerr << dense_points_path << " not found" << std::endl;
-    }
-    if (out_labels_file.fail()) {
-        std::cerr << "Output file cannot be created" << std::endl;
-    }
 
     // The main data structure. First build and finalize counter with sparse
     // point could, then look up the map to interpolate the large point cloud.
@@ -200,25 +201,20 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
     std::cout << dense_pcd.points_.size() << " dense points" << std::endl;
 
     // Interpolate to dense point cloud
-    // TODO: change to nearest neighbor search
+    std::vector<int> dense_labels;
     size_t num_processed_points = 0;
     size_t num_miss = 0;
-    std::string line_point;
-    while (getline(dense_points_file, line_point)) {
-        std::stringstream sstr(line_point);
-        double x, y, z;
-        int intensity, r, g, b;
-        sstr >> x >> y >> z >> intensity >> r >> g >> b;
-
+    for (Eigen::Vector3d& point : dense_pcd.points_) {
+        Eigen::Vector3i voxel = get_voxel(point, voxel_size);
         int label;
-        Eigen::Vector3i voxel = get_voxel(x, y, z, voxel_size);
         if (map_voxel_to_label_counter.count(voxel) == 0) {
+            // TODO: change to nearest neighbor search
             num_miss++;
             label = 0;
         } else {
             label = map_voxel_to_label_counter[voxel].get_label();
         }
-        out_labels_file << label << std::endl;
+        dense_labels.push_back(label);
 
         num_processed_points++;
         if (num_processed_points % 1000000 == 0) {
@@ -228,10 +224,11 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
                       << " (" << hit_rate << "%) hit" << std::endl;
         }
     }
-    std::cout << "Label output: " << out_labels_path << std::endl;
 
-    dense_points_file.close();
-    out_labels_file.close();
+    // Write label
+    write_labels(dense_labels, dense_labels_path);
+    std::cout << dense_labels.size() << " dense labels generated" << std::endl;
+    std::cout << "Label output: " << dense_labels_path << std::endl;
 }
 
 int main(int argc, char** argv) {

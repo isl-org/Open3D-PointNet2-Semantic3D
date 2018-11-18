@@ -10,6 +10,7 @@
 #include <map>
 #include <Eigen/Dense>
 #include <algorithm>
+#include <fstream>
 
 #include "Core/Core.h"
 #include "IO/IO.h"
@@ -109,19 +110,19 @@ std::vector<int> read_labels(const std::string& file_path) {
 }
 
 void write_labels(const std::vector<int> labels, const std::string& file_path) {
-    std::ofstream out_file(file_path.c_str());
-    if (out_file.fail()) {
+    std::cout << "Writting dense labels" << std::endl;
+    // Using C fprintf is much faster than C++ streams
+    FILE* f = fopen(file_path.c_str(), "w");
+    if (f == nullptr) {
         std::cerr << "Output file cannot be created: " << file_path
                   << " Consider creating the directory first" << std::endl;
-
-    } else {
-        std::cout << "Writting dense labels" << std::endl;
-        for (const int& label : labels) {
-            out_file << label << std::endl;
-        }
-        std::cout << "Output written to: " << file_path << std::endl;
+        exit(1);
     }
-    out_file.close();
+    for (const int& label : labels) {
+        fprintf(f, "%d\n", label);
+    }
+    fclose(f);
+    std::cout << "Output written to: " << file_path << std::endl;
 }
 
 Eigen::Vector3i get_voxel(double x, double y, double z, double voxel_size) {
@@ -143,9 +144,9 @@ Eigen::Vector3i get_voxel(const Eigen::Vector3d& point, double voxel_size) {
 // predictions by the network and to interpolate the results to the much
 // denser raw point clouds. This is achieved by a division of the space into
 // a voxel grid, implemented as a map called map_voxel_to_label_counter.
-// First the sparse point cloud is iterated and the map is constructed. We store
-// for each voxel and each label the nb of points from the sparse cloud
-// and with the right label was in the voxel. Then we assign to each
+// First the sparse point cloud is iterated and the map is constructed. We
+// store for each voxel and each label the nb of points from the sparse
+// cloud and with the right label was in the voxel. Then we assign to each
 // voxel the label which got the most points. And finally we can iterate
 // the dense point cloud and dynamically assign labels according to the
 // map_voxel_to_label_counter. IoU per class and accuracy are calculated at
@@ -176,8 +177,8 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
     std::cout << sparse_labels.size() << " sparse labels" << std::endl;
 
     // Build voxel to label container map. This is the main data structure.
-    // First we build and finalize counter with sparse point could, then look up
-    // the map to interpolate the large point cloud.
+    // First we build and finalize counter with sparse point could, then
+    // look up the map to interpolate the large point cloud.
     std::map<Eigen::Vector3i, LabelCounter, Vector3iComp>
         map_voxel_to_label_counter;
 

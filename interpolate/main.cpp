@@ -194,6 +194,11 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
     std::cout << "Number of registered voxels: "
               << map_voxel_to_label_counter.size() << std::endl;
 
+    // Read dense points
+    open3d::PointCloud dense_pcd;
+    open3d::ReadPointCloud(dense_points_path, dense_pcd);
+    std::cout << dense_pcd.points_.size() << " dense points" << std::endl;
+
     // Interpolate to dense point cloud
     // TODO: change to nearest neighbor search
     size_t num_processed_points = 0;

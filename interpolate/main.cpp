@@ -97,9 +97,14 @@ std::vector<int> read_labels(const std::string& file_path) {
     std::vector<int> labels;
     std::ifstream infile(file_path);
     int label;
-    while (infile >> label) {
-        labels.push_back(label);
+    if (infile.fail()) {
+        std::cerr << file_path << " not found at read_labels" << std::endl;
+    } else {
+        while (infile >> label) {
+            labels.push_back(label);
+        }
     }
+    infile.close();
     return labels;
 }
 
@@ -136,26 +141,19 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
                                         double voxel_size) {
     std::cout << "[Interpolating] " + file_prefix << std::endl;
 
-    // Load files
+    // Paths
+    std::string dense_points_path =
+        input_dense_dir + "/" + file_prefix + ".pcd";
+    std::string out_labels_path = output_dir + "/" + file_prefix + ".labels";
     std::string sparse_points_path =
         input_sparse_dir + "/" + file_prefix + ".pcd";
     std::string sparse_labels_path =
         input_sparse_dir + "/" + file_prefix + "_pd.labels";
-    std::string dense_points_path =
-        input_dense_dir + "/" + file_prefix + ".pcd";
-    std::string out_labels_path = output_dir + "/" + file_prefix + ".labels";
 
-    std::ifstream sparse_points_file(sparse_points_path.c_str());
-    std::ifstream sparse_labels_file(sparse_labels_path.c_str());
+    // Read
     std::ifstream dense_points_file(dense_points_path.c_str());
     std::ofstream out_labels_file(out_labels_path.c_str());
 
-    if (sparse_points_file.fail()) {
-        std::cerr << sparse_points_path << " not found" << std::endl;
-    }
-    if (sparse_labels_file.fail()) {
-        std::cerr << sparse_labels_path << " not found" << std::endl;
-    }
     if (dense_points_file.fail()) {
         std::cerr << dense_points_path << " not found" << std::endl;
     }
@@ -179,28 +177,30 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
     std::string line_point;
     std::string line_label;
 
-    size_t num_sparse_points = 0;
-    while (getline(sparse_points_file, line_point) &&
-           getline(sparse_labels_file, line_label)) {
-        std::stringstream sstr_label(line_label);
-        int label;
-        sstr_label >> label;
+    // Eigen::Vector3i voxel = get_voxel(x, y, z, voxel_size);
 
-        std::stringstream sstr(line_point);
-        double x, y, z;
-        int r, g, b;
-        std::string v;
-        sstr >> v >> x >> y >> z >> r >> g >> b;
-        Eigen::Vector3i voxel = get_voxel(x, y, z, voxel_size);
+    // size_t num_sparse_points = 0;
+    // while (getline(sparse_points_file, line_point) &&
+    //        getline(sparse_labels_file, line_label)) {
+    //     std::stringstream sstr_label(line_label);
+    //     int label;
+    //     sstr_label >> label;
 
-        if (map_voxel_to_label_counter.count(voxel) == 0) {
-            LabelCounter ilc;
-            map_voxel_to_label_counter[voxel] = ilc;
-        }
-        map_voxel_to_label_counter[voxel].increment(label);
-        num_sparse_points++;
-    }
-    std::cout << "Number of sparse points: " << num_sparse_points << std::endl;
+    //     std::stringstream sstr(line_point);
+    //     double x, y, z;
+    //     int r, g, b;
+    //     std::string v;
+    //     sstr >> v >> x >> y >> z >> r >> g >> b;
+
+    //     if (map_voxel_to_label_counter.count(voxel) == 0) {
+    //         LabelCounter ilc;
+    //         map_voxel_to_label_counter[voxel] = ilc;
+    //     }
+    //     map_voxel_to_label_counter[voxel].increment(label);
+    //     num_sparse_points++;
+    // }
+    // std::cout << "Number of sparse points: " << num_sparse_points <<
+    // std::endl;
 
     for (auto it = map_voxel_to_label_counter.begin();
          it != map_voxel_to_label_counter.end(); it++) {
@@ -239,8 +239,6 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
     }
     std::cout << "Label output: " << out_labels_path << std::endl;
 
-    sparse_points_file.close();
-    sparse_labels_file.close();
     dense_points_file.close();
     out_labels_file.close();
 }

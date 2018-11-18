@@ -11,6 +11,9 @@
 #include <Eigen/Dense>
 #include <algorithm>
 
+#include "Core/Core.h"
+#include "IO/IO.h"
+
 static std::vector<std::string> possible_file_prefixes{
     // "bildstein_station1_xyz_intensity_rgb",
     // "bildstein_station3_xyz_intensity_rgb",

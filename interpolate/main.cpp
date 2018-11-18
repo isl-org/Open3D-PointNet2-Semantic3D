@@ -166,9 +166,6 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
     std::string sparse_labels_path =
         input_sparse_dir + "/" + file_prefix + ".labels";
 
-    // The main data structure. First build and finalize counter with sparse
-    // point could, then look up the map to interpolate the large point cloud.
-
     // Read sparse points
     open3d::PointCloud sparse_pcd;
     open3d::ReadPointCloud(sparse_points_path, sparse_pcd);

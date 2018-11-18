@@ -149,8 +149,7 @@ Eigen::Vector3i get_voxel(const Eigen::Vector3d& point, double voxel_size) {
 // cloud and with the right label was in the voxel. Then we assign to each
 // voxel the label which got the most points. And finally we can iterate
 // the dense point cloud and dynamically assign labels according to the
-// map_voxel_to_label_counter. IoU per class and accuracy are calculated at
-// the end.
+// map_voxel_to_label_counter.
 void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
                                         const std::string& input_sparse_dir,
                                         const std::string& output_dir,

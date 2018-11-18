@@ -121,11 +121,11 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
 
     // Load files
     std::string sparse_points_path =
-        input_sparse_dir + "/" + file_prefix + "_aggregated.txt";
+        input_sparse_dir + "/" + file_prefix + ".pcd";
     std::string sparse_labels_path =
-        input_sparse_dir + "/" + file_prefix + "_pred.txt";
+        input_sparse_dir + "/" + file_prefix + "_pd.labels";
     std::string dense_points_path =
-        input_dense_dir + "/" + file_prefix + ".txt";
+        input_dense_dir + "/" + file_prefix + ".pcd";
     std::string out_labels_path = output_dir + "/" + file_prefix + ".labels";
 
     std::ifstream sparse_points_file(sparse_points_path.c_str());

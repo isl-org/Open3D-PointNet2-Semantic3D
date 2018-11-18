@@ -93,11 +93,15 @@ struct Vector3iComp {
     }
 };
 
-Eigen::Vector3i get_voxel(float x, float y, float z, float voxel_size) {
+Eigen::Vector3i get_voxel(double x, double y, double z, double voxel_size) {
     int x_index = std::floor(x / voxel_size) + 0.5;
     int y_index = std::floor(y / voxel_size) + 0.5;
     int z_index = std::floor(z / voxel_size) + 0.5;
     return Eigen::Vector3i(x_index, y_index, z_index);
+}
+
+Eigen::Vector3i get_voxel(const Eigen::Vector3d& point, double voxel_size) {
+    return get_voxel(point(0), point(1), point(2), voxel_size);
 }
 
 // The pointnet2 network only takes up to a few thousand points at a time,
@@ -119,7 +123,7 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
                                         const std::string& input_sparse_dir,
                                         const std::string& output_dir,
                                         const std::string& file_prefix,
-                                        float voxel_size) {
+                                        double voxel_size) {
     std::cout << "[Interpolating] " + file_prefix << std::endl;
 
     // Load files
@@ -163,7 +167,7 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
         sstr_label >> label;
 
         std::stringstream sstr(line_point);
-        float x, y, z;
+        double x, y, z;
         int r, g, b;
         std::string v;
         sstr >> v >> x >> y >> z >> r >> g >> b;
@@ -191,7 +195,7 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
     size_t num_miss = 0;
     while (getline(dense_points_file, line_point)) {
         std::stringstream sstr(line_point);
-        float x, y, z;
+        double x, y, z;
         int intensity, r, g, b;
         sstr >> x >> y >> z >> intensity >> r >> g >> b;
 
@@ -208,7 +212,7 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
         num_processed_points++;
         if (num_processed_points % 1000000 == 0) {
             size_t num_hit = num_processed_points - num_miss;
-            float hit_rate = (float)num_hit / num_processed_points * 100;
+            double hit_rate = (double)num_hit / num_processed_points * 100;
             std::cout << num_processed_points << " processed, " << num_hit
                       << " (" << hit_rate << "%) hit" << std::endl;
         }
@@ -232,7 +236,7 @@ int main(int argc, char** argv) {
     std::string input_dense_dir = argv[1];
     std::string input_sparse_dir = argv[2];
     std::string output_dir = argv[3];
-    float voxel_size = strtof(argv[4], NULL);
+    double voxel_size = strtof(argv[4], NULL);
     std::cout << "Using voxel size: " << voxel_size << std::endl;
 
     // Collect all existing files

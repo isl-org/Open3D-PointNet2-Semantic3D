@@ -7,8 +7,6 @@ and multi-CPU support.
 """
 import os
 import sys
-import importlib
-import argparse
 import json
 from datetime import datetime
 import numpy as np
@@ -17,62 +15,25 @@ import utils.metric as metric
 import multiprocessing as mp
 import time
 from dataset.semantic import SemanticDataset
+import models.model as MODEL
 
-# Uncomment to shut down TF warnings
-# os.environ["TF_CPP_MIN_LOG_LEVEL"]="2"
 
-PARSER = argparse.ArgumentParser()
-PARSER.add_argument(
-    "--config", type=str, default="semantic.json", metavar="N", help="config file"
-)
-ARGS = PARSER.parse_args()
-JSON_DATA_CUSTOM = open(ARGS.config).read()
-CUSTOM = json.loads(JSON_DATA_CUSTOM)
-JSON_DATA = open("default.json").read()
-PARAMS = json.loads(JSON_DATA)
-
-PARAMS.update(CUSTOM)
-
-BATCH_SIZE = PARAMS["batch_size"]
-NUM_POINT = PARAMS["num_point"]
-MAX_EPOCH = PARAMS["max_epoch"]
-BASE_LEARNING_RATE = PARAMS["learning_rate"]
-GPU_INDEX = PARAMS["gpu"]
-MOMENTUM = PARAMS["momentum"]
-OPTIMIZER = PARAMS["optimizer"]
-DECAY_STEP = PARAMS["decay_step"]
-DECAY_RATE = PARAMS["learning_rate_decay_rate"]
-DATASET_NAME = PARAMS["dataset"]
-
-# Fix GPU use
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"  # see issue #152
-os.environ["CUDA_VISIBLE_DEVICES"] = str(GPU_INDEX)
-NUM_GPUS = len(GPU_INDEX.split(","))
-assert BATCH_SIZE % NUM_GPUS == 0
-DEVICE_BATCH_SIZE = BATCH_SIZE / NUM_GPUS
+PARAMS = json.loads(open("semantic.json").read())
 
 # Import model
-MODEL = importlib.import_module("models." + PARAMS["model"])
-LOG_DIR = PARAMS["logdir"]
-if not os.path.exists(LOG_DIR):
-    os.mkdir(LOG_DIR)
-
-# Batch normalisation
-BN_INIT_DECAY = PARAMS["bn_init_decay"]
-BN_DECAY_DECAY_RATE = PARAMS["bn_decay_decay_rate"]
-BN_DECAY_DECAY_STEP = float(DECAY_STEP)
-BN_DECAY_CLIP = PARAMS["bn_decay_clip"]
+if not os.path.exists(PARAMS["logdir"]):
+    os.mkdir(PARAMS["logdir"])
 
 # Import dataset
 TRAIN_DATASET = SemanticDataset(
-    npoints=NUM_POINT,
+    npoints=PARAMS["num_point"],
     split="train",
     box_size=PARAMS["box_size"],
     use_color=PARAMS["use_color"],
     path=PARAMS["data_path"],
 )
 TEST_DATASET = SemanticDataset(
-    npoints=NUM_POINT,
+    npoints=PARAMS["num_point"],
     split="test",
     box_size=PARAMS["box_size"],
     use_color=PARAMS["use_color"],
@@ -81,7 +42,7 @@ TEST_DATASET = SemanticDataset(
 NUM_CLASSES = TRAIN_DATASET.num_classes
 
 # Start logging
-LOG_FOUT = open(os.path.join(LOG_DIR, "log_train.txt"), "w")
+LOG_FOUT = open(os.path.join(PARAMS["logdir"], "log_train.txt"), "w")
 
 EPOCH_CNT = 0
 
@@ -129,10 +90,10 @@ def get_learning_rate(batch):
     """
 
     learning_rate = tf.train.exponential_decay(
-        BASE_LEARNING_RATE,  # Base learning rate.
-        batch * BATCH_SIZE,  # Current index into the dataset.
-        DECAY_STEP,  # Decay step.
-        DECAY_RATE,  # Decay rate.
+        PARAMS["learning_rate"],  # Base learning rate.
+        batch * PARAMS["batch_size"],  # Current index into the dataset.
+        PARAMS["decay_step"],  # Decay step.
+        PARAMS["learning_rate_decay_rate"],  # Decay rate.
         staircase=True,
     )
     learning_rate = tf.maximum(learning_rate, 0.00001)  # CLIP THE LEARNING RATE!
@@ -150,27 +111,26 @@ def get_bn_decay(batch):
     """
 
     bn_momentum = tf.train.exponential_decay(
-        BN_INIT_DECAY,
-        batch * BATCH_SIZE,
-        BN_DECAY_DECAY_STEP,
-        BN_DECAY_DECAY_RATE,
+        PARAMS["bn_init_decay"],
+        batch * PARAMS["batch_size"],
+        float(PARAMS["decay_step"]),
+        PARAMS["bn_decay_decay_rate"],
         staircase=True,
     )
-    bn_decay = tf.minimum(BN_DECAY_CLIP, 1 - bn_momentum)
+    bn_decay = tf.minimum(PARAMS["bn_decay_clip"], 1 - bn_momentum)
     return bn_decay
 
 
 def get_batch(split):
     np.random.seed()
     if split == "train":
-        return TRAIN_DATASET.next_batch(BATCH_SIZE, augment=True)
+        return TRAIN_DATASET.next_batch(PARAMS["batch_size"], augment=True)
     else:
-        return TEST_DATASET.next_batch(BATCH_SIZE, augment=False)
+        return TEST_DATASET.next_batch(PARAMS["batch_size"], augment=False)
 
 
 def fill_queues(stack_train, stack_test, num_train_batches, num_test_batches):
     """
-
     Args:
         stack_train: mp.Queue to be filled asynchronously
         stack_test: mp.Queue to be filled asynchronously
@@ -213,8 +173,8 @@ def init_stacking():
     """
     with tf.device("/cpu:0"):
         # Queues that contain several batches in advance
-        num_train_batches = TRAIN_DATASET.get_num_batches(BATCH_SIZE)
-        num_test_batches = TEST_DATASET.get_num_batches(BATCH_SIZE)
+        num_train_batches = TRAIN_DATASET.get_num_batches(PARAMS["batch_size"])
+        num_test_batches = TEST_DATASET.get_num_batches(PARAMS["batch_size"])
         stack_train = mp.Queue(num_train_batches)
         stack_test = mp.Queue(num_test_batches)
         stacker = mp.Process(
@@ -231,9 +191,9 @@ def train_single():
     with tf.Graph().as_default():
         stacker, stack_test, stack_train = init_stacking()
 
-        with tf.device("/gpu:" + str(GPU_INDEX)):
+        with tf.device("/gpu:" + str(PARAMS["gpu"])):
             pointclouds_pl, labels_pl, smpws_pl = MODEL.placeholder_inputs(
-                BATCH_SIZE, NUM_POINT, hyperparams=PARAMS
+                PARAMS["batch_size"], PARAMS["num_point"], hyperparams=PARAMS
             )
             is_training_pl = tf.placeholder(tf.bool, shape=())
 
@@ -259,7 +219,7 @@ def train_single():
             # Compute accuracy
             correct = tf.equal(tf.argmax(pred, 2), tf.to_int64(labels_pl))
             accuracy = tf.reduce_sum(tf.cast(correct, tf.float32)) / float(
-                BATCH_SIZE * NUM_POINT
+                PARAMS["batch_size"] * PARAMS["num_point"]
             )
             tf.summary.scalar("accuracy", accuracy)
 
@@ -273,9 +233,12 @@ def train_single():
             # Get training operator
             learning_rate = get_learning_rate(batch)
             tf.summary.scalar("learning_rate", learning_rate)
-            if OPTIMIZER == "momentum":
-                optimizer = tf.train.MomentumOptimizer(learning_rate, momentum=MOMENTUM)
-            elif OPTIMIZER == "adam":
+            if PARAMS["optimizer"] == "momentum":
+                optimizer = tf.train.MomentumOptimizer(
+                    learning_rate, momentum=PARAMS["momentum"]
+                )
+            else:
+                assert PARAMS["optimizer"] == "adam"
                 optimizer = tf.train.AdamOptimizer(learning_rate)
             train_op = optimizer.minimize(loss, global_step=batch)
 
@@ -291,8 +254,12 @@ def train_single():
 
         # Add summary writers
         merged = tf.summary.merge_all()
-        train_writer = tf.summary.FileWriter(os.path.join(LOG_DIR, "train"), sess.graph)
-        test_writer = tf.summary.FileWriter(os.path.join(LOG_DIR, "test"), sess.graph)
+        train_writer = tf.summary.FileWriter(
+            os.path.join(PARAMS["logdir"], "train"), sess.graph
+        )
+        test_writer = tf.summary.FileWriter(
+            os.path.join(PARAMS["logdir"], "test"), sess.graph
+        )
 
         # Init variables
         sess.run(tf.global_variables_initializer())
@@ -328,10 +295,10 @@ def training_loop(
     sess, ops, saver, stacker, train_writer, stack_train, test_writer, stack_test
 ):
     best_acc = -1
-    # Train for MAX_EPOCH epochs
-    for epoch in range(MAX_EPOCH):
+    # Train for PARAMS["max_epoch"] epochs
+    for epoch in range(PARAMS["max_epoch"]):
         print("in epoch", epoch)
-        print("MAX_EPOCH", MAX_EPOCH)
+        print("max_epoch", PARAMS["max_epoch"])
 
         log_string("**** EPOCH %03d ****" % (epoch))
         sys.stdout.flush()
@@ -345,14 +312,15 @@ def training_loop(
         if acc > best_acc:
             best_acc = acc
             save_path = saver.save(
-                sess, os.path.join(LOG_DIR, "best_model_epoch_%03d.ckpt" % (epoch))
+                sess,
+                os.path.join(PARAMS["logdir"], "best_model_epoch_%03d.ckpt" % (epoch)),
             )
             log_string("Model saved in file: %s" % save_path)
             print("Model saved in file: %s" % save_path)
 
         # Save the variables to disk.
         if epoch % 10 == 0:
-            save_path = saver.save(sess, os.path.join(LOG_DIR, "model.ckpt"))
+            save_path = saver.save(sess, os.path.join(PARAMS["logdir"], "model.ckpt"))
             log_string("Model saved in file: %s" % save_path)
             print("Model saved in file: %s" % save_path)
 
@@ -375,7 +343,7 @@ def train_one_epoch(sess, ops, train_writer, stack):
 
     is_training = True
 
-    num_batches = TRAIN_DATASET.get_num_batches(BATCH_SIZE)
+    num_batches = TRAIN_DATASET.get_num_batches(PARAMS["batch_size"])
 
     log_string(str(datetime.now()))
     update_progress(0)
@@ -421,6 +389,7 @@ def train_one_epoch(sess, ops, train_writer, stack):
     log_string("Overall accuracy : %f" % (confusion_matrix.get_accuracy()))
     log_string("Average IoU : %f" % (confusion_matrix.get_mean_iou()))
     iou_per_class = confusion_matrix.get_per_class_ious()
+    iou_per_class = [0] + iou_per_class  # label 0 is ignored
     for i in range(1, NUM_CLASSES):
         log_string("IoU of %s : %f" % (TRAIN_DATASET.labels_names[i], iou_per_class[i]))
 
@@ -441,7 +410,7 @@ def eval_one_epoch(sess, ops, test_writer, stack):
 
     is_training = False
 
-    num_batches = TEST_DATASET.get_num_batches(BATCH_SIZE)
+    num_batches = TEST_DATASET.get_num_batches(PARAMS["batch_size"])
 
     # Reset metrics
     loss_sum = 0
@@ -485,6 +454,7 @@ def eval_one_epoch(sess, ops, test_writer, stack):
     log_string("mean loss: %f" % (loss_sum / float(num_batches)))
     log_string("Overall accuracy : %f" % (confusion_matrix.get_accuracy()))
     log_string("Average IoU : %f" % (confusion_matrix.get_mean_iou()))
+    iou_per_class = [0] + iou_per_class  # label 0 is ignored
     for i in range(1, NUM_CLASSES):
         log_string("IoU of %s : %f" % (TEST_DATASET.labels_names[i], iou_per_class[i]))
 

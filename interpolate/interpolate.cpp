@@ -10,6 +10,10 @@
 #include <map>
 #include <Eigen/Dense>
 #include <algorithm>
+#include <fstream>
+
+#include "Core/Core.h"
+#include "IO/IO.h"
 
 static std::vector<std::string> possible_file_prefixes{
     // "bildstein_station1_xyz_intensity_rgb",
@@ -90,11 +94,46 @@ struct Vector3iComp {
     }
 };
 
-Eigen::Vector3i get_voxel(float x, float y, float z, float voxel_size) {
+std::vector<int> read_labels(const std::string& file_path) {
+    std::vector<int> labels;
+    std::ifstream infile(file_path);
+    int label;
+    if (infile.fail()) {
+        std::cerr << file_path << " not found at read_labels" << std::endl;
+    } else {
+        while (infile >> label) {
+            labels.push_back(label);
+        }
+    }
+    infile.close();
+    return labels;
+}
+
+void write_labels(const std::vector<int> labels, const std::string& file_path) {
+    std::cout << "Writting dense labels" << std::endl;
+    // Using C fprintf is much faster than C++ streams
+    FILE* f = fopen(file_path.c_str(), "w");
+    if (f == nullptr) {
+        std::cerr << "Output file cannot be created: " << file_path
+                  << " Consider creating the directory first" << std::endl;
+        exit(1);
+    }
+    for (const int& label : labels) {
+        fprintf(f, "%d\n", label);
+    }
+    fclose(f);
+    std::cout << "Output written to: " << file_path << std::endl;
+}
+
+Eigen::Vector3i get_voxel(double x, double y, double z, double voxel_size) {
     int x_index = std::floor(x / voxel_size) + 0.5;
     int y_index = std::floor(y / voxel_size) + 0.5;
     int z_index = std::floor(z / voxel_size) + 0.5;
     return Eigen::Vector3i(x_index, y_index, z_index);
+}
+
+Eigen::Vector3i get_voxel(const Eigen::Vector3d& point, double voxel_size) {
+    return get_voxel(point(0), point(1), point(2), voxel_size);
 }
 
 // The pointnet2 network only takes up to a few thousand points at a time,
@@ -105,76 +144,51 @@ Eigen::Vector3i get_voxel(float x, float y, float z, float voxel_size) {
 // predictions by the network and to interpolate the results to the much
 // denser raw point clouds. This is achieved by a division of the space into
 // a voxel grid, implemented as a map called map_voxel_to_label_counter.
-// First the sparse point cloud is iterated and the map is constructed. We store
-// for each voxel and each label the nb of points from the sparse cloud
-// and with the right label was in the voxel. Then we assign to each
+// First the sparse point cloud is iterated and the map is constructed. We
+// store for each voxel and each label the nb of points from the sparse
+// cloud and with the right label was in the voxel. Then we assign to each
 // voxel the label which got the most points. And finally we can iterate
 // the dense point cloud and dynamically assign labels according to the
-// map_voxel_to_label_counter. IoU per class and accuracy are calculated at
-// the end.
+// map_voxel_to_label_counter.
 void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
                                         const std::string& input_sparse_dir,
                                         const std::string& output_dir,
                                         const std::string& file_prefix,
-                                        float voxel_size) {
+                                        double voxel_size) {
     std::cout << "[Interpolating] " + file_prefix << std::endl;
 
-    // Load files
-    std::string sparse_points_path =
-        input_sparse_dir + "/" + file_prefix + "_aggregated.txt";
-    std::string sparse_labels_path =
-        input_sparse_dir + "/" + file_prefix + "_pred.txt";
+    // Paths
     std::string dense_points_path =
-        input_dense_dir + "/" + file_prefix + ".txt";
-    std::string out_labels_path = output_dir + "/" + file_prefix + ".labels";
+        input_dense_dir + "/" + file_prefix + ".pcd";
+    std::string dense_labels_path = output_dir + "/" + file_prefix + ".labels";
+    std::string sparse_points_path =
+        input_sparse_dir + "/" + file_prefix + ".pcd";
+    std::string sparse_labels_path =
+        input_sparse_dir + "/" + file_prefix + ".labels";
 
-    std::ifstream sparse_points_file(sparse_points_path.c_str());
-    std::ifstream sparse_labels_file(sparse_labels_path.c_str());
-    std::ifstream dense_points_file(dense_points_path.c_str());
-    std::ofstream out_labels_file(out_labels_path.c_str());
+    // Read sparse points
+    open3d::PointCloud sparse_pcd;
+    open3d::ReadPointCloud(sparse_points_path, sparse_pcd);
+    std::cout << sparse_pcd.points_.size() << " sparse points" << std::endl;
 
-    if (sparse_points_file.fail()) {
-        std::cerr << sparse_points_path << " not found" << std::endl;
-    }
-    if (sparse_labels_file.fail()) {
-        std::cerr << sparse_labels_path << " not found" << std::endl;
-    }
-    if (dense_points_file.fail()) {
-        std::cerr << dense_points_path << " not found" << std::endl;
-    }
-    if (out_labels_file.fail()) {
-        std::cerr << "Output file cannot be created" << std::endl;
-    }
+    // Read sparse labels
+    std::vector<int> sparse_labels = read_labels(sparse_labels_path);
+    std::cout << sparse_labels.size() << " sparse labels" << std::endl;
 
-    // Read sparse points and labels, build voxel to label container map
-    std::string line_point;
-    std::string line_label;
+    // Build voxel to label container map. This is the main data structure.
+    // First we build and finalize counter with sparse point could, then
+    // look up the map to interpolate the large point cloud.
     std::map<Eigen::Vector3i, LabelCounter, Vector3iComp>
         map_voxel_to_label_counter;
 
-    size_t num_sparse_points = 0;
-    while (getline(sparse_points_file, line_point) &&
-           getline(sparse_labels_file, line_label)) {
-        std::stringstream sstr_label(line_label);
-        int label;
-        sstr_label >> label;
-
-        std::stringstream sstr(line_point);
-        float x, y, z;
-        int r, g, b;
-        std::string v;
-        sstr >> v >> x >> y >> z >> r >> g >> b;
-        Eigen::Vector3i voxel = get_voxel(x, y, z, voxel_size);
-
+    for (size_t i = 0; i < sparse_labels.size(); ++i) {
+        Eigen::Vector3i voxel = get_voxel(sparse_pcd.points_[i], voxel_size);
         if (map_voxel_to_label_counter.count(voxel) == 0) {
             LabelCounter ilc;
             map_voxel_to_label_counter[voxel] = ilc;
         }
-        map_voxel_to_label_counter[voxel].increment(label);
-        num_sparse_points++;
+        map_voxel_to_label_counter[voxel].increment(sparse_labels[i]);
     }
-    std::cout << "Number of sparse points: " << num_sparse_points << std::endl;
-
     for (auto it = map_voxel_to_label_counter.begin();
          it != map_voxel_to_label_counter.end(); it++) {
         it->second.finalize_label();
@@ -182,40 +196,39 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
     std::cout << "Number of registered voxels: "
               << map_voxel_to_label_counter.size() << std::endl;
 
+    // Read dense points
+    open3d::PointCloud dense_pcd;
+    open3d::ReadPointCloud(dense_points_path, dense_pcd);
+    std::cout << dense_pcd.points_.size() << " dense points" << std::endl;
+
     // Interpolate to dense point cloud
-    // TODO: change to nearest neighbor search
+    std::vector<int> dense_labels;
     size_t num_processed_points = 0;
     size_t num_miss = 0;
-    while (getline(dense_points_file, line_point)) {
-        std::stringstream sstr(line_point);
-        float x, y, z;
-        int intensity, r, g, b;
-        sstr >> x >> y >> z >> intensity >> r >> g >> b;
-
+    for (Eigen::Vector3d& point : dense_pcd.points_) {
+        Eigen::Vector3i voxel = get_voxel(point, voxel_size);
         int label;
-        Eigen::Vector3i voxel = get_voxel(x, y, z, voxel_size);
         if (map_voxel_to_label_counter.count(voxel) == 0) {
+            // TODO: change to nearest neighbor search
             num_miss++;
             label = 0;
         } else {
             label = map_voxel_to_label_counter[voxel].get_label();
         }
-        out_labels_file << label << std::endl;
+        dense_labels.push_back(label);
 
         num_processed_points++;
         if (num_processed_points % 1000000 == 0) {
             size_t num_hit = num_processed_points - num_miss;
-            float hit_rate = (float)num_hit / num_processed_points * 100;
+            double hit_rate = (double)num_hit / num_processed_points * 100;
             std::cout << num_processed_points << " processed, " << num_hit
                       << " (" << hit_rate << "%) hit" << std::endl;
         }
     }
-    std::cout << "Label output: " << out_labels_path << std::endl;
+    std::cout << dense_labels.size() << " dense labels generated" << std::endl;
 
-    sparse_points_file.close();
-    sparse_labels_file.close();
-    dense_points_file.close();
-    out_labels_file.close();
+    // Write label
+    write_labels(dense_labels, dense_labels_path);
 }
 
 int main(int argc, char** argv) {
@@ -229,15 +242,14 @@ int main(int argc, char** argv) {
     std::string input_dense_dir = argv[1];
     std::string input_sparse_dir = argv[2];
     std::string output_dir = argv[3];
-    float voxel_size = strtof(argv[4], NULL);
+    double voxel_size = strtof(argv[4], NULL);
     std::cout << "Using voxel size: " << voxel_size << std::endl;
 
     // Collect all existing files
     std::vector<std::string> file_prefixes;
     for (unsigned int i = 0; i < possible_file_prefixes.size(); i++) {
         std::string sparse_labels_path = std::string(input_sparse_dir) + "/" +
-                                         possible_file_prefixes[i] +
-                                         "_pred.txt";
+                                         possible_file_prefixes[i] + ".labels";
         std::ifstream sparse_points_file(sparse_labels_path.c_str());
         if (!sparse_points_file.fail()) {
             file_prefixes.push_back(possible_file_prefixes[i]);

@@ -5,11 +5,10 @@ dataset/semantic_color_data
 dataset/semantic_preprocess
 dataset/semantic_data_nocolor
 logs
-visu
+results
 *.o
 *.so
 .vscode
-TODO.md
 local_test.json
 build/
 .ipynb_checkpoints/

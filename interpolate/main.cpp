@@ -111,11 +111,15 @@ std::vector<int> read_labels(const std::string& file_path) {
 void write_labels(const std::vector<int> labels, const std::string& file_path) {
     std::ofstream out_file(file_path.c_str());
     if (out_file.fail()) {
-        std::cerr << "Output file cannot be created" << std::endl;
+        std::cerr << "Output file cannot be created: " << file_path
+                  << " Consider creating the directory first" << std::endl;
+
     } else {
+        std::cout << "Writting dense labels" << std::endl;
         for (const int& label : labels) {
             out_file << label << std::endl;
         }
+        std::cout << "Output written to: " << file_path << std::endl;
     }
     out_file.close();
 }
@@ -160,7 +164,7 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
     std::string sparse_points_path =
         input_sparse_dir + "/" + file_prefix + ".pcd";
     std::string sparse_labels_path =
-        input_sparse_dir + "/" + file_prefix + "_pd.labels";
+        input_sparse_dir + "/" + file_prefix + ".labels";
 
     // The main data structure. First build and finalize counter with sparse
     // point could, then look up the map to interpolate the large point cloud.
@@ -224,11 +228,10 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
                       << " (" << hit_rate << "%) hit" << std::endl;
         }
     }
+    std::cout << dense_labels.size() << " dense labels generated" << std::endl;
 
     // Write label
     write_labels(dense_labels, dense_labels_path);
-    std::cout << dense_labels.size() << " dense labels generated" << std::endl;
-    std::cout << "Label output: " << dense_labels_path << std::endl;
 }
 
 int main(int argc, char** argv) {
@@ -249,8 +252,7 @@ int main(int argc, char** argv) {
     std::vector<std::string> file_prefixes;
     for (unsigned int i = 0; i < possible_file_prefixes.size(); i++) {
         std::string sparse_labels_path = std::string(input_sparse_dir) + "/" +
-                                         possible_file_prefixes[i] +
-                                         "_pd.labels";
+                                         possible_file_prefixes[i] + ".labels";
         std::ifstream sparse_points_file(sparse_labels_path.c_str());
         if (!sparse_points_file.fail()) {
             file_prefixes.push_back(possible_file_prefixes[i]);

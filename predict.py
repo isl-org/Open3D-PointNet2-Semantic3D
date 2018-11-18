@@ -117,7 +117,7 @@ if __name__ == "__main__":
         # Save predicted labels of the sparse point cloud
         pd_labels = predicted_labels[scene_index].astype(int)
         gt_labels = ground_truth[scene_index].astype(int)
-        pd_labels_path = os.path.join(output_dir, file_prefix + "_pd.labels")
+        pd_labels_path = os.path.join(output_dir, file_prefix + ".labels")
         np.savetxt(pd_labels_path, pd_labels, fmt="%d")
 
         # Increment confusion matrix

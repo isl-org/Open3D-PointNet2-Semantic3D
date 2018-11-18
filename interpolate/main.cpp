@@ -163,45 +163,30 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
 
     // The main data structure. First build and finalize counter with sparse
     // point could, then look up the map to interpolate the large point cloud.
-    std::map<Eigen::Vector3i, LabelCounter, Vector3iComp>
-        map_voxel_to_label_counter;
 
-    // Read sparse points and labels, build voxel to label container map
+    // Read sparse points
     open3d::PointCloud sparse_pcd;
     open3d::ReadPointCloud(sparse_points_path, sparse_pcd);
     std::cout << sparse_pcd.points_.size() << " sparse points" << std::endl;
 
+    // Read sparse labels
     std::vector<int> sparse_labels = read_labels(sparse_labels_path);
     std::cout << sparse_labels.size() << " sparse labels" << std::endl;
 
-    std::string line_point;
-    std::string line_label;
+    // Build voxel to label container map. This is the main data structure.
+    // First we build and finalize counter with sparse point could, then look up
+    // the map to interpolate the large point cloud.
+    std::map<Eigen::Vector3i, LabelCounter, Vector3iComp>
+        map_voxel_to_label_counter;
 
-    // Eigen::Vector3i voxel = get_voxel(x, y, z, voxel_size);
-
-    // size_t num_sparse_points = 0;
-    // while (getline(sparse_points_file, line_point) &&
-    //        getline(sparse_labels_file, line_label)) {
-    //     std::stringstream sstr_label(line_label);
-    //     int label;
-    //     sstr_label >> label;
-
-    //     std::stringstream sstr(line_point);
-    //     double x, y, z;
-    //     int r, g, b;
-    //     std::string v;
-    //     sstr >> v >> x >> y >> z >> r >> g >> b;
-
-    //     if (map_voxel_to_label_counter.count(voxel) == 0) {
-    //         LabelCounter ilc;
-    //         map_voxel_to_label_counter[voxel] = ilc;
-    //     }
-    //     map_voxel_to_label_counter[voxel].increment(label);
-    //     num_sparse_points++;
-    // }
-    // std::cout << "Number of sparse points: " << num_sparse_points <<
-    // std::endl;
-
+    for (size_t i = 0; i < sparse_labels.size(); ++i) {
+        Eigen::Vector3i voxel = get_voxel(sparse_pcd.points_[i], voxel_size);
+        if (map_voxel_to_label_counter.count(voxel) == 0) {
+            LabelCounter ilc;
+            map_voxel_to_label_counter[voxel] = ilc;
+        }
+        map_voxel_to_label_counter[voxel].increment(sparse_labels[i]);
+    }
     for (auto it = map_voxel_to_label_counter.begin();
          it != map_voxel_to_label_counter.end(); it++) {
         it->second.finalize_label();
@@ -213,6 +198,7 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
     // TODO: change to nearest neighbor search
     size_t num_processed_points = 0;
     size_t num_miss = 0;
+    std::string line_point;
     while (getline(dense_points_file, line_point)) {
         std::stringstream sstr(line_point);
         double x, y, z;

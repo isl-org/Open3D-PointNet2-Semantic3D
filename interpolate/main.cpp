@@ -93,6 +93,16 @@ struct Vector3iComp {
     }
 };
 
+std::vector<int> read_labels(const std::string& file_path) {
+    std::vector<int> labels;
+    std::ifstream infile(file_path);
+    int label;
+    while (infile >> label) {
+        labels.push_back(label);
+    }
+    return labels;
+}
+
 Eigen::Vector3i get_voxel(double x, double y, double z, double voxel_size) {
     int x_index = std::floor(x / voxel_size) + 0.5;
     int y_index = std::floor(y / voxel_size) + 0.5;
@@ -163,7 +173,8 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
     open3d::ReadPointCloud(sparse_points_path, sparse_pcd);
     std::cout << sparse_pcd.points_.size() << " sparse points" << std::endl;
 
-    // std::vector<int> sparse_labels = read_labels(sparse_labels_path);
+    std::vector<int> sparse_labels = read_labels(sparse_labels_path);
+    std::cout << sparse_labels.size() << " sparse labels" << std::endl;
 
     std::string line_point;
     std::string line_label;

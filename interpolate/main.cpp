@@ -236,8 +236,7 @@ int main(int argc, char** argv) {
     std::vector<std::string> file_prefixes;
     for (unsigned int i = 0; i < possible_file_prefixes.size(); i++) {
         std::string sparse_labels_path = std::string(input_sparse_dir) + "/" +
-                                         possible_file_prefixes[i] +
-                                         "_pred.txt";
+                                         possible_file_prefixes[i] + "_pd.txt";
         std::ifstream sparse_points_file(sparse_labels_path.c_str());
         if (!sparse_points_file.fail()) {
             file_prefixes.push_back(possible_file_prefixes[i]);

@@ -23,8 +23,7 @@ def colorize_point_cloud(point_cloud, labels):
 
 
 def load_labels(label_path):
-    labels = []
     with open(label_path, "r") as f:
-        for line in f:
-            labels.append(int(float(line.strip())))
+        lines = f.readlines()
+        labels = [int(float(line.strip())) for line in lines]
     return labels

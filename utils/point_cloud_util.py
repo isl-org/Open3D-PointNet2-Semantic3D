@@ -23,10 +23,7 @@ def colorize_point_cloud(point_cloud, labels):
 
 
 def load_labels(label_path):
-    import time
-    s = time.time()
     # Assuming each line is a valid int
     with open(label_path, "r") as f:
         labels = [int(line) for line in f]
-    print("time", time.time() - s)
     return labels

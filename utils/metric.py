@@ -13,10 +13,11 @@ class ConfusionMatrix:
         self.valid_labels = set(range(self.num_classes))
 
     def increment(self, gt_label, pd_label):
-        if gt_label not in self.valid_labels:
-            raise ValueError("Invalid value for gt_label")
-        if pd_label not in self.valid_labels:
-            raise ValueError("Invalid value for pd_label")
+        # Disabled checking for performance
+        # if gt_label not in self.valid_labels:
+        #     raise ValueError("Invalid value for gt_label")
+        # if pd_label not in self.valid_labels:
+        #     raise ValueError("Invalid value for pd_label")
         self.confusion_matrix[gt_label][pd_label] += 1
 
     def increment_from_list(self, gt_labels, pd_labels):

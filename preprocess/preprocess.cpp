@@ -16,10 +16,9 @@
 typedef pcl::PointXYZRGBNormal Point;
 typedef pcl::PointCloud<Point> PointCloud;
 typedef PointCloud::Ptr PointCloudPtr;
-typedef unsigned char Byte;
 
 // class for voxels
-class Voxel_center {
+class VoxelCenter {
    public:
     float x, y, z;
     int r, g, b;
@@ -32,22 +31,22 @@ class Voxel_center {
 class Sample_points_container {
    public:
     unsigned int n, i;
-    std::vector<Voxel_center> points;
+    std::vector<VoxelCenter> points;
     Sample_points_container() {
         n = 10;
         i = 0;
-        points = std::vector<Voxel_center>(n);
+        points = std::vector<VoxelCenter>(n);
     }
-    void insert_if_room(Voxel_center vc);
+    void insert_if_room(VoxelCenter vc);
     void resize();
     int size() { return points.size(); }
-    std::vector<Voxel_center>::iterator begin() { return points.begin(); }
-    std::vector<Voxel_center>::iterator end() { return points.end(); }
+    std::vector<VoxelCenter>::iterator begin() { return points.begin(); }
+    std::vector<VoxelCenter>::iterator end() { return points.end(); }
 };
 
 // We fill the container with (n=10) at most and we don't accept points that are
 // too close together
-void Sample_points_container::insert_if_room(Voxel_center vc) {
+void Sample_points_container::insert_if_room(VoxelCenter vc) {
     if (i < n) {
         float dmin = 1e7;
         for (int j = 0; j < i; j++) {
@@ -156,7 +155,7 @@ void adaptive_sampling(const std::string& raw_dir, const std::string& out_dir,
         Eigen::Vector3i vox(x_id, y_id, z_id);
 
         if (voxels.count(vox) > 0) {
-            Voxel_center vc;
+            VoxelCenter vc;
             vc.x = std::floor(x / voxel_size) * voxel_size;
             vc.y = std::floor(y / voxel_size) * voxel_size;
             vc.z = std::floor(z / voxel_size) * voxel_size;
@@ -168,7 +167,7 @@ void adaptive_sampling(const std::string& raw_dir, const std::string& out_dir,
 
         } else {
             Sample_points_container container;
-            Voxel_center vc;
+            VoxelCenter vc;
             vc.x = std::floor(x / voxel_size) * voxel_size;
             vc.y = std::floor(y / voxel_size) * voxel_size;
             vc.z = std::floor(z / voxel_size) * voxel_size;
@@ -206,7 +205,7 @@ void adaptive_sampling(const std::string& raw_dir, const std::string& out_dir,
              voxels.begin();
          it != voxels.end(); it++) {
         Sample_points_container spc = it->second;
-        for (std::vector<Voxel_center>::iterator it2 = spc.begin();
+        for (std::vector<VoxelCenter>::iterator it2 = spc.begin();
              it2 != spc.end(); it2++) {
             output << it2->x << " " << it2->y << " " << it2->z << " "  //
                    << it2->r << " " << it2->g << " " << it2->b;

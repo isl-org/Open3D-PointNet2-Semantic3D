@@ -4,8 +4,9 @@
 #include <sstream>
 #include <vector>
 #include <map>
-#include <Eigen/Dense>
 #include <algorithm>
+
+#include <Eigen/Dense>
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
 #include <pcl/common/pca.h>

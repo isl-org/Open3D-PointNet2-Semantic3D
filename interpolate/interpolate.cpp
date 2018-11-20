@@ -155,7 +155,7 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
                                         const std::string& output_dir,
                                         const std::string& file_prefix,
                                         double voxel_size) {
-    std::cout << "[Interpolating] " + file_prefix << std::endl;
+    std::cout << "[Interpolating] " << file_prefix << std::endl;
 
     // Paths
     std::string dense_points_path =

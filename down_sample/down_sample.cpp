@@ -142,7 +142,8 @@ struct Vector3icomp {
 
 void adaptive_sampling(const std::string& raw_dir, const std::string& out_dir,
                        const std::string& file_prefix, double voxel_size) {
-    std::cout << "Processing " << file_prefix << std::endl;
+    std::cout << "[Down-sampling] " << file_prefix << std::endl;
+
     std::string data_filename = raw_dir + file_prefix + ".txt";
     std::string labels_filename = raw_dir + file_prefix + ".labels";
     std::string output_filename = out_dir + file_prefix + "_all.txt";

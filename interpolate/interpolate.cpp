@@ -247,7 +247,7 @@ int main(int argc, char** argv) {
 
     // Collect all existing files
     std::vector<std::string> file_prefixes;
-    for (unsigned int i = 0; i < possible_file_prefixes.size(); i++) {
+    for (size_t i = 0; i < possible_file_prefixes.size(); i++) {
         std::string sparse_labels_path = std::string(input_sparse_dir) + "/" +
                                          possible_file_prefixes[i] + ".labels";
         std::ifstream sparse_points_file(sparse_labels_path.c_str());

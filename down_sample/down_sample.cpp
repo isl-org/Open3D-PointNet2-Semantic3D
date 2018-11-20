@@ -15,7 +15,7 @@ typedef pcl::PointXYZRGBNormal Point;
 typedef pcl::PointCloud<Point> PointCloud;
 typedef PointCloud::Ptr PointCloudPtr;
 
-static std::vector<std::string> possible_file_prefixes{
+static std::vector<std::string> file_prefixes{
     // "bildstein_station1_xyz_intensity_rgb",
     // "bildstein_station3_xyz_intensity_rgb",
     // "bildstein_station5_xyz_intensity_rgb",
@@ -141,23 +141,24 @@ struct Vector3icomp {
 };
 
 void adaptive_sampling(const std::string& raw_dir, const std::string& out_dir,
-                       const std::string& file_name, double voxel_size) {
-    std::cout << "Processing " << file_name << std::endl;
-    std::string data_filename = raw_dir + file_name + ".txt";
-    std::string labels_filename = raw_dir + file_name + ".labels";
-    std::string output_filename = out_dir + file_name + "_all.txt";
+                       const std::string& file_prefix, double voxel_size) {
+    std::cout << "Processing " << file_prefix << std::endl;
+    std::string data_filename = raw_dir + file_prefix + ".txt";
+    std::string labels_filename = raw_dir + file_prefix + ".labels";
+    std::string output_filename = out_dir + file_prefix + "_all.txt";
     std::ifstream ifs(data_filename.c_str());
     if (ifs.fail()) {
-        std::cout << "file_name for raw point cloud data not found"
+        std::cout << "file_prefix for raw point cloud data not found"
                   << std::endl;
         return;
     }
     std::ifstream ifs_labels(labels_filename.c_str());
     bool no_labels = ifs_labels.fail();
     if (no_labels) {
-        std::cout << "file_name for raw point cloud labels not found; assuming "
-                     "this is part of the testing set"
-                  << std::endl;
+        std::cout
+            << "file_prefix for raw point cloud labels not found; assuming "
+               "this is part of the testing set"
+            << std::endl;
     }
     std::string line;
     std::string line_labels;
@@ -270,19 +271,6 @@ int main(int argc, char** argv) {
     double voxel_size = strtof(argv[3], NULL);
     std::string input_dir = argv[1];
     std::string output_dir = argv[2];
-
-    // Collect all existing files
-    std::vector<std::string> file_prefixes;
-    for (const std::string& file_prefix : possible_file_prefixes) {
-        std::string filename_labels_sparse =
-            std::string(input_dir) + "/" + file_prefix + ".txt";
-        std::ifstream ifs(filename_labels_sparse.c_str());
-        if (!ifs.fail()) {
-            file_prefixes.push_back(file_prefix);
-            std::cout << "Found " + file_prefix << std::endl;
-        }
-        ifs.close();
-    }
 
     // Down sample
     for (const std::string& file_prefix : file_prefixes) {

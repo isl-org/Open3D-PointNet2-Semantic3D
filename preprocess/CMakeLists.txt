@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.6 FATAL_ERROR)
 set(CMAKE_CXX_FLAGS "-Wall -Wextra -std=c++11")
 project(sample)
-find_package(PCL 1.7 REQUIRED COMPONENTS common io visualization)
+find_package(PCL 1.6 REQUIRED COMPONENTS common io visualization)
 include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})

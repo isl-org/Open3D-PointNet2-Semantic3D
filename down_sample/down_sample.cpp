@@ -140,6 +140,17 @@ struct Vector3iComp {
     }
 };
 
+Eigen::Vector3i get_voxel(double x, double y, double z, double voxel_size) {
+    int x_index = std::floor(x / voxel_size) + 0.5;
+    int y_index = std::floor(y / voxel_size) + 0.5;
+    int z_index = std::floor(z / voxel_size) + 0.5;
+    return Eigen::Vector3i(x_index, y_index, z_index);
+}
+
+Eigen::Vector3i get_voxel(const Eigen::Vector3d& point, double voxel_size) {
+    return get_voxel(point(0), point(1), point(2), voxel_size);
+}
+
 void adaptive_sampling(const std::string& raw_dir, const std::string& out_dir,
                        const std::string& file_prefix, double voxel_size) {
     std::cout << "[Down-sampling] " << file_prefix << std::endl;
@@ -189,8 +200,7 @@ void adaptive_sampling(const std::string& raw_dir, const std::string& out_dir,
         int r, g, b;
         sstr >> x >> y >> z >> intensity >> r >> g >> b;
 
-        int x_id = std::floor(x / voxel_size) +
-                   0.5;  // + 0.5, centre du voxel (k1*res, k2*res)
+        int x_id = std::floor(x / voxel_size) + 0.5;
         int y_id = std::floor(y / voxel_size) + 0.5;
         int z_id = std::floor(z / voxel_size) + 0.5;
 

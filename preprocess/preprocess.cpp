@@ -271,22 +271,22 @@ int main(int argc, char** argv) {
 
     // we try to open the files one by one in order to know which ones are
     // present in the folder
-    std::vector<std::string> fileNames;
-    for (size_t i = 0; i < possible_file_prefixes.size(); i++) {
+    std::vector<std::string> file_prefixes;
+    for (const std::string& file_prefix : possible_file_prefixes) {
         std::string filename_labels_sparse =
-            std::string(argv[1]) + "/" + possible_file_prefixes[i] + ".txt";
+            std::string(argv[1]) + "/" + file_prefix + ".txt";
         std::ifstream ifs(filename_labels_sparse.c_str());
         if (!ifs.fail()) {
-            fileNames.push_back(possible_file_prefixes[i]);
-            std::cout << "Found " + possible_file_prefixes[i] << std::endl;
+            file_prefixes.push_back(file_prefix);
+            std::cout << "Found " + file_prefix << std::endl;
         }
         ifs.close();
     }
-    for (size_t i = 0; i < fileNames.size(); i++) {
-        std::cout << "adaptive sampling for " + fileNames[i] << std::endl;
-        adaptive_sampling(argv[1], argv[2], fileNames[i], voxel_size);
+    for (size_t i = 0; i < file_prefixes.size(); i++) {
+        std::cout << "adaptive sampling for " + file_prefixes[i] << std::endl;
+        adaptive_sampling(argv[1], argv[2], file_prefixes[i], voxel_size);
     }
-    if (fileNames.size() == 0)
+    if (file_prefixes.size() == 0)
         std::cout << "not a single file was found in folder " +
                          std::string(argv[1]) + "/"
                   << std::endl;

@@ -27,7 +27,7 @@ class VoxelCenter {
 // if the surface is flat, we drop all but one of them
 class SamplePointsContainer {
    public:
-    unsigned int n, i;
+    size_t n, i;
     std::vector<VoxelCenter> points;
     SamplePointsContainer() {
         n = 10;
@@ -46,7 +46,7 @@ class SamplePointsContainer {
 void SamplePointsContainer::insert_if_room(VoxelCenter vc) {
     if (i < n) {
         float dmin = 1e7;
-        for (int j = 0; j < i; j++) {
+        for (size_t j = 0; j < i; j++) {
             float d = (vc.x - points[j].x) * (vc.x - points[j].x) +
                       (vc.y - points[j].y) * (vc.y - points[j].y) +
                       (vc.z - points[j].z) * (vc.z - points[j].z);
@@ -74,7 +74,12 @@ void SamplePointsContainer::resize() {
     smallpc->height = 1;
     smallpc->is_dense = false;
     smallpc->points.resize(smallpc->width * smallpc->height);
-    pcl::PCA<Point> pca(*smallpc);
+
+    // Fix deprecation warning
+    // pcl::PCA<Point> pca(*smallpc);
+    pcl::PCA<Point> pca;
+    pca.setInputCloud(smallpc);
+
     Eigen::Vector3f eigenvalues = pca.getEigenValues();
     if (eigenvalues(2) > 0.00001)
         points.resize(4);
@@ -271,7 +276,7 @@ int main(int argc, char** argv) {
         }
         ifs.close();
     }
-    for (int i = 0; i < fileNames.size(); i++) {
+    for (size_t i = 0; i < fileNames.size(); i++) {
         std::cout << "adaptive sampling for " + fileNames[i] << std::endl;
         adaptive_sampling(argv[1], argv[2], fileNames[i], voxel_size);
     }

@@ -262,9 +262,7 @@ void adaptive_sampling(const std::string& raw_dir, const std::string& out_dir,
 
 int main(int argc, char** argv) {
     if (argc < 4) {
-        std::cerr << "USAGE : " << argv[0]
-                  << " path/to/raw/point/clouds  "
-                     "where/to/write/sampled/point/clouds  voxel_size"
+        std::cerr << "USAGE : " << argv[0] << " input_dir output_dir voxel_size"
                   << std::endl;
         exit(1);
     }

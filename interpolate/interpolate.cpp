@@ -26,12 +26,12 @@ static std::vector<std::string> possible_file_prefixes{
     // "sg27_station1_intensity_rgb",
     // "sg27_station2_intensity_rgb",
 
-    "sg27_station4_intensity_rgb",
-    "sg27_station5_intensity_rgb",
-    "sg27_station9_intensity_rgb",
-    "sg28_station4_intensity_rgb",
+    // "sg27_station4_intensity_rgb",
+    // "sg27_station5_intensity_rgb",
+    // "sg27_station9_intensity_rgb",
+    // "sg28_station4_intensity_rgb",
     "untermaederbrunnen_station1_xyz_intensity_rgb",
-    "untermaederbrunnen_station3_xyz_intensity_rgb",
+    // "untermaederbrunnen_station3_xyz_intensity_rgb",
 
     // "birdfountain_station1_xyz_intensity_rgb",
     // "castleblatten_station1_intensity_rgb",

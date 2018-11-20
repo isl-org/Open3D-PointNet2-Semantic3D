@@ -53,7 +53,7 @@ static std::vector<std::string> possible_file_prefixes{
 // class for voxels
 class VoxelCenter {
    public:
-    float x, y, z;
+    double x, y, z;
     int r, g, b;
     int label;
 };
@@ -81,11 +81,11 @@ class SamplePointsContainer {
 // too close together
 void SamplePointsContainer::insert_if_room(VoxelCenter vc) {
     if (i < n) {
-        float dmin = 1e7;
+        double dmin = 1e7;
         for (size_t j = 0; j < i; j++) {
-            float d = (vc.x - points[j].x) * (vc.x - points[j].x) +
-                      (vc.y - points[j].y) * (vc.y - points[j].y) +
-                      (vc.z - points[j].z) * (vc.z - points[j].z);
+            double d = (vc.x - points[j].x) * (vc.x - points[j].x) +
+                       (vc.y - points[j].y) * (vc.y - points[j].y) +
+                       (vc.z - points[j].z) * (vc.z - points[j].z);
             if (d < dmin) dmin = d;
         }
         if (dmin > 0.001) {
@@ -141,7 +141,7 @@ struct Vector3icomp {
 };
 
 void adaptive_sampling(const std::string& raw_dir, const std::string& out_dir,
-                       std::basic_string<char>& file_name, float voxel_size) {
+                       std::basic_string<char>& file_name, double voxel_size) {
     std::cout << "Processing " << file_name << std::endl;
     std::string data_filename = raw_dir + file_name + ".txt";
     std::string labels_filename = raw_dir + file_name + ".labels";
@@ -181,7 +181,7 @@ void adaptive_sampling(const std::string& raw_dir, const std::string& out_dir,
         }
 
         std::stringstream sstr(line);
-        float x, y, z;
+        double x, y, z;
         int intensity;
         int r, g, b;
         sstr >> x >> y >> z >> intensity >> r >> g >> b;
@@ -261,12 +261,13 @@ void adaptive_sampling(const std::string& raw_dir, const std::string& out_dir,
 }
 
 int main(int argc, char** argv) {
+    // Parse arguments
     if (argc < 4) {
         std::cerr << "USAGE : " << argv[0] << " input_dir output_dir voxel_size"
                   << std::endl;
         exit(1);
     }
-    float voxel_size = strtof(argv[3], NULL);
+    double voxel_size = strtof(argv[3], NULL);
 
     // we try to open the files one by one in order to know which ones are
     // present in the folder

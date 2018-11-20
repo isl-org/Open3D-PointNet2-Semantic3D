@@ -1,6 +1,3 @@
-/*
- *code closely inspired by  https://github.com/aboulch/snapnet
- */
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -28,11 +25,11 @@ class VoxelCenter {
 // class for sample of n points in voxel
 // We don't stay with n points all the way through :
 // if the surface is flat, we drop all but one of them
-class Sample_points_container {
+class SamplePointsContainer {
    public:
     unsigned int n, i;
     std::vector<VoxelCenter> points;
-    Sample_points_container() {
+    SamplePointsContainer() {
         n = 10;
         i = 0;
         points = std::vector<VoxelCenter>(n);
@@ -46,7 +43,7 @@ class Sample_points_container {
 
 // We fill the container with (n=10) at most and we don't accept points that are
 // too close together
-void Sample_points_container::insert_if_room(VoxelCenter vc) {
+void SamplePointsContainer::insert_if_room(VoxelCenter vc) {
     if (i < n) {
         float dmin = 1e7;
         for (int j = 0; j < i; j++) {
@@ -67,7 +64,7 @@ void Sample_points_container::insert_if_room(VoxelCenter vc) {
 }
 
 // Flatness is calculated with pca on the points in the container.
-void Sample_points_container::resize() {
+void SamplePointsContainer::resize() {
     if (i < 3) {
         points.resize(i);
         return;
@@ -124,7 +121,7 @@ void adaptive_sampling(const std::string& raw_dir, const std::string& out_dir,
     std::string line_labels;
     int pt_id = 0;
 
-    std::map<Eigen::Vector3i, Sample_points_container, Vector3icomp> voxels;
+    std::map<Eigen::Vector3i, SamplePointsContainer, Vector3icomp> voxels;
     while (getline(ifs, line)) {
         pt_id++;
         if ((pt_id + 1) % 1000000 == 0) {
@@ -166,7 +163,7 @@ void adaptive_sampling(const std::string& raw_dir, const std::string& out_dir,
             voxels[vox].insert_if_room(vc);
 
         } else {
-            Sample_points_container container;
+            SamplePointsContainer container;
             VoxelCenter vc;
             vc.x = std::floor(x / voxel_size) * voxel_size;
             vc.y = std::floor(y / voxel_size) * voxel_size;
@@ -182,7 +179,7 @@ void adaptive_sampling(const std::string& raw_dir, const std::string& out_dir,
 
     // resizing point containers
     pt_id = 0;
-    for (std::map<Eigen::Vector3i, Sample_points_container>::iterator it =
+    for (std::map<Eigen::Vector3i, SamplePointsContainer>::iterator it =
              voxels.begin();
          it != voxels.end(); it++) {
         it->second.resize();
@@ -201,10 +198,10 @@ void adaptive_sampling(const std::string& raw_dir, const std::string& out_dir,
     cols.push_back(Eigen::Vector3i(0, 255, 255));
     cols.push_back(Eigen::Vector3i(255, 110, 206));
     std::ofstream output(output_filename.c_str());
-    for (std::map<Eigen::Vector3i, Sample_points_container>::iterator it =
+    for (std::map<Eigen::Vector3i, SamplePointsContainer>::iterator it =
              voxels.begin();
          it != voxels.end(); it++) {
-        Sample_points_container spc = it->second;
+        SamplePointsContainer spc = it->second;
         for (std::vector<VoxelCenter>::iterator it2 = spc.begin();
              it2 != spc.end(); it2++) {
             output << it2->x << " " << it2->y << " " << it2->z << " "  //

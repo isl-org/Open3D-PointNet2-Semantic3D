@@ -10,6 +10,7 @@ FLAGS = parser.parse_args()
 my_data = np.genfromtxt(FLAGS.file, delimiter=" ")
 filename = FLAGS.file[0:-8]
 print(my_data.shape)
+
 np.savez(
     os.path.join(FLAGS.out, os.path.basename(filename) + "_vertices").encode("utf_8"),
     my_data[:, 0:3],

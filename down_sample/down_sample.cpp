@@ -124,7 +124,7 @@ void SamplePointsContainer::resize() {
 }
 
 // comparator for voxels
-struct Vector3icomp {
+struct Vector3iComp {
     bool operator()(const Eigen::Vector3i& v1,
                     const Eigen::Vector3i& v2) const {
         if (v1[0] < v2[0]) {
@@ -166,7 +166,7 @@ void adaptive_sampling(const std::string& raw_dir, const std::string& out_dir,
     std::string line_labels;
     int pt_id = 0;
 
-    std::map<Eigen::Vector3i, SamplePointsContainer, Vector3icomp> voxels;
+    std::map<Eigen::Vector3i, SamplePointsContainer, Vector3iComp> voxels;
     while (getline(ifs, line)) {
         pt_id++;
         if ((pt_id + 1) % 1000000 == 0) {

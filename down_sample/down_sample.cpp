@@ -232,16 +232,6 @@ void adaptive_sampling(const std::string& raw_dir, const std::string& out_dir,
     }
     std::cout << "exporting result of decimation" << std::endl;
 
-    std::vector<Eigen::Vector3i> cols;
-    cols.push_back(Eigen::Vector3i(0, 0, 0));
-    cols.push_back(Eigen::Vector3i(192, 192, 192));
-    cols.push_back(Eigen::Vector3i(0, 255, 0));
-    cols.push_back(Eigen::Vector3i(38, 214, 64));
-    cols.push_back(Eigen::Vector3i(247, 247, 0));
-    cols.push_back(Eigen::Vector3i(255, 3, 0));
-    cols.push_back(Eigen::Vector3i(122, 0, 255));
-    cols.push_back(Eigen::Vector3i(0, 255, 255));
-    cols.push_back(Eigen::Vector3i(255, 110, 206));
     std::ofstream output(output_filename.c_str());
     for (std::map<Eigen::Vector3i, SamplePointsContainer>::iterator it =
              voxels.begin();
@@ -252,10 +242,7 @@ void adaptive_sampling(const std::string& raw_dir, const std::string& out_dir,
             output << it2->x << " " << it2->y << " " << it2->z << " "  //
                    << it2->r << " " << it2->g << " " << it2->b;
             if (!no_labels) {
-                output << " " << cols[it2->label][0] << " "
-                       << cols[it2->label][1] << " " << cols[it2->label][2]
-                       << " "  //
-                       << it2->label;
+                output << " " << it2->label;
             }
             output << std::endl;
         }

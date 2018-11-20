@@ -141,7 +141,7 @@ struct Vector3icomp {
 };
 
 void adaptive_sampling(const std::string& raw_dir, const std::string& out_dir,
-                       std::basic_string<char>& file_name, double voxel_size) {
+                       const std::string& file_name, double voxel_size) {
     std::cout << "Processing " << file_name << std::endl;
     std::string data_filename = raw_dir + file_name + ".txt";
     std::string labels_filename = raw_dir + file_name + ".labels";
@@ -268,13 +268,14 @@ int main(int argc, char** argv) {
         exit(1);
     }
     double voxel_size = strtof(argv[3], NULL);
+    std::string input_dir = argv[1];
+    std::string output_dir = argv[2];
 
-    // we try to open the files one by one in order to know which ones are
-    // present in the folder
+    // Collect all existing files
     std::vector<std::string> file_prefixes;
     for (const std::string& file_prefix : possible_file_prefixes) {
         std::string filename_labels_sparse =
-            std::string(argv[1]) + "/" + file_prefix + ".txt";
+            std::string(input_dir) + "/" + file_prefix + ".txt";
         std::ifstream ifs(filename_labels_sparse.c_str());
         if (!ifs.fail()) {
             file_prefixes.push_back(file_prefix);
@@ -282,12 +283,10 @@ int main(int argc, char** argv) {
         }
         ifs.close();
     }
-    for (size_t i = 0; i < file_prefixes.size(); i++) {
-        std::cout << "adaptive sampling for " + file_prefixes[i] << std::endl;
-        adaptive_sampling(argv[1], argv[2], file_prefixes[i], voxel_size);
+
+    // Down sample
+    for (const std::string& file_prefix : file_prefixes) {
+        std::cout << "adaptive sampling for " + file_prefix << std::endl;
+        adaptive_sampling(input_dir, output_dir, file_prefix, voxel_size);
     }
-    if (file_prefixes.size() == 0)
-        std::cout << "not a single file was found in folder " +
-                         std::string(argv[1]) + "/"
-                  << std::endl;
 }

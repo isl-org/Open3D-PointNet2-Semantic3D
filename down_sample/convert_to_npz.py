@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 import argparse
 import numpy as np
 import os
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--file", help="file xzy rgb r'g'b' label ")
+parser.add_argument("--file", help="x z y r g b r' g' b' label")
 parser.add_argument("--out", help="output directory")
 FLAGS = parser.parse_args()
 

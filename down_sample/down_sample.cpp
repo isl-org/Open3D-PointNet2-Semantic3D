@@ -62,8 +62,8 @@ class VoxelCenter {
     int label;
 };
 
-// class for sample of n_ points in voxel
-// We don't stay with n_ points all the way through :
+// Class for sample of n points in voxel
+// We don't stay with n points all the way through:
 // if the surface is flat, we drop all but one of them
 class SamplePointsContainer {
    public:
@@ -73,12 +73,9 @@ class SamplePointsContainer {
         points_ = std::vector<VoxelCenter>(n_);
     }
 
-    size_t n_, i_;
-    std::vector<VoxelCenter> points_;
-
-    // We fill the container with (n_=10) at most and we don't accept points
+    // We fill the container with (n=10) at most and we don't accept points
     // that are too close together
-    void insert_if_room(VoxelCenter vc) {
+    void insert_if_room(const VoxelCenter& vc) {
         if (i_ < n_) {
             double dmin = 1e7;
             for (size_t j = 0; j < i_; j++) {
@@ -130,6 +127,11 @@ class SamplePointsContainer {
     int size() { return points_.size(); }
     std::vector<VoxelCenter>::iterator begin() { return points_.begin(); }
     std::vector<VoxelCenter>::iterator end() { return points_.end(); }
+
+   private:
+    size_t n_;
+    size_t i_;
+    std::vector<VoxelCenter> points_;
 };
 
 // comparator for voxels

@@ -204,11 +204,13 @@ void adaptive_sampling(const std::string& dense_dir,
 
     // Read dense labels
     std::vector<int> dense_labels;
+    bool has_label = true;
     try {
         dense_labels = read_labels(dense_labels_path);
         std::cout << dense_labels.size() << " dense labels" << std::endl;
     } catch (const std::exception& e) {
         std::cout << "Dense labels not found, treating as tests" << std::endl;
+        has_label = false;
     }
 
     // Remove this

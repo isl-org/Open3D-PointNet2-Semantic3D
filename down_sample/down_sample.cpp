@@ -62,51 +62,52 @@ class VoxelCenter {
     int label;
 };
 
-// class for sample of n points in voxel
-// We don't stay with n points all the way through :
+// class for sample of n_ points in voxel
+// We don't stay with n_ points all the way through :
 // if the surface is flat, we drop all but one of them
 class SamplePointsContainer {
    public:
     SamplePointsContainer() {
-        n = 10;
-        i = 0;
-        points_ = std::vector<VoxelCenter>(n);
+        n_ = 10;
+        i_ = 0;
+        points_ = std::vector<VoxelCenter>(n_);
     }
 
-    size_t n, i;
+    size_t n_, i_;
     std::vector<VoxelCenter> points_;
 
-    // We fill the container with (n=10) at most and we don't accept points that
-    // are too close together
+    // We fill the container with (n_=10) at most and we don't accept points
+    // that are too close together
     void insert_if_room(VoxelCenter vc) {
-        if (i < n) {
+        if (i_ < n_) {
             double dmin = 1e7;
-            for (size_t j = 0; j < i; j++) {
+            for (size_t j = 0; j < i_; j++) {
                 double d = (vc.x - points_[j].x) * (vc.x - points_[j].x) +
                            (vc.y - points_[j].y) * (vc.y - points_[j].y) +
                            (vc.z - points_[j].z) * (vc.z - points_[j].z);
                 if (d < dmin) dmin = d;
             }
             if (dmin > 0.001) {
-                points_[i] = vc;
-                i++;
+                points_[i_] = vc;
+                i_++;
             }
         }
-        if (i == n) {
-            resize();  // resizing in order to reduce memory allocation
-            i++;  // in order to go quickly though this function all the next
-                  // times
+        if (i_ == n_) {
+            // Resizing to reduce memory allocation
+            resize();
+            // To go quickly though this function all the next times
+            i_++;
         }
     };
 
     // Flatness is calculated with pca on the points in the container.
     void resize() {
-        if (i < 3) {
-            points_.resize(i);
+        if (i_ < 3) {
+            points_.resize(i_);
             return;
         }
         PointCloudPtr smallpc(new PointCloud);
-        smallpc->width = n;
+        smallpc->width = n_;
         smallpc->height = 1;
         smallpc->is_dense = false;
         smallpc->points.resize(smallpc->width * smallpc->height);

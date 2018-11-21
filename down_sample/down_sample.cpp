@@ -235,12 +235,12 @@ void adaptive_sampling(const std::string& dense_dir,
         double b = dense_pcd.colors_[dense_idx][2];
 
         // Get voxel
-        Eigen::Vector3i vox = get_voxel(x, y, z, voxel_size);
+        Eigen::Vector3i voxel = get_voxel(x, y, z, voxel_size);
 
         // Build map
-        if (voxels.count(vox) == 0) {
+        if (voxels.count(voxel) == 0) {
             SamplePointsContainer container;
-            voxels[vox] = container;
+            voxels[voxel] = container;
         }
         VoxelCenter vc;
         vc.x = std::floor(x / voxel_size) * voxel_size;
@@ -250,7 +250,7 @@ void adaptive_sampling(const std::string& dense_dir,
         vc.g = g;
         vc.b = b;
         vc.label = dense_label;
-        voxels[vox].insert_if_room(vc);
+        voxels[voxel].insert_if_room(vc);
 
         if (dense_idx % 1000000 == 0) {
             std::cout << dense_idx << " processed" << std::endl;

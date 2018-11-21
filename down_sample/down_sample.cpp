@@ -115,7 +115,6 @@ class SamplePointsContainer {
         }
     }
 
-    int size() { return points_.size(); }
     std::vector<VoxelCenter>::iterator begin() { return points_.begin(); }
     std::vector<VoxelCenter>::iterator end() { return points_.end(); }
 

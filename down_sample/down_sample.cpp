@@ -213,46 +213,31 @@ void adaptive_sampling(const std::string& dense_dir,
         has_label = false;
     }
 
-    // Remove this
-    dense_points_path = dense_dir + "/" + file_prefix + ".txt";
-
-    std::ifstream ifs(dense_points_path.c_str());
-    if (ifs.fail()) {
-        std::cout << "file_prefix for raw point cloud data not found"
-                  << std::endl;
-        return;
-    }
-    std::ifstream ifs_labels(dense_labels_path.c_str());
-    bool no_labels = ifs_labels.fail();
-    if (no_labels) {
-        std::cout
-            << "file_prefix for raw point cloud labels not found; assuming "
-               "this is part of the testing set"
-            << std::endl;
-    }
-    std::string line;
-    std::string line_labels;
-    int num_processed_points = 0;
-
     std::map<Eigen::Vector3i, SamplePointsContainer, Vector3iComp> voxels;
-    while (getline(ifs, line)) {
-        int label = 0;
-        if (!no_labels) {
-            getline(ifs_labels, line_labels);
-            std::stringstream sstr_label(line_labels);
-            sstr_label >> label;
-
-            // continue if points is unlabeled
-            if (label == 0) continue;
+    std::cout << "dense_labels.size() " << dense_labels.size() << std::endl;
+    for (size_t dense_idx = 0; dense_idx < dense_labels.size(); dense_idx++) {
+        // Get label
+        int dense_label = 0;
+        if (has_label) {
+            dense_label = dense_labels[dense_idx];
+            // Skip the points with label 0
+            if (dense_label == 0) {
+                continue;
+            }
         }
 
-        std::stringstream sstr(line);
-        double x, y, z;
-        int intensity;
-        int r, g, b;
-        sstr >> x >> y >> z >> intensity >> r >> g >> b;
+        // TODO: remove this, Get point
+        double x = dense_pcd.points_[dense_idx][0];
+        double y = dense_pcd.points_[dense_idx][1];
+        double z = dense_pcd.points_[dense_idx][2];
+        int r = 255 * dense_pcd.colors_[dense_idx][0];
+        int g = 255 * dense_pcd.colors_[dense_idx][1];
+        int b = 255 * dense_pcd.colors_[dense_idx][2];
+
+        // Get voxel
         Eigen::Vector3i vox = get_voxel(x, y, z, voxel_size);
 
+        // Build map
         if (voxels.count(vox) > 0) {
             VoxelCenter vc;
             vc.x = std::floor(x / voxel_size) * voxel_size;
@@ -261,7 +246,7 @@ void adaptive_sampling(const std::string& dense_dir,
             vc.r = r;
             vc.g = g;
             vc.b = b;
-            vc.label = label;
+            vc.label = dense_label;
             voxels[vox].insert_if_room(vc);
 
         } else {
@@ -273,22 +258,19 @@ void adaptive_sampling(const std::string& dense_dir,
             vc.r = r;
             vc.g = g;
             vc.b = b;
-            vc.label = label;
+            vc.label = dense_label;
             container.insert_if_room(vc);
             voxels[vox] = container;
         }
 
-        num_processed_points++;
-        if (num_processed_points % 1000000 == 0) {
-            std::cout << num_processed_points << " processed" << std::endl;
+        if (dense_idx % 1000000 == 0) {
+            std::cout << dense_idx << " processed" << std::endl;
         }
     }
 
     // Resizing point containers
-    num_processed_points = 0;
     for (auto it = voxels.begin(); it != voxels.end(); it++) {
         it->second.resize();
-        num_processed_points++;
     }
     std::cout << "Exporting result of decimation" << std::endl;
 
@@ -298,13 +280,12 @@ void adaptive_sampling(const std::string& dense_dir,
         for (auto it2 = spc.begin(); it2 != spc.end(); it2++) {
             output << it2->x << " " << it2->y << " " << it2->z << " "  //
                    << it2->r << " " << it2->g << " " << it2->b;
-            if (!no_labels) {
+            if (has_label) {
                 output << " " << it2->label;
             }
             output << std::endl;
         }
     }
-    ifs.close();
 }
 
 int main(int argc, char** argv) {

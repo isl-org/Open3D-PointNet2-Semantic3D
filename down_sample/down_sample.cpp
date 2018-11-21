@@ -151,6 +151,38 @@ Eigen::Vector3i get_voxel(const Eigen::Vector3d& point, double voxel_size) {
     return get_voxel(point(0), point(1), point(2), voxel_size);
 }
 
+std::vector<int> read_labels(const std::string& file_path) {
+    std::vector<int> labels;
+    std::ifstream infile(file_path);
+    int label;
+    if (infile.fail()) {
+        std::cerr << file_path << " not found at read_labels" << std::endl;
+    } else {
+        while (infile >> label) {
+            labels.push_back(label);
+        }
+    }
+    infile.close();
+    return labels;
+}
+
+void write_labels(const std::vector<int>& labels,
+                  const std::string& file_path) {
+    std::cout << "Writting dense labels" << std::endl;
+    // Using C fprintf is much faster than C++ streams
+    FILE* f = fopen(file_path.c_str(), "w");
+    if (f == nullptr) {
+        std::cerr << "Output file cannot be created: " << file_path
+                  << " Consider creating the directory first" << std::endl;
+        exit(1);
+    }
+    for (const int& label : labels) {
+        fprintf(f, "%d\n", label);
+    }
+    fclose(f);
+    std::cout << "Output written to: " << file_path << std::endl;
+}
+
 void adaptive_sampling(const std::string& raw_dir, const std::string& out_dir,
                        const std::string& file_prefix, double voxel_size) {
     std::cout << "[Down-sampling] " << file_prefix << std::endl;

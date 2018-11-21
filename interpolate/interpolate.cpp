@@ -109,7 +109,8 @@ std::vector<int> read_labels(const std::string& file_path) {
     return labels;
 }
 
-void write_labels(const std::vector<int> labels, const std::string& file_path) {
+void write_labels(const std::vector<int>& labels,
+                  const std::string& file_path) {
     std::cout << "Writting dense labels" << std::endl;
     // Using C fprintf is much faster than C++ streams
     FILE* f = fopen(file_path.c_str(), "w");

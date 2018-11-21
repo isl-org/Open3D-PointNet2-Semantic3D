@@ -20,22 +20,11 @@ else()
     message(FATAL_ERROR "Open3D not found")
 endif()
 
+# Flags
 add_definitions(-DUNIX)
 add_compile_options(-Wno-deprecated-declarations)
 add_compile_options(-Wno-unused-result)
 add_definitions(-O3)
-
-# OpenMP
-find_package(OpenMP QUIET)
-if (OPENMP_FOUND)
-    message(STATUS "Using installed OpenMP ${OpenMP_VERSION}")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-else ()
-    message(FATAL_ERROR "OpenMP NOT found")
-endif ()
-
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -std=c++11")
 
 add_executable(interpolate interpolate.cpp)

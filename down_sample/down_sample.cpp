@@ -270,8 +270,7 @@ void adaptive_sampling(const std::string& raw_dir, const std::string& out_dir,
     std::ofstream output(output_path.c_str());
     for (auto it = voxels.begin(); it != voxels.end(); it++) {
         SamplePointsContainer spc = it->second;
-        for (std::vector<VoxelCenter>::iterator it2 = spc.begin();
-             it2 != spc.end(); it2++) {
+        for (auto it2 = spc.begin(); it2 != spc.end(); it2++) {
             output << it2->x << " " << it2->y << " " << it2->z << " "  //
                    << it2->r << " " << it2->g << " " << it2->b;
             if (!no_labels) {

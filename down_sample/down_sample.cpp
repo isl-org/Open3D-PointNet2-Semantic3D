@@ -67,65 +67,69 @@ class VoxelCenter {
 // if the surface is flat, we drop all but one of them
 class SamplePointsContainer {
    public:
-    size_t n, i;
-    std::vector<VoxelCenter> points_;
     SamplePointsContainer() {
         n = 10;
         i = 0;
         points_ = std::vector<VoxelCenter>(n);
     }
-    void insert_if_room(VoxelCenter vc);
-    void resize();
+
+    size_t n, i;
+    std::vector<VoxelCenter> points_;
+
+    // We fill the container with (n=10) at most and we don't accept points that
+    // are too close together
+    void insert_if_room(VoxelCenter vc) {
+        if (i < n) {
+            double dmin = 1e7;
+            for (size_t j = 0; j < i; j++) {
+                double d = (vc.x - points_[j].x) * (vc.x - points_[j].x) +
+                           (vc.y - points_[j].y) * (vc.y - points_[j].y) +
+                           (vc.z - points_[j].z) * (vc.z - points_[j].z);
+                if (d < dmin) dmin = d;
+            }
+            if (dmin > 0.001) {
+                points_[i] = vc;
+                i++;
+            }
+        }
+        if (i == n) {
+            resize();  // resizing in order to reduce memory allocation
+            i++;  // in order to go quickly though this function all the next
+                  // times
+        }
+    };
+
+    // Flatness is calculated with pca on the points in the container.
+    void resize() {
+        if (i < 3) {
+            points_.resize(i);
+            return;
+        }
+        PointCloudPtr smallpc(new PointCloud);
+        smallpc->width = n;
+        smallpc->height = 1;
+        smallpc->is_dense = false;
+        smallpc->points.resize(smallpc->width * smallpc->height);
+
+        // Fix deprecation warning
+        // pcl::PCA<Point> pca(*smallpc);
+        pcl::PCA<Point> pca;
+        pca.setInputCloud(smallpc);
+
+        Eigen::Vector3f eigenvalues = pca.getEigenValues();
+        if (eigenvalues(2) > 0.00001) {
+            points_.resize(4);
+        }
+
+        else {
+            points_.resize(1);
+        }
+    }
+
     int size() { return points_.size(); }
     std::vector<VoxelCenter>::iterator begin() { return points_.begin(); }
     std::vector<VoxelCenter>::iterator end() { return points_.end(); }
 };
-
-// We fill the container with (n=10) at most and we don't accept points that are
-// too close together
-void SamplePointsContainer::insert_if_room(VoxelCenter vc) {
-    if (i < n) {
-        double dmin = 1e7;
-        for (size_t j = 0; j < i; j++) {
-            double d = (vc.x - points_[j].x) * (vc.x - points_[j].x) +
-                       (vc.y - points_[j].y) * (vc.y - points_[j].y) +
-                       (vc.z - points_[j].z) * (vc.z - points_[j].z);
-            if (d < dmin) dmin = d;
-        }
-        if (dmin > 0.001) {
-            points_[i] = vc;
-            i++;
-        }
-    }
-    if (i == n) {
-        resize();  // resizing in order to reduce memory allocation
-        i++;  // in order to go quickly though this function all the next times
-    }
-}
-
-// Flatness is calculated with pca on the points in the container.
-void SamplePointsContainer::resize() {
-    if (i < 3) {
-        points_.resize(i);
-        return;
-    }
-    PointCloudPtr smallpc(new PointCloud);
-    smallpc->width = n;
-    smallpc->height = 1;
-    smallpc->is_dense = false;
-    smallpc->points.resize(smallpc->width * smallpc->height);
-
-    // Fix deprecation warning
-    // pcl::PCA<Point> pca(*smallpc);
-    pcl::PCA<Point> pca;
-    pca.setInputCloud(smallpc);
-
-    Eigen::Vector3f eigenvalues = pca.getEigenValues();
-    if (eigenvalues(2) > 0.00001)
-        points_.resize(4);
-    else
-        points_.resize(1);
-}
 
 // comparator for voxels
 struct Vector3iComp {

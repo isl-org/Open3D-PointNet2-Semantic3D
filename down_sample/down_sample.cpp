@@ -227,20 +227,16 @@ void adaptive_sampling(const std::string& raw_dir, const std::string& out_dir,
         }
     }
 
-    // resizing point containers
+    // Resizing point containers
     num_processed_points = 0;
-    for (std::map<Eigen::Vector3i, SamplePointsContainer>::iterator it =
-             voxels.begin();
-         it != voxels.end(); it++) {
+    for (auto it = voxels.begin(); it != voxels.end(); it++) {
         it->second.resize();
         num_processed_points++;
     }
     std::cout << "Exporting result of decimation" << std::endl;
 
     std::ofstream output(output_path.c_str());
-    for (std::map<Eigen::Vector3i, SamplePointsContainer>::iterator it =
-             voxels.begin();
-         it != voxels.end(); it++) {
+    for (auto it = voxels.begin(); it != voxels.end(); it++) {
         SamplePointsContainer spc = it->second;
         for (std::vector<VoxelCenter>::iterator it2 = spc.begin();
              it2 != spc.end(); it2++) {

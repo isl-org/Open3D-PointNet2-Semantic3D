@@ -175,15 +175,10 @@ void adaptive_sampling(const std::string& raw_dir, const std::string& out_dir,
     }
     std::string line;
     std::string line_labels;
-    int pt_id = 0;
+    int num_processed_points = 0;
 
     std::map<Eigen::Vector3i, SamplePointsContainer, Vector3iComp> voxels;
     while (getline(ifs, line)) {
-        pt_id++;
-        if ((pt_id + 1) % 1000000 == 0) {
-            std::cout << (pt_id + 1) / 1000000 << " M" << std::endl;
-        }
-
         int label = 0;
         if (!no_labels) {
             getline(ifs_labels, line_labels);
@@ -225,17 +220,22 @@ void adaptive_sampling(const std::string& raw_dir, const std::string& out_dir,
             container.insert_if_room(vc);
             voxels[vox] = container;
         }
+
+        num_processed_points++;
+        if (num_processed_points % 1000000 == 0) {
+            std::cout << num_processed_points << " processed" << std::endl;
+        }
     }
 
     // resizing point containers
-    pt_id = 0;
+    num_processed_points = 0;
     for (std::map<Eigen::Vector3i, SamplePointsContainer>::iterator it =
              voxels.begin();
          it != voxels.end(); it++) {
         it->second.resize();
-        pt_id++;
+        num_processed_points++;
     }
-    std::cout << "exporting result of decimation" << std::endl;
+    std::cout << "Exporting result of decimation" << std::endl;
 
     std::ofstream output(output_filename.c_str());
     for (std::map<Eigen::Vector3i, SamplePointsContainer>::iterator it =

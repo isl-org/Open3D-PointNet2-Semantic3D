@@ -12,6 +12,9 @@
 #include <pcl/point_cloud.h>
 #include <pcl/common/pca.h>
 
+#include "Core/Core.h"
+#include "IO/IO.h"
+
 typedef pcl::PointXYZRGBNormal Point;
 typedef pcl::PointCloud<Point> PointCloud;
 typedef PointCloud::Ptr PointCloudPtr;
@@ -189,10 +192,19 @@ void adaptive_sampling(const std::string& dense_dir,
     std::cout << "[Down-sampling] " << file_prefix << std::endl;
 
     // Paths
-    std::string dense_points_path = dense_dir + "/" + file_prefix + ".txt";
+    std::string dense_points_path = dense_dir + "/" + file_prefix + ".pcd";
     std::string dense_labels_path = dense_dir + "/" + file_prefix + ".labels";
     std::string sparse_points_path =
         sparse_dir + "/" + file_prefix + "_all.txt";
+
+    // Read dense points
+    open3d::PointCloud dense_pcd;
+    open3d::ReadPointCloud(dense_points_path, dense_pcd);
+    std::cout << dense_pcd.points_.size() << " dense points" << std::endl;
+
+    // Remove this
+    dense_points_path = dense_dir + "/" + file_prefix + ".txt";
+
     std::ifstream ifs(dense_points_path.c_str());
     if (ifs.fail()) {
         std::cout << "file_prefix for raw point cloud data not found"

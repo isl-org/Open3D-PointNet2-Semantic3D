@@ -58,7 +58,7 @@ static std::vector<std::string> file_prefixes{
 class VoxelCenter {
    public:
     double x, y, z;
-    int r, g, b;
+    double r, g, b;
     int label;
 };
 
@@ -230,9 +230,9 @@ void adaptive_sampling(const std::string& dense_dir,
         double x = dense_pcd.points_[dense_idx][0];
         double y = dense_pcd.points_[dense_idx][1];
         double z = dense_pcd.points_[dense_idx][2];
-        int r = 255 * dense_pcd.colors_[dense_idx][0];
-        int g = 255 * dense_pcd.colors_[dense_idx][1];
-        int b = 255 * dense_pcd.colors_[dense_idx][2];
+        double r = dense_pcd.colors_[dense_idx][0];
+        double g = dense_pcd.colors_[dense_idx][1];
+        double b = dense_pcd.colors_[dense_idx][2];
 
         // Get voxel
         Eigen::Vector3i vox = get_voxel(x, y, z, voxel_size);

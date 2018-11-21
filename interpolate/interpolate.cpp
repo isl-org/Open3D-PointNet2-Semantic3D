@@ -93,13 +93,12 @@ struct Vector3iComp {
         return false;
     }
 };
-
 std::vector<int> read_labels(const std::string& file_path) {
     std::vector<int> labels;
     std::ifstream infile(file_path);
     int label;
     if (infile.fail()) {
-        std::cerr << file_path << " not found at read_labels" << std::endl;
+        throw std::runtime_error(file_path + " not found at read_labels");
     } else {
         while (infile >> label) {
             labels.push_back(label);
@@ -115,9 +114,8 @@ void write_labels(const std::vector<int>& labels,
     // Using C fprintf is much faster than C++ streams
     FILE* f = fopen(file_path.c_str(), "w");
     if (f == nullptr) {
-        std::cerr << "Output file cannot be created: " << file_path
-                  << " Consider creating the directory first" << std::endl;
-        exit(1);
+        throw std::runtime_error("Output file cannot be created: " + file_path +
+                                 " Consider creating the directory first");
     }
     for (const int& label : labels) {
         fprintf(f, "%d\n", label);

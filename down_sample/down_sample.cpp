@@ -238,30 +238,19 @@ void adaptive_sampling(const std::string& dense_dir,
         Eigen::Vector3i vox = get_voxel(x, y, z, voxel_size);
 
         // Build map
-        if (voxels.count(vox) > 0) {
-            VoxelCenter vc;
-            vc.x = std::floor(x / voxel_size) * voxel_size;
-            vc.y = std::floor(y / voxel_size) * voxel_size;
-            vc.z = std::floor(z / voxel_size) * voxel_size;
-            vc.r = r;
-            vc.g = g;
-            vc.b = b;
-            vc.label = dense_label;
-            voxels[vox].insert_if_room(vc);
-
-        } else {
+        if (voxels.count(vox) == 0) {
             SamplePointsContainer container;
-            VoxelCenter vc;
-            vc.x = std::floor(x / voxel_size) * voxel_size;
-            vc.y = std::floor(y / voxel_size) * voxel_size;
-            vc.z = std::floor(z / voxel_size) * voxel_size;
-            vc.r = r;
-            vc.g = g;
-            vc.b = b;
-            vc.label = dense_label;
-            container.insert_if_room(vc);
             voxels[vox] = container;
         }
+        VoxelCenter vc;
+        vc.x = std::floor(x / voxel_size) * voxel_size;
+        vc.y = std::floor(y / voxel_size) * voxel_size;
+        vc.z = std::floor(z / voxel_size) * voxel_size;
+        vc.r = r;
+        vc.g = g;
+        vc.b = b;
+        vc.label = dense_label;
+        voxels[vox].insert_if_room(vc);
 
         if (dense_idx % 1000000 == 0) {
             std::cout << dense_idx << " processed" << std::endl;

@@ -202,6 +202,15 @@ void adaptive_sampling(const std::string& dense_dir,
     open3d::ReadPointCloud(dense_points_path, dense_pcd);
     std::cout << dense_pcd.points_.size() << " dense points" << std::endl;
 
+    // Read dense labels
+    std::vector<int> dense_labels;
+    try {
+        dense_labels = read_labels(dense_labels_path);
+        std::cout << dense_labels.size() << " dense labels" << std::endl;
+    } catch (const std::exception& e) {
+        std::cout << "Dense labels not found, treating as tests" << std::endl;
+    }
+
     // Remove this
     dense_points_path = dense_dir + "/" + file_prefix + ".txt";
 

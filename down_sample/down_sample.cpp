@@ -65,17 +65,17 @@ class VoxelCenter {
 class SamplePointsContainer {
    public:
     size_t n, i;
-    std::vector<VoxelCenter> points;
+    std::vector<VoxelCenter> points_;
     SamplePointsContainer() {
         n = 10;
         i = 0;
-        points = std::vector<VoxelCenter>(n);
+        points_ = std::vector<VoxelCenter>(n);
     }
     void insert_if_room(VoxelCenter vc);
     void resize();
-    int size() { return points.size(); }
-    std::vector<VoxelCenter>::iterator begin() { return points.begin(); }
-    std::vector<VoxelCenter>::iterator end() { return points.end(); }
+    int size() { return points_.size(); }
+    std::vector<VoxelCenter>::iterator begin() { return points_.begin(); }
+    std::vector<VoxelCenter>::iterator end() { return points_.end(); }
 };
 
 // We fill the container with (n=10) at most and we don't accept points that are
@@ -84,13 +84,13 @@ void SamplePointsContainer::insert_if_room(VoxelCenter vc) {
     if (i < n) {
         double dmin = 1e7;
         for (size_t j = 0; j < i; j++) {
-            double d = (vc.x - points[j].x) * (vc.x - points[j].x) +
-                       (vc.y - points[j].y) * (vc.y - points[j].y) +
-                       (vc.z - points[j].z) * (vc.z - points[j].z);
+            double d = (vc.x - points_[j].x) * (vc.x - points_[j].x) +
+                       (vc.y - points_[j].y) * (vc.y - points_[j].y) +
+                       (vc.z - points_[j].z) * (vc.z - points_[j].z);
             if (d < dmin) dmin = d;
         }
         if (dmin > 0.001) {
-            points[i] = vc;
+            points_[i] = vc;
             i++;
         }
     }
@@ -103,7 +103,7 @@ void SamplePointsContainer::insert_if_room(VoxelCenter vc) {
 // Flatness is calculated with pca on the points in the container.
 void SamplePointsContainer::resize() {
     if (i < 3) {
-        points.resize(i);
+        points_.resize(i);
         return;
     }
     PointCloudPtr smallpc(new PointCloud);
@@ -119,9 +119,9 @@ void SamplePointsContainer::resize() {
 
     Eigen::Vector3f eigenvalues = pca.getEigenValues();
     if (eigenvalues(2) > 0.00001)
-        points.resize(4);
+        points_.resize(4);
     else
-        points.resize(1);
+        points_.resize(1);
 }
 
 // comparator for voxels

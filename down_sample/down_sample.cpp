@@ -199,12 +199,7 @@ void adaptive_sampling(const std::string& raw_dir, const std::string& out_dir,
         int intensity;
         int r, g, b;
         sstr >> x >> y >> z >> intensity >> r >> g >> b;
-
-        int x_id = std::floor(x / voxel_size) + 0.5;
-        int y_id = std::floor(y / voxel_size) + 0.5;
-        int z_id = std::floor(z / voxel_size) + 0.5;
-
-        Eigen::Vector3i vox(x_id, y_id, z_id);
+        Eigen::Vector3i vox = get_voxel(x, y, z, voxel_size);
 
         if (voxels.count(vox) > 0) {
             VoxelCenter vc;

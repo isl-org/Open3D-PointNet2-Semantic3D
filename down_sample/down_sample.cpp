@@ -67,11 +67,6 @@ class VoxelCenter {
 // if the surface is flat, we drop all but one of them
 class SamplePointsContainer {
    public:
-    SamplePointsContainer() {
-        max_num_points_ = 10;
-        points_ = std::vector<VoxelCenter>(max_num_points_);
-    }
-
     // We fill the container with (n=10) at most and we don't accept points
     // that are too close together
     void insert_if_room(const VoxelCenter& vc) {
@@ -102,23 +97,20 @@ class SamplePointsContainer {
             points_.resize(num_points_);
             return;
         }
-        PointCloudPtr smallpc(new PointCloud);
-        smallpc->width = max_num_points_;
-        smallpc->height = 1;
-        smallpc->is_dense = false;
-        smallpc->points.resize(smallpc->width * smallpc->height);
+        PointCloudPtr small_pcd(new PointCloud);
+        small_pcd->width = max_num_points_;
+        small_pcd->height = 1;
+        small_pcd->is_dense = false;
+        small_pcd->points.resize(small_pcd->width * small_pcd->height);
 
-        // Fix deprecation warning
-        // pcl::PCA<Point> pca(*smallpc);
+        // pcl::PCA<Point> pca(*small_pcd);
         pcl::PCA<Point> pca;
-        pca.setInputCloud(smallpc);
+        pca.setInputCloud(small_pcd);
 
         Eigen::Vector3f eigenvalues = pca.getEigenValues();
         if (eigenvalues(2) > 0.00001) {
             points_.resize(4);
-        }
-
-        else {
+        } else {
             points_.resize(1);
         }
     }
@@ -128,10 +120,13 @@ class SamplePointsContainer {
     std::vector<VoxelCenter>::iterator end() { return points_.end(); }
 
    private:
-    size_t max_num_points_;
+    static size_t max_num_points_;
     size_t num_points_ = 0;
-    std::vector<VoxelCenter> points_;
+    std::vector<VoxelCenter> points_ =
+        std::vector<VoxelCenter>(max_num_points_);
 };
+
+size_t SamplePointsContainer::max_num_points_ = 10;
 
 // comparator for voxels
 struct Vector3iComp {

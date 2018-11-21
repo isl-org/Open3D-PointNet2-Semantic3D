@@ -63,8 +63,6 @@ class VoxelCenter {
 };
 
 // Class for sample of n points in voxel
-// We don't stay with n points all the way through:
-// if the surface is flat, we drop all but one of them
 class SamplePointsContainer {
    public:
     // We fill the container with (n=10) at most and we don't accept points
@@ -92,6 +90,8 @@ class SamplePointsContainer {
     };
 
     // Flatness is calculated with pca on the points in the container.
+    // We don't stay with n points all the way through: if the surface is flat,
+    // we drop all but one of them
     void resize() {
         if (num_points_ < 3) {
             points_.resize(num_points_);
@@ -115,8 +115,7 @@ class SamplePointsContainer {
         }
     }
 
-    std::vector<VoxelCenter>::iterator begin() { return points_.begin(); }
-    std::vector<VoxelCenter>::iterator end() { return points_.end(); }
+    std::vector<VoxelCenter>& get_points() { return points_; }
 
    private:
     static size_t max_num_points_;
@@ -265,12 +264,13 @@ void adaptive_sampling(const std::string& dense_dir,
 
     std::ofstream output(sparse_points_path.c_str());
     for (auto it = voxels.begin(); it != voxels.end(); it++) {
-        SamplePointsContainer spc = it->second;
-        for (auto it2 = spc.begin(); it2 != spc.end(); it2++) {
-            output << it2->x << " " << it2->y << " " << it2->z << " "  //
-                   << it2->r << " " << it2->g << " " << it2->b;
+        std::vector<VoxelCenter> voxel_centers = it->second.get_points();
+        for (const VoxelCenter& voxel_center : voxel_centers) {
+            output << voxel_center.x << " " << voxel_center.y << " "
+                   << voxel_center.z << " " << voxel_center.r << " "
+                   << voxel_center.g << " " << voxel_center.b;
             if (has_label) {
-                output << " " << it2->label;
+                output << " " << voxel_center.label;
             }
             output << std::endl;
         }

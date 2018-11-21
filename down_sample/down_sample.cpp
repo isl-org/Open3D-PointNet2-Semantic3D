@@ -68,43 +68,42 @@ class VoxelCenter {
 class SamplePointsContainer {
    public:
     SamplePointsContainer() {
-        n_ = 10;
-        i_ = 0;
-        points_ = std::vector<VoxelCenter>(n_);
+        max_num_points_ = 10;
+        points_ = std::vector<VoxelCenter>(max_num_points_);
     }
 
     // We fill the container with (n=10) at most and we don't accept points
     // that are too close together
     void insert_if_room(const VoxelCenter& vc) {
-        if (i_ < n_) {
+        if (num_points_ < max_num_points_) {
             double dmin = 1e7;
-            for (size_t j = 0; j < i_; j++) {
+            for (size_t j = 0; j < num_points_; j++) {
                 double d = (vc.x - points_[j].x) * (vc.x - points_[j].x) +
                            (vc.y - points_[j].y) * (vc.y - points_[j].y) +
                            (vc.z - points_[j].z) * (vc.z - points_[j].z);
                 if (d < dmin) dmin = d;
             }
             if (dmin > 0.001) {
-                points_[i_] = vc;
-                i_++;
+                points_[num_points_] = vc;
+                num_points_++;
             }
         }
-        if (i_ == n_) {
+        if (num_points_ == max_num_points_) {
             // Resizing to reduce memory allocation
             resize();
             // To go quickly though this function all the next times
-            i_++;
+            num_points_++;
         }
     };
 
     // Flatness is calculated with pca on the points in the container.
     void resize() {
-        if (i_ < 3) {
-            points_.resize(i_);
+        if (num_points_ < 3) {
+            points_.resize(num_points_);
             return;
         }
         PointCloudPtr smallpc(new PointCloud);
-        smallpc->width = n_;
+        smallpc->width = max_num_points_;
         smallpc->height = 1;
         smallpc->is_dense = false;
         smallpc->points.resize(smallpc->width * smallpc->height);
@@ -129,8 +128,8 @@ class SamplePointsContainer {
     std::vector<VoxelCenter>::iterator end() { return points_.end(); }
 
    private:
-    size_t n_;
-    size_t i_;
+    size_t max_num_points_;
+    size_t num_points_ = 0;
     std::vector<VoxelCenter> points_;
 };
 

@@ -183,21 +183,23 @@ void write_labels(const std::vector<int>& labels,
     std::cout << "Output written to: " << file_path << std::endl;
 }
 
-void adaptive_sampling(const std::string& raw_dir, const std::string& out_dir,
+void adaptive_sampling(const std::string& dense_dir,
+                       const std::string& sparse_dir,
                        const std::string& file_prefix, double voxel_size) {
     std::cout << "[Down-sampling] " << file_prefix << std::endl;
 
     // Paths
-    std::string points_path = raw_dir + "/" + file_prefix + ".txt";
-    std::string labels_path = raw_dir + "/" + file_prefix + ".labels";
-    std::string output_path = out_dir + "/" + file_prefix + "_all.txt";
-    std::ifstream ifs(points_path.c_str());
+    std::string dense_points_path = dense_dir + "/" + file_prefix + ".txt";
+    std::string dense_labels_path = dense_dir + "/" + file_prefix + ".labels";
+    std::string sparse_points_path =
+        sparse_dir + "/" + file_prefix + "_all.txt";
+    std::ifstream ifs(dense_points_path.c_str());
     if (ifs.fail()) {
         std::cout << "file_prefix for raw point cloud data not found"
                   << std::endl;
         return;
     }
-    std::ifstream ifs_labels(labels_path.c_str());
+    std::ifstream ifs_labels(dense_labels_path.c_str());
     bool no_labels = ifs_labels.fail();
     if (no_labels) {
         std::cout
@@ -267,7 +269,7 @@ void adaptive_sampling(const std::string& raw_dir, const std::string& out_dir,
     }
     std::cout << "Exporting result of decimation" << std::endl;
 
-    std::ofstream output(output_path.c_str());
+    std::ofstream output(sparse_points_path.c_str());
     for (auto it = voxels.begin(); it != voxels.end(); it++) {
         SamplePointsContainer spc = it->second;
         for (auto it2 = spc.begin(); it2 != spc.end(); it2++) {
@@ -285,7 +287,7 @@ void adaptive_sampling(const std::string& raw_dir, const std::string& out_dir,
 int main(int argc, char** argv) {
     // Parse arguments
     if (argc < 4) {
-        std::cerr << "USAGE : " << argv[0] << " input_dir output_dir voxel_size"
+        std::cerr << "USAGE : " << argv[0] << " dense_dir sparse_dir voxel_size"
                   << std::endl;
         exit(1);
     }

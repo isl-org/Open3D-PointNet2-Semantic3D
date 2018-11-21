@@ -156,16 +156,16 @@ void adaptive_sampling(const std::string& raw_dir, const std::string& out_dir,
     std::cout << "[Down-sampling] " << file_prefix << std::endl;
 
     // Paths
-    std::string data_filename = raw_dir + "/" + file_prefix + ".txt";
-    std::string labels_filename = raw_dir + "/" + file_prefix + ".labels";
-    std::string output_filename = out_dir + "/" + file_prefix + "_all.txt";
-    std::ifstream ifs(data_filename.c_str());
+    std::string points_path = raw_dir + "/" + file_prefix + ".txt";
+    std::string labels_path = raw_dir + "/" + file_prefix + ".labels";
+    std::string output_path = out_dir + "/" + file_prefix + "_all.txt";
+    std::ifstream ifs(points_path.c_str());
     if (ifs.fail()) {
         std::cout << "file_prefix for raw point cloud data not found"
                   << std::endl;
         return;
     }
-    std::ifstream ifs_labels(labels_filename.c_str());
+    std::ifstream ifs_labels(labels_path.c_str());
     bool no_labels = ifs_labels.fail();
     if (no_labels) {
         std::cout
@@ -237,7 +237,7 @@ void adaptive_sampling(const std::string& raw_dir, const std::string& out_dir,
     }
     std::cout << "Exporting result of decimation" << std::endl;
 
-    std::ofstream output(output_filename.c_str());
+    std::ofstream output(output_path.c_str());
     for (std::map<Eigen::Vector3i, SamplePointsContainer>::iterator it =
              voxels.begin();
          it != voxels.end(); it++) {

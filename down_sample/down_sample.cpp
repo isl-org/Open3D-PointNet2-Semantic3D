@@ -20,39 +20,38 @@ typedef pcl::PointCloud<Point> PointCloud;
 typedef PointCloud::Ptr PointCloudPtr;
 
 static std::vector<std::string> file_prefixes{
-    // "bildstein_station1_xyz_intensity_rgb",
-    // "bildstein_station3_xyz_intensity_rgb",
-    // "bildstein_station5_xyz_intensity_rgb",
-    // "domfountain_station1_xyz_intensity_rgb",
-    // "domfountain_station2_xyz_intensity_rgb",
-    // "domfountain_station3_xyz_intensity_rgb",
-    // "neugasse_station1_xyz_intensity_rgb",
-    // "sg27_station1_intensity_rgb",
-    // "sg27_station2_intensity_rgb",
+    "bildstein_station1_xyz_intensity_rgb",
+    "bildstein_station3_xyz_intensity_rgb",
+    "bildstein_station5_xyz_intensity_rgb",
+    "domfountain_station1_xyz_intensity_rgb",
+    "domfountain_station2_xyz_intensity_rgb",
+    "domfountain_station3_xyz_intensity_rgb",
+    "neugasse_station1_xyz_intensity_rgb",
+    "sg27_station1_intensity_rgb",
+    "sg27_station2_intensity_rgb",
 
-    // "sg27_station4_intensity_rgb",
-    // "sg27_station5_intensity_rgb",
-    // "sg27_station9_intensity_rgb",
-    // "sg28_station4_intensity_rgb",
+    "sg27_station4_intensity_rgb",
+    "sg27_station5_intensity_rgb",
+    "sg27_station9_intensity_rgb",
+    "sg28_station4_intensity_rgb",
     "untermaederbrunnen_station1_xyz_intensity_rgb",
-    // "untermaederbrunnen_station3_xyz_intensity_rgb",
+    "untermaederbrunnen_station3_xyz_intensity_rgb",
 
-    // "birdfountain_station1_xyz_intensity_rgb",
-    // "castleblatten_station1_intensity_rgb",
-    // "castleblatten_station5_xyz_intensity_rgb",
-    // "marketplacefeldkirch_station1_intensity_rgb",
-    // "marketplacefeldkirch_station4_intensity_rgb",
-    // "marketplacefeldkirch_station7_intensity_rgb",
-    // "sg27_station10_intensity_rgb",
-    // "sg27_station3_intensity_rgb",
-    // "sg27_station6_intensity_rgb",
-    // "sg27_station8_intensity_rgb",
-    // "sg28_station2_intensity_rgb",
-    // "sg28_station5_xyz_intensity_rgb",
-    // "stgallencathedral_station1_intensity_rgb",
-    // "stgallencathedral_station3_intensity_rgb",
-    // "stgallencathedral_station6_intensity_rgb"
-};
+    "birdfountain_station1_xyz_intensity_rgb",
+    "castleblatten_station1_intensity_rgb",
+    "castleblatten_station5_xyz_intensity_rgb",
+    "marketplacefeldkirch_station1_intensity_rgb",
+    "marketplacefeldkirch_station4_intensity_rgb",
+    "marketplacefeldkirch_station7_intensity_rgb",
+    "sg27_station10_intensity_rgb",
+    "sg27_station3_intensity_rgb",
+    "sg27_station6_intensity_rgb",
+    "sg27_station8_intensity_rgb",
+    "sg28_station2_intensity_rgb",
+    "sg28_station5_xyz_intensity_rgb",
+    "stgallencathedral_station1_intensity_rgb",
+    "stgallencathedral_station3_intensity_rgb",
+    "stgallencathedral_station6_intensity_rgb"};
 
 // class for voxels
 class VoxelCenter {
@@ -98,6 +97,7 @@ class SamplePointsContainer {
             points_.resize(num_points_);
             return;
         }
+        std::cout << "Actually resizing " << num_points_ << std::endl;
         PointCloudPtr small_pcd(new PointCloud);
         small_pcd->width = max_num_points_;
         small_pcd->height = 1;
@@ -214,8 +214,8 @@ void adaptive_sampling(const std::string& dense_dir,
     }
 
     std::map<Eigen::Vector3i, SamplePointsContainer, Vector3iComp> voxels;
-    std::cout << "dense_labels.size() " << dense_labels.size() << std::endl;
-    for (size_t dense_idx = 0; dense_idx < dense_labels.size(); dense_idx++) {
+    for (size_t dense_idx = 0; dense_idx < dense_pcd.points_.size();
+         dense_idx++) {
         // Get label
         int dense_label = 0;
         if (has_label) {
@@ -251,10 +251,6 @@ void adaptive_sampling(const std::string& dense_dir,
         vc.b = b;
         vc.label = dense_label;
         voxels[voxel].insert_if_room(vc);
-
-        if (dense_idx % 1000000 == 0) {
-            std::cout << dense_idx << " processed" << std::endl;
-        }
     }
 
     // Resizing point containers
@@ -307,7 +303,6 @@ int main(int argc, char** argv) {
 
     // Down sample
     for (const std::string& file_prefix : file_prefixes) {
-        std::cout << "adaptive sampling for " + file_prefix << std::endl;
         adaptive_sampling(input_dir, output_dir, file_prefix, voxel_size);
     }
 }

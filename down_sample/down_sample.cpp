@@ -82,6 +82,7 @@ class SamplePointsContainer {
             }
         }
         if (num_points_ == max_num_points_) {
+            std::cout << "reached " << num_points_ << std::endl;
             // Resizing to reduce memory allocation
             resize();
             // To go quickly though this function all the next times
@@ -263,8 +264,17 @@ void adaptive_sampling(const std::string& dense_dir,
     std::cout << "Exporting result of decimation" << std::endl;
 
     std::ofstream output(sparse_points_path.c_str());
+    std::unordered_map<size_t, size_t> size_map;
+    size_t num_outputs = 0;
     for (auto it = voxels.begin(); it != voxels.end(); it++) {
         std::vector<VoxelCenter> voxel_centers = it->second.get_points();
+
+        size_t size = voxel_centers.size();
+        if (size_map.count(size) == 0) {
+            size_map[size] = 0;
+        }
+        size_map[size]++;
+
         for (const VoxelCenter& voxel_center : voxel_centers) {
             output << voxel_center.x << " " << voxel_center.y << " "
                    << voxel_center.z << " " << voxel_center.r << " "
@@ -273,8 +283,15 @@ void adaptive_sampling(const std::string& dense_dir,
                 output << " " << voxel_center.label;
             }
             output << std::endl;
+            num_outputs++;
         }
     }
+
+    for (auto it : size_map) {
+        std::cout << "size " << it.first << ": " << it.second << " points"
+                  << std::endl;
+    }
+    std::cout << "num_outputs: " << num_outputs << std::endl;
 }
 
 int main(int argc, char** argv) {

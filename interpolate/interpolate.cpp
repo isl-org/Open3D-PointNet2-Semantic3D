@@ -93,13 +93,12 @@ struct Vector3iComp {
         return false;
     }
 };
-
 std::vector<int> read_labels(const std::string& file_path) {
     std::vector<int> labels;
     std::ifstream infile(file_path);
     int label;
     if (infile.fail()) {
-        std::cerr << file_path << " not found at read_labels" << std::endl;
+        throw std::runtime_error(file_path + " not found at read_labels");
     } else {
         while (infile >> label) {
             labels.push_back(label);
@@ -109,14 +108,14 @@ std::vector<int> read_labels(const std::string& file_path) {
     return labels;
 }
 
-void write_labels(const std::vector<int> labels, const std::string& file_path) {
+void write_labels(const std::vector<int>& labels,
+                  const std::string& file_path) {
     std::cout << "Writting dense labels" << std::endl;
     // Using C fprintf is much faster than C++ streams
     FILE* f = fopen(file_path.c_str(), "w");
     if (f == nullptr) {
-        std::cerr << "Output file cannot be created: " << file_path
-                  << " Consider creating the directory first" << std::endl;
-        exit(1);
+        throw std::runtime_error("Output file cannot be created: " + file_path +
+                                 " Consider creating the directory first");
     }
     for (const int& label : labels) {
         fprintf(f, "%d\n", label);
@@ -155,7 +154,7 @@ void interpolate_labels_one_point_cloud(const std::string& input_dense_dir,
                                         const std::string& output_dir,
                                         const std::string& file_prefix,
                                         double voxel_size) {
-    std::cout << "[Interpolating] " + file_prefix << std::endl;
+    std::cout << "[Interpolating] " << file_prefix << std::endl;
 
     // Paths
     std::string dense_points_path =
@@ -247,13 +246,13 @@ int main(int argc, char** argv) {
 
     // Collect all existing files
     std::vector<std::string> file_prefixes;
-    for (unsigned int i = 0; i < possible_file_prefixes.size(); i++) {
-        std::string sparse_labels_path = std::string(input_sparse_dir) + "/" +
-                                         possible_file_prefixes[i] + ".labels";
+    for (const std::string& file_prefix : possible_file_prefixes) {
+        std::string sparse_labels_path =
+            std::string(input_sparse_dir) + "/" + file_prefix + ".labels";
         std::ifstream sparse_points_file(sparse_labels_path.c_str());
         if (!sparse_points_file.fail()) {
-            file_prefixes.push_back(possible_file_prefixes[i]);
-            std::cout << "Found: " + possible_file_prefixes[i] << std::endl;
+            file_prefixes.push_back(file_prefix);
+            std::cout << "Found: " + file_prefix << std::endl;
         }
         sparse_points_file.close();
     }

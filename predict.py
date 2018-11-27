@@ -13,7 +13,10 @@ from util.metric import ConfusionMatrix
 # Parser
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    "--n", type=int, default=8, help="# samples, each contains num_point points"
+    "--num_samples",
+    type=int,
+    default=8,
+    help="# samples, each contains num_point points",
 )
 parser.add_argument("--ckpt", default="", help="Checkpoint file")
 parser.add_argument("--set", default="validation", help="train, validation, test")
@@ -86,7 +89,7 @@ if __name__ == "__main__":
     ground_truth = [np.array([]) for i in range(num_scenes)]
     predicted_labels = [np.array([]) for i in range(num_scenes)]
 
-    for batch_index in range(FLAGS.n * num_scenes):
+    for batch_index in range(FLAGS.num_samples * num_scenes):
         scene_index, data, raw_data, true_labels, col, _ = dataset.next_input(
             sample=True, verbose=False, predicting=True
         )

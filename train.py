@@ -26,9 +26,9 @@ TRAIN_DATASET = SemanticDataset(
     use_color=PARAMS["use_color"],
     path=PARAMS["data_path"],
 )
-VALID_DATASET = SemanticDataset(
+VALIDATION_DATASET = SemanticDataset(
     npoints=PARAMS["num_point"],
-    split="valid",
+    split="validation",
     box_size=PARAMS["box_size"],
     use_color=PARAMS["use_color"],
     path=PARAMS["data_path"],
@@ -120,40 +120,40 @@ def get_batch(split):
     if split == "train":
         return TRAIN_DATASET.next_batch(PARAMS["batch_size"], augment=True)
     else:
-        return VALID_DATASET.next_batch(PARAMS["batch_size"], augment=False)
+        return VALIDATION_DATASET.next_batch(PARAMS["batch_size"], augment=False)
 
 
-def fill_queues(stack_train, stack_valid, num_train_batches, num_valid_batches):
+def fill_queues(stack_train, stack_validation, num_train_batches, num_validation_batches):
     """
     Args:
         stack_train: mp.Queue to be filled asynchronously
-        stack_valid: mp.Queue to be filled asynchronously
+        stack_validation: mp.Queue to be filled asynchronously
         num_train_batches: total number of training batches
-        num_valid_batches: total number of validation batches
+        num_validation_batches: total number of validationation batches
     """
     pool = mp.Pool(processes=mp.cpu_count())
     launched_train = 0
-    launched_valid = 0
+    launched_validation = 0
     results_train = []  # Temp buffer before filling the stack_train
-    results_valid = []  # Temp buffer before filling the stack_valid
+    results_validation = []  # Temp buffer before filling the stack_validation
     # Launch as much as n
     while True:
         if stack_train.qsize() + launched_train < num_train_batches:
             results_train.append(pool.apply_async(get_batch, args=("train",)))
             launched_train += 1
-        elif stack_valid.qsize() + launched_valid < num_valid_batches:
-            results_valid.append(pool.apply_async(get_batch, args=("valid",)))
-            launched_valid += 1
+        elif stack_validation.qsize() + launched_validation < num_validation_batches:
+            results_validation.append(pool.apply_async(get_batch, args=("validation",)))
+            launched_validation += 1
         for p in results_train:
             if p.ready():
                 stack_train.put(p.get())
                 results_train.remove(p)
                 launched_train -= 1
-        for p in results_valid:
+        for p in results_validation:
             if p.ready():
-                stack_valid.put(p.get())
-                results_valid.remove(p)
-                launched_valid -= 1
+                stack_validation.put(p.get())
+                results_validation.remove(p)
+                launched_validation -= 1
         # Stability
         time.sleep(0.01)
 
@@ -162,28 +162,28 @@ def init_stacking():
     """
     Returns:
         stacker: mp.Process object
-        stack_valid: mp.Queue, use stack_valid.get() to read a batch
+        stack_validation: mp.Queue, use stack_validation.get() to read a batch
         stack_train: mp.Queue, use stack_train.get() to read a batch
     """
     with tf.device("/cpu:0"):
         # Queues that contain several batches in advance
         num_train_batches = TRAIN_DATASET.get_num_batches(PARAMS["batch_size"])
-        num_valid_batches = VALID_DATASET.get_num_batches(PARAMS["batch_size"])
+        num_validation_batches = VALIDATION_DATASET.get_num_batches(PARAMS["batch_size"])
         stack_train = mp.Queue(num_train_batches)
-        stack_valid = mp.Queue(num_valid_batches)
+        stack_validation = mp.Queue(num_validation_batches)
         stacker = mp.Process(
             target=fill_queues,
-            args=(stack_train, stack_valid, num_train_batches, num_valid_batches),
+            args=(stack_train, stack_validation, num_train_batches, num_validation_batches),
         )
         stacker.start()
-        return stacker, stack_valid, stack_train
+        return stacker, stack_validation, stack_train
 
 
 def train_single():
     """Train the model on a single GPU
     """
     with tf.Graph().as_default():
-        stacker, stack_valid, stack_train = init_stacking()
+        stacker, stack_validation, stack_train = init_stacking()
 
         with tf.device("/gpu:" + str(PARAMS["gpu"])):
             pointclouds_pl, labels_pl, smpws_pl = model.placeholder_inputs(
@@ -251,8 +251,8 @@ def train_single():
         train_writer = tf.summary.FileWriter(
             os.path.join(PARAMS["logdir"], "train"), sess.graph
         )
-        valid_writer = tf.summary.FileWriter(
-            os.path.join(PARAMS["logdir"], "valid"), sess.graph
+        validation_writer = tf.summary.FileWriter(
+            os.path.join(PARAMS["logdir"], "validation"), sess.graph
         )
 
         # Init variables
@@ -280,13 +280,13 @@ def train_single():
             stacker,
             train_writer,
             stack_train,
-            valid_writer,
-            stack_valid,
+            validation_writer,
+            stack_validation,
         )
 
 
 def training_loop(
-    sess, ops, saver, stacker, train_writer, stack_train, valid_writer, stack_valid
+    sess, ops, saver, stacker, train_writer, stack_train, validation_writer, stack_validation
 ):
     best_acc = -1
     # Train for PARAMS["max_epoch"] epochs
@@ -302,7 +302,7 @@ def training_loop(
 
         # Evaluate, save, and compute the accuracy
         if epoch % 5 == 0:
-            acc = eval_one_epoch(sess, ops, valid_writer, stack_valid)
+            acc = eval_one_epoch(sess, ops, validation_writer, stack_validation)
         if acc > best_acc:
             best_acc = acc
             save_path = saver.save(
@@ -388,23 +388,23 @@ def train_one_epoch(sess, ops, train_writer, stack):
         log_string("IoU of %s : %f" % (TRAIN_DATASET.labels_names[i], iou_per_class[i]))
 
 
-def eval_one_epoch(sess, ops, valid_writer, stack):
+def eval_one_epoch(sess, ops, validation_writer, stack):
     """Evaluate one epoch
 
     Args:
         sess (tf.Session): the session to evaluate tensors and operations
         ops (tf.Operation): the dict of operations
-        valid_writer (tf.summary.FileWriter): enable to log the evaluation on TensorBoard
+        validation_writer (tf.summary.FileWriter): enable to log the evaluation on TensorBoard
 
     Returns:
-        float: the overall accuracy computed on the validation set
+        float: the overall accuracy computed on the validationation set
     """
 
     global EPOCH_CNT
 
     is_training = False
 
-    num_batches = VALID_DATASET.get_num_batches(PARAMS["batch_size"])
+    num_batches = VALIDATION_DATASET.get_num_batches(PARAMS["batch_size"])
 
     # Reset metrics
     loss_sum = 0
@@ -431,7 +431,7 @@ def eval_one_epoch(sess, ops, valid_writer, stack):
             [ops["merged"], ops["step"], ops["loss"], ops["pred"]], feed_dict=feed_dict
         )
 
-        valid_writer.add_summary(summary, step)
+        validation_writer.add_summary(summary, step)
         pred_val = np.argmax(pred_val, 2)  # BxN
 
         # Update metrics
@@ -450,7 +450,7 @@ def eval_one_epoch(sess, ops, valid_writer, stack):
     log_string("Average IoU : %f" % (confusion_matrix.get_mean_iou()))
     iou_per_class = [0] + iou_per_class  # label 0 is ignored
     for i in range(1, NUM_CLASSES):
-        log_string("IoU of %s : %f" % (VALID_DATASET.labels_names[i], iou_per_class[i]))
+        log_string("IoU of %s : %f" % (VALIDATION_DATASET.labels_names[i], iou_per_class[i]))
 
     EPOCH_CNT += 5
     return confusion_matrix.get_accuracy()

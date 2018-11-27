@@ -1,5 +1,5 @@
 """
-Use this file to train the network. It is compatible with semantic.py accessor
+Use this file to train the network. It is compatible with semantic_dataset.py accessor
 to the datasets semantic-8 and scannet.
 Training results are stored as .ckpt files. Training records are stored as well.
 Training is done by tensorflow, with a queue separating CPU and GPU computations
@@ -14,7 +14,7 @@ import tensorflow as tf
 import utils.metric as metric
 import multiprocessing as mp
 import time
-from dataset.semantic import SemanticDataset
+from dataset.semantic_dataset import SemanticDataset
 import models.model as MODEL
 
 

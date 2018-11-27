@@ -1,14 +1,49 @@
-"""
-Unified semantic with color support and many options
-"""
 import os
-import sys
-
-ROOT_DIR = os.path.abspath(os.path.pardir)
-sys.path.append(ROOT_DIR)
-
+import open3d
 import numpy as np
 import utils.provider as provider
+from utils.point_cloud_util import load_labels
+
+train_file_prefixes = [
+    "bildstein_station1_xyz_intensity_rgb",
+    "bildstein_station3_xyz_intensity_rgb",
+    "bildstein_station5_xyz_intensity_rgb",
+    "domfountain_station1_xyz_intensity_rgb",
+    "domfountain_station2_xyz_intensity_rgb",
+    "domfountain_station3_xyz_intensity_rgb",
+    "neugasse_station1_xyz_intensity_rgb",
+    "sg27_station1_intensity_rgb",
+    "sg27_station2_intensity_rgb",
+]
+
+valid_file_prefixes = [
+    "sg27_station4_intensity_rgb",
+    "sg27_station5_intensity_rgb",
+    "sg27_station9_intensity_rgb",
+    "sg28_station4_intensity_rgb",
+    "untermaederbrunnen_station1_xyz_intensity_rgb",
+    "untermaederbrunnen_station3_xyz_intensity_rgb",
+]
+
+test_file_prefixes = [
+    "birdfountain_station1_xyz_intensity_rgb",
+    "castleblatten_station1_intensity_rgb",
+    "castleblatten_station5_xyz_intensity_rgb",
+    "marketplacefeldkirch_station1_intensity_rgb",
+    "marketplacefeldkirch_station4_intensity_rgb",
+    "marketplacefeldkirch_station7_intensity_rgb",
+    "sg27_station10_intensity_rgb",
+    "sg27_station3_intensity_rgb",
+    "sg27_station6_intensity_rgb",
+    "sg27_station8_intensity_rgb",
+    "sg28_station2_intensity_rgb",
+    "sg28_station5_xyz_intensity_rgb",
+    "stgallencathedral_station1_intensity_rgb",
+    "stgallencathedral_station3_intensity_rgb",
+    "stgallencathedral_station6_intensity_rgb",
+]
+
+all_file_prefixes = train_file_prefixes + valid_file_prefixes + test_file_prefixes
 
 
 class SemanticDataset:
@@ -39,42 +74,9 @@ class SemanticDataset:
             "scanning artefacts",
             "cars",
         ]
-        self.file_names_train = [
-            "bildstein_station1_xyz_intensity_rgb",
-            "bildstein_station3_xyz_intensity_rgb",
-            "bildstein_station5_xyz_intensity_rgb",
-            "domfountain_station1_xyz_intensity_rgb",
-            "domfountain_station2_xyz_intensity_rgb",
-            "domfountain_station3_xyz_intensity_rgb",
-            "neugasse_station1_xyz_intensity_rgb",
-            "sg27_station1_intensity_rgb",
-            "sg27_station2_intensity_rgb",
-        ]
-        self.file_names_test = [
-            "sg27_station4_intensity_rgb",
-            "sg27_station5_intensity_rgb",
-            "sg27_station9_intensity_rgb",
-            "sg28_station4_intensity_rgb",
-            "untermaederbrunnen_station1_xyz_intensity_rgb",
-            "untermaederbrunnen_station3_xyz_intensity_rgb",
-        ]
-        self.file_names_real_test = [
-            "birdfountain_station1_xyz_intensity_rgb",
-            "castleblatten_station1_intensity_rgb",
-            "castleblatten_station5_xyz_intensity_rgb",
-            "marketplacefeldkirch_station1_intensity_rgb",
-            "marketplacefeldkirch_station4_intensity_rgb",
-            "marketplacefeldkirch_station7_intensity_rgb",
-            "sg27_station10_intensity_rgb",
-            "sg27_station3_intensity_rgb",
-            "sg27_station6_intensity_rgb",
-            "sg27_station8_intensity_rgb",
-            "sg28_station2_intensity_rgb",
-            "sg28_station5_xyz_intensity_rgb",
-            "stgallencathedral_station1_intensity_rgb",
-            "stgallencathedral_station3_intensity_rgb",
-            "stgallencathedral_station6_intensity_rgb",
-        ]
+        self.file_names_train = train_file_prefixes
+        self.file_names_test = valid_file_prefixes
+        self.file_names_real_test = test_file_prefixes
 
         # Load the data
         self.load_data()
@@ -84,7 +86,7 @@ class SemanticDataset:
         self.set_pc_zmax_zmin()
 
         # Prepare the points weights if it is a training set
-        if split == "train" or split == "train_short" or split == "full":
+        if self.split == "train" or self.split == "train_short" or self.split == "full":
             # Compute the weights
             label_weights = np.zeros(9)
             # First, compute the histogram of each labels
@@ -97,7 +99,11 @@ class SemanticDataset:
             label_weights = label_weights / np.sum(label_weights)
             self.label_weights = 1 / np.log(1.2 + label_weights)
 
-        elif split == "test" or split == "test_short" or split == "test_full":
+        elif (
+            self.split == "test"
+            or self.split == "test_short"
+            or self.split == "test_full"
+        ):
             self.label_weights = np.ones(9)
 
     def load_data(self):
@@ -134,8 +140,8 @@ class SemanticDataset:
 
         for file_path in self.list_file_path:
             # Load points
-            points = np.load(file_path + "_vertices.npz")
-            points = points[points.files[0]]
+            pcd = open3d.read_point_cloud(file_path + ".pcd")
+            points = np.asarray(pcd.points)
 
             # Shift points to min (0, 0, 0)
             # Training: use the normalized points for training
@@ -150,13 +156,10 @@ class SemanticDataset:
             if self.split == "test_full":
                 labels = np.zeros(len(points)).astype(bool)
             else:
-                labels = np.load(file_path + "_labels.npz")
-                labels = labels[labels.files[0]]
+                labels = load_labels(file_path + ".labels")
 
             # Load colors, regardless of whether use_color is true
-            colors = np.load(file_path + "_colors.npz")
-            colors = colors[colors.files[0]]
-            colors = colors.astype(np.float32) / 255.0  # Normalize RGB to 0~1
+            colors = np.asarray(pcd.colors)
 
             # Sort according to x to speed up computation of boxes and z-boxes
             sort_idx = np.argsort(points[:, 0])
@@ -310,33 +313,6 @@ class SemanticDataset:
         )
         return data - shift
 
-    def extract_box(self, seed, scene):
-        # 10 meters seems intuitively to be a good value to understand the scene, we
-        # must test that
-
-        box_min = seed - [self.box_size / 2, self.box_size / 2, self.box_size / 2]
-        box_max = seed + [self.box_size / 2, self.box_size / 2, self.box_size / 2]
-
-        i_min = np.searchsorted(scene[:, 0], box_min[0])
-        i_max = np.searchsorted(scene[:, 0], box_max[0])
-        mask = (
-            np.sum(
-                (scene[i_min[0] : i_max, :] >= box_min)
-                * (scene[i_min[0] : i_max, :] <= box_max),
-                axis=1,
-            )
-            == 3
-        )
-        mask = np.hstack(
-            (
-                np.zeros(i_min, dtype=bool),
-                mask,
-                np.zeros(len(scene) - i_max, dtype=bool),
-            )
-        )
-        print(mask.shape)
-        return mask
-
     def extract_z_box(self, seed, scene, scene_idx):
         ## TAKES LOT OF TIME !! THINK OF AN ALTERNATIVE !
         # 2D crop, takes all the z axis
@@ -381,10 +357,3 @@ class SemanticDataset:
 
     def get_data_filenames(self):
         return self.list_file_path
-
-
-if __name__ == "__main__":
-    import multiprocessing as mp
-    import time
-
-    data = Dataset(8192, "train", True, 10, "semantic_data", 0, 0)

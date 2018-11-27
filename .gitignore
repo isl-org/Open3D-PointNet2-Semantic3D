@@ -1,7 +1,7 @@
 *.pyc
 dataset/semantic_*/
-logs
-results
+logs/
+result/
 *.o
 *.so
 .vscode

@@ -33,7 +33,7 @@ def predict_one_input(sess, ops, data):
 
 if __name__ == "__main__":
     # Create output dir
-    output_dir = os.path.join("results", "sparse")
+    output_dir = os.path.join("result", "sparse")
     os.makedirs(output_dir, exist_ok=True)
 
     # Import dataset

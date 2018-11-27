@@ -1,6 +1,7 @@
 *.pyc
 dataset/semantic_*/
 logs/
+log/
 result/
 *.o
 *.so

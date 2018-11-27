@@ -149,7 +149,7 @@ class SemanticDataset:
             points_max = np.max(points, axis=0)
 
             # Load label. In pure test set, fill with zero
-            if self.split == "test_full":
+            if self.split == "test":
                 labels = np.zeros(len(points)).astype(bool)
             else:
                 labels = load_labels(file_path + ".labels")

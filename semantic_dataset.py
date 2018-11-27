@@ -381,10 +381,3 @@ class SemanticDataset:
 
     def get_data_filenames(self):
         return self.list_file_path
-
-
-if __name__ == "__main__":
-    import multiprocessing as mp
-    import time
-
-    data = Dataset(8192, "train", True, 10, "semantic_data", 0, 0)

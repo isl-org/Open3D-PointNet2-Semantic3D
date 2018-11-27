@@ -1,6 +1,5 @@
 *.pyc
-dataset/semantic_data
-dataset/down_sampled
+dataset/semantic_*
 logs
 results
 *.o

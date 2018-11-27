@@ -27,3 +27,8 @@ def load_labels(label_path):
     with open(label_path, "r") as f:
         labels = [int(line) for line in f]
     return labels
+
+def write_labels(label_path, labels):
+    with open(label_path, "w") as f:
+        for label in labels:
+            f.write("%d\n" % label)

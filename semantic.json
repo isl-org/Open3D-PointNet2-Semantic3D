@@ -1,8 +1,6 @@
 {
     "gpu": "0",
     "logdir": "logs/semantic",
-    "dataset": "semantic",
-    "model": "model",
     "data_path": "dataset/semantic_downsampled/",
 
     "max_epoch": 500,

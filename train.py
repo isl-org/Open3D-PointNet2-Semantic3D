@@ -1,19 +1,14 @@
-"""
-Use this file to train the network. It is compatible with semantic_dataset.py accessor
-to the datasets semantic-8 and scannet.
-Training results are stored as .ckpt files. Training records are stored as well.
-Training is done by tensorflow, with a queue separating CPU and GPU computations
-and multi-CPU support.
-"""
 import os
 import sys
 import json
-from datetime import datetime
+import datetime
 import numpy as np
 import tensorflow as tf
 import util.metric as metric
 import multiprocessing as mp
 import time
+
+import model
 from dataset.semantic_dataset import SemanticDataset
 
 PARAMS = json.loads(open("semantic.json").read())
@@ -343,7 +338,7 @@ def train_one_epoch(sess, ops, train_writer, stack):
 
     num_batches = TRAIN_DATASET.get_num_batches(PARAMS["batch_size"])
 
-    log_string(str(datetime.now()))
+    log_string(str(datetime.datetime.now()))
     update_progress(0)
     # Reset metrics
     loss_sum = 0

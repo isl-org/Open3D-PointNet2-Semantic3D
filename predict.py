@@ -4,6 +4,8 @@ import json
 import numpy as np
 import tensorflow as tf
 import open3d
+
+import model
 from dataset.semantic_dataset import SemanticDataset
 from util.metric import ConfusionMatrix
 

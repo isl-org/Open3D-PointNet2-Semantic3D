@@ -15,8 +15,7 @@ from dataset.semantic_dataset import SemanticDataset
 PARAMS = json.loads(open("semantic.json").read())
 
 # Import model
-if not os.path.exists(PARAMS["logdir"]):
-    os.mkdir(PARAMS["logdir"])
+os.makedirs(PARAMS["logdir"], exist_ok=True)
 
 # Import dataset
 TRAIN_DATASET = SemanticDataset(
@@ -457,5 +456,4 @@ def eval_one_epoch(sess, ops, validation_writer, stack):
 
 
 if __name__ == "__main__":
-    log_string("pid: %s" % (str(os.getpid())))
     train_single()

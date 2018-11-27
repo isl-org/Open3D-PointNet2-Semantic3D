@@ -25,9 +25,9 @@ def down_sample(
     sparse_pcd, cubics_ids = open3d.voxel_down_sample_and_trace(
         pcd, voxel_size, min_bound, max_bound, False
     )
-    print("Number of points before %d" % np.asarray(pcd.points).shape[0])
-    print("Number of points after %d" % np.asarray(sparse_pcd.points).shape[0])
-    print("Point cloud written to", sparse_pcd_path)
+    print("Number of points before:", np.asarray(pcd.points).shape[0])
+    print("Number of points after:", np.asarray(sparse_pcd.points).shape[0])
+    print("Point cloud written to:", sparse_pcd_path)
     open3d.write_point_cloud(sparse_pcd_path, sparse_pcd)
 
     # Downsample labels
@@ -42,7 +42,7 @@ def down_sample(
         sparse_labels.append(np.bincount(cubic_labels).argmax())
     sparse_labels = np.array(sparse_labels)
     write_labels(sparse_label_path, sparse_labels)
-    print("Labels written to", sparse_label_path)
+    print("Labels written to:", sparse_label_path)
 
 
 if __name__ == "__main__":

@@ -43,6 +43,7 @@ test_file_prefixes = [
 
 all_file_prefixes = train_file_prefixes + valid_file_prefixes + test_file_prefixes
 
+
 class SemanticDataset:
     def __init__(self, npoints, split, use_color, box_size, path):
         """Create a dataset holder

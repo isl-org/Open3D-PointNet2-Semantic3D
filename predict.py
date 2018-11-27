@@ -16,7 +16,7 @@ parser.add_argument(
     "--n", type=int, default=8, help="# samples, each contains num_point points"
 )
 parser.add_argument("--ckpt", default="", help="Checkpoint file")
-parser.add_argument("--set", default="test", help="train or test [default: test]")
+parser.add_argument("--set", default="validation", help="train, validation, test")
 
 # Two global arg collections
 FLAGS = parser.parse_args()

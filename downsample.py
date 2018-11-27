@@ -6,8 +6,9 @@ from dataset.semantic_dataset import all_file_prefixes
 
 voxel_size = 0.05
 current_dir = os.path.dirname(os.path.realpath(__file__))
-raw_data_dir = os.path.join(current_dir, "semantic_raw")
-downsampled_data_dir = os.path.join(current_dir, "semantic_downsampled")
+dataset_dir = os.path.join(current_dir, "dataset")
+raw_data_dir = os.path.join(dataset_dir, "semantic_raw")
+downsampled_data_dir = os.path.join(dataset_dir, "semantic_downsampled")
 
 for file_prefix in all_file_prefixes:
     # Paths

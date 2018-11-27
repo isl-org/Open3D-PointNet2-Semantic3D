@@ -1,6 +1,8 @@
 import os
+import open3d
 import numpy as np
 import utils.provider as provider
+from utils.point_cloud_util import load_labels
 
 train_file_prefixes = [
     "bildstein_station1_xyz_intensity_rgb",
@@ -138,8 +140,8 @@ class SemanticDataset:
 
         for file_path in self.list_file_path:
             # Load points
-            points = np.load(file_path + "_vertices.npz")
-            points = points[points.files[0]]
+            pcd = open3d.read_point_cloud(file_path + ".pcd")
+            points = np.asarray(pcd.points)
 
             # Shift points to min (0, 0, 0)
             # Training: use the normalized points for training
@@ -154,13 +156,10 @@ class SemanticDataset:
             if self.split == "test_full":
                 labels = np.zeros(len(points)).astype(bool)
             else:
-                labels = np.load(file_path + "_labels.npz")
-                labels = labels[labels.files[0]]
+                labels = load_labels(file_path + ".labels")
 
             # Load colors, regardless of whether use_color is true
-            colors = np.load(file_path + "_colors.npz")
-            colors = colors[colors.files[0]]
-            colors = colors.astype(np.float32) / 255.0  # Normalize RGB to 0~1
+            colors = np.asarray(pcd.colors)
 
             # Sort according to x to speed up computation of boxes and z-boxes
             sort_idx = np.argsort(points[:, 0])

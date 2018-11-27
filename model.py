@@ -5,8 +5,8 @@ ROOT_DIR = os.path.abspath(os.path.pardir)
 sys.path.append(ROOT_DIR)
 
 import tensorflow as tf
-import utils.tf_util as tf_util
-from utils.pointnet_util import pointnet_sa_module, pointnet_fp_module
+import util.tf_util as tf_util
+from util.pointnet_util import pointnet_sa_module, pointnet_fp_module
 
 
 def placeholder_inputs(batch_size, num_point, hyperparams):

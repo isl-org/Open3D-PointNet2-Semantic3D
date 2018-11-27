@@ -1,7 +1,7 @@
 import open3d
 import os
 import numpy as np
-from utils.point_cloud_util import load_labels, write_labels
+from util.point_cloud_util import load_labels, write_labels
 from dataset.semantic_dataset import all_file_prefixes
 
 

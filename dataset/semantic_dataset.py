@@ -1,8 +1,8 @@
 import os
 import open3d
 import numpy as np
-import utils.provider as provider
-from utils.point_cloud_util import load_labels
+import util.provider as provider
+from util.point_cloud_util import load_labels
 
 train_file_prefixes = [
     "bildstein_station1_xyz_intensity_rgb",

@@ -11,7 +11,7 @@ import json
 from datetime import datetime
 import numpy as np
 import tensorflow as tf
-import utils.metric as metric
+import util.metric as metric
 import multiprocessing as mp
 import time
 from dataset.semantic_dataset import SemanticDataset

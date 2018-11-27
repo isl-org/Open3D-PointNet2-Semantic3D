@@ -9,7 +9,7 @@ import tensorflow as tf
 from tf_ops.interpolation.tf_interpolate import three_nn, three_interpolate
 from tf_ops.grouping.tf_grouping import query_ball_point, group_point, knn_point
 from tf_ops.sampling.tf_sampling import farthest_point_sample, gather_point
-from utils import tf_util
+from util import tf_util
 
 ROOT_DIR = os.path.abspath(os.path.pardir)
 sys.path.append(ROOT_DIR)

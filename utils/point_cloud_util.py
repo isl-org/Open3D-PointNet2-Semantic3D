@@ -27,7 +27,7 @@ def load_labels(label_path):
     # Assuming each line is a valid int
     with open(label_path, "r") as f:
         labels = [int(line) for line in f]
-    return labels
+    return np.array(labels, dtype=np.int32)
 
 
 def write_labels(label_path, labels):

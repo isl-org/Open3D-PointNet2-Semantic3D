@@ -1,5 +1,5 @@
 *.pyc
-dataset/semantic_*
+dataset/semantic_*/
 logs
 results
 *.o

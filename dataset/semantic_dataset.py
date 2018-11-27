@@ -2,6 +2,45 @@ import os
 import numpy as np
 import utils.provider as provider
 
+train_file_prefixes = [
+    "bildstein_station1_xyz_intensity_rgb",
+    "bildstein_station3_xyz_intensity_rgb",
+    "bildstein_station5_xyz_intensity_rgb",
+    "domfountain_station1_xyz_intensity_rgb",
+    "domfountain_station2_xyz_intensity_rgb",
+    "domfountain_station3_xyz_intensity_rgb",
+    "neugasse_station1_xyz_intensity_rgb",
+    "sg27_station1_intensity_rgb",
+    "sg27_station2_intensity_rgb",
+]
+
+valid_file_prefixes = [
+    "sg27_station4_intensity_rgb",
+    "sg27_station5_intensity_rgb",
+    "sg27_station9_intensity_rgb",
+    "sg28_station4_intensity_rgb",
+    "untermaederbrunnen_station1_xyz_intensity_rgb",
+    "untermaederbrunnen_station3_xyz_intensity_rgb",
+]
+
+test_file_prefixes = [
+    "birdfountain_station1_xyz_intensity_rgb",
+    "castleblatten_station1_intensity_rgb",
+    "castleblatten_station5_xyz_intensity_rgb",
+    "marketplacefeldkirch_station1_intensity_rgb",
+    "marketplacefeldkirch_station4_intensity_rgb",
+    "marketplacefeldkirch_station7_intensity_rgb",
+    "sg27_station10_intensity_rgb",
+    "sg27_station3_intensity_rgb",
+    "sg27_station6_intensity_rgb",
+    "sg27_station8_intensity_rgb",
+    "sg28_station2_intensity_rgb",
+    "sg28_station5_xyz_intensity_rgb",
+    "stgallencathedral_station1_intensity_rgb",
+    "stgallencathedral_station3_intensity_rgb",
+    "stgallencathedral_station6_intensity_rgb",
+]
+
 
 class SemanticDataset:
     def __init__(self, npoints, split, use_color, box_size, path):
@@ -31,42 +70,9 @@ class SemanticDataset:
             "scanning artefacts",
             "cars",
         ]
-        self.file_names_train = [
-            "bildstein_station1_xyz_intensity_rgb",
-            "bildstein_station3_xyz_intensity_rgb",
-            "bildstein_station5_xyz_intensity_rgb",
-            "domfountain_station1_xyz_intensity_rgb",
-            "domfountain_station2_xyz_intensity_rgb",
-            "domfountain_station3_xyz_intensity_rgb",
-            "neugasse_station1_xyz_intensity_rgb",
-            "sg27_station1_intensity_rgb",
-            "sg27_station2_intensity_rgb",
-        ]
-        self.file_names_test = [
-            "sg27_station4_intensity_rgb",
-            "sg27_station5_intensity_rgb",
-            "sg27_station9_intensity_rgb",
-            "sg28_station4_intensity_rgb",
-            "untermaederbrunnen_station1_xyz_intensity_rgb",
-            "untermaederbrunnen_station3_xyz_intensity_rgb",
-        ]
-        self.file_names_real_test = [
-            "birdfountain_station1_xyz_intensity_rgb",
-            "castleblatten_station1_intensity_rgb",
-            "castleblatten_station5_xyz_intensity_rgb",
-            "marketplacefeldkirch_station1_intensity_rgb",
-            "marketplacefeldkirch_station4_intensity_rgb",
-            "marketplacefeldkirch_station7_intensity_rgb",
-            "sg27_station10_intensity_rgb",
-            "sg27_station3_intensity_rgb",
-            "sg27_station6_intensity_rgb",
-            "sg27_station8_intensity_rgb",
-            "sg28_station2_intensity_rgb",
-            "sg28_station5_xyz_intensity_rgb",
-            "stgallencathedral_station1_intensity_rgb",
-            "stgallencathedral_station3_intensity_rgb",
-            "stgallencathedral_station6_intensity_rgb",
-        ]
+        self.file_names_train = train_file_prefixes
+        self.file_names_test = valid_file_prefixes
+        self.file_names_real_test = test_file_prefixes
 
         # Load the data
         self.load_data()

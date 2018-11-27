@@ -5,7 +5,7 @@ import numpy as np
 import tensorflow as tf
 import models.model as MODEL
 import open3d
-from semantic_dataset import SemanticDataset
+from dataset.semantic_dataset import SemanticDataset
 from utils.metric import ConfusionMatrix
 
 

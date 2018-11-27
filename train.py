@@ -14,7 +14,7 @@ import tensorflow as tf
 import utils.metric as metric
 import multiprocessing as mp
 import time
-from semantic_dataset import SemanticDataset
+from dataset.semantic_dataset import SemanticDataset
 import models.model as MODEL
 
 

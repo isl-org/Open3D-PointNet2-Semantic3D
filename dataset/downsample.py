@@ -2,57 +2,19 @@ import open3d
 import os
 import numpy as np
 from utils.point_cloud_util import load_labels, write_labels
-
+from dataset.semantic_dataset import all_file_prefixes
 
 voxel_size = 0.05
-raw_data_dir = "/home/ylao/data/semantic3d"
-sparse_data_dir = "/home/ylao/repo/Open3D-PointNet-Semantic/dataset/down_sampled"
+current_dir = os.path.dirname(os.path.realpath(__file__))
+raw_data_dir = os.path.join(current_dir, "semantic_raw")
+downsampled_data_dir = os.path.join(current_dir, "semantic_downsampled")
 
-train_set = [
-    "sg27_station4_intensity_rgb",
-    "sg27_station5_intensity_rgb",
-    "sg27_station9_intensity_rgb",
-    "sg28_station4_intensity_rgb",
-    "untermaederbrunnen_station1_xyz_intensity_rgb",
-    "untermaederbrunnen_station3_xyz_intensity_rgb",
-]
-valid_set = [
-    "bildstein_station1_xyz_intensity_rgb",
-    "bildstein_station3_xyz_intensity_rgb",
-    "bildstein_station5_xyz_intensity_rgb",
-    "domfountain_station1_xyz_intensity_rgb",
-    "domfountain_station2_xyz_intensity_rgb",
-    "domfountain_station3_xyz_intensity_rgb",
-    "neugasse_station1_xyz_intensity_rgb",
-    "sg27_station1_intensity_rgb",
-    "sg27_station2_intensity_rgb",
-]
-test_set = [
-    "birdfountain_station1_xyz_intensity_rgb",
-    "castleblatten_station1_intensity_rgb",
-    "castleblatten_station5_xyz_intensity_rgb",
-    "marketplacefeldkirch_station1_intensity_rgb",
-    "marketplacefeldkirch_station4_intensity_rgb",
-    "marketplacefeldkirch_station7_intensity_rgb",
-    "sg27_station10_intensity_rgb",
-    "sg27_station3_intensity_rgb",
-    "sg27_station6_intensity_rgb",
-    "sg27_station8_intensity_rgb",
-    "sg28_station2_intensity_rgb",
-    "sg28_station5_xyz_intensity_rgb",
-    "stgallencathedral_station1_intensity_rgb",
-    "stgallencathedral_station3_intensity_rgb",
-    "stgallencathedral_station6_intensity_rgb",
-]
-all_set = train_set + valid_set + test_set
-
-
-for file_prefix in all_set:
+for file_prefix in all_file_prefixes:
     # Paths
     dense_pcd_path = os.path.join(raw_data_dir, file_prefix + ".pcd")
     dense_label_path = os.path.join(raw_data_dir, file_prefix + ".labels")
-    sparse_pcd_path = os.path.join(sparse_data_dir, file_prefix + ".pcd")
-    sparse_label_path = os.path.join(sparse_data_dir, file_prefix + ".labels")
+    sparse_pcd_path = os.path.join(downsampled_data_dir, file_prefix + ".pcd")
+    sparse_label_path = os.path.join(downsampled_data_dir, file_prefix + ".labels")
 
     # Skip if done
     if os.path.isfile(sparse_pcd_path) and (
@@ -75,7 +37,7 @@ for file_prefix in all_set:
     print("Number of points after %d" % np.asarray(sparse_pcd.points).shape[0])
     open3d.write_point_cloud(sparse_pcd_path, sparse_pcd)
 
-    # Downsample lables
+    # Downsample labels
     try:
         dense_labels = np.array(load_labels(dense_label_path))
     except:

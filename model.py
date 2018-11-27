@@ -5,7 +5,6 @@ ROOT_DIR = os.path.abspath(os.path.pardir)
 sys.path.append(ROOT_DIR)
 
 import tensorflow as tf
-import numpy as np
 import utils.tf_util as tf_util
 from utils.pointnet_util import pointnet_sa_module, pointnet_fp_module
 

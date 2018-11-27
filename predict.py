@@ -3,7 +3,6 @@ import os
 import json
 import numpy as np
 import tensorflow as tf
-import models.model as MODEL
 import open3d
 from dataset.semantic_dataset import SemanticDataset
 from utils.metric import ConfusionMatrix
@@ -47,14 +46,14 @@ if __name__ == "__main__":
     )
 
     with tf.device("/gpu:0"):
-        pointclouds_pl, labels_pl, _ = MODEL.placeholder_inputs(
+        pointclouds_pl, labels_pl, _ = model.placeholder_inputs(
             1, PARAMS["num_point"], hyperparams=PARAMS
         )
         print(tf.shape(pointclouds_pl))
         is_training_pl = tf.placeholder(tf.bool, shape=())
 
         # Simple model
-        pred, _ = MODEL.get_model(
+        pred, _ = model.get_model(
             pointclouds_pl, is_training_pl, dataset.num_classes, hyperparams=PARAMS
         )
 

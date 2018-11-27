@@ -15,8 +15,6 @@ import utils.metric as metric
 import multiprocessing as mp
 import time
 from dataset.semantic_dataset import SemanticDataset
-import models.model as MODEL
-
 
 PARAMS = json.loads(open("semantic.json").read())
 
@@ -192,7 +190,7 @@ def train_single():
         stacker, stack_test, stack_train = init_stacking()
 
         with tf.device("/gpu:" + str(PARAMS["gpu"])):
-            pointclouds_pl, labels_pl, smpws_pl = MODEL.placeholder_inputs(
+            pointclouds_pl, labels_pl, smpws_pl = model.placeholder_inputs(
                 PARAMS["batch_size"], PARAMS["num_point"], hyperparams=PARAMS
             )
             is_training_pl = tf.placeholder(tf.bool, shape=())
@@ -206,14 +204,14 @@ def train_single():
 
             print("--- Get model and loss")
             # Get model and loss
-            pred, end_points = MODEL.get_model(
+            pred, end_points = model.get_model(
                 pointclouds_pl,
                 is_training_pl,
                 NUM_CLASSES,
                 hyperparams=PARAMS,
                 bn_decay=bn_decay,
             )
-            loss = MODEL.get_loss(pred, labels_pl, smpws_pl, end_points)
+            loss = model.get_loss(pred, labels_pl, smpws_pl, end_points)
             tf.summary.scalar("loss", loss)
 
             # Compute accuracy

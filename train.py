@@ -7,6 +7,7 @@ import tensorflow as tf
 import util.metric as metric
 import multiprocessing as mp
 import time
+from datetime import datetime
 
 import model
 from dataset.semantic_dataset import SemanticDataset
@@ -338,7 +339,7 @@ def train_one_epoch(sess, ops, train_writer, stack):
 
     num_batches = TRAIN_DATASET.get_num_batches(PARAMS["batch_size"])
 
-    log_string(str(datetime.datetime.now()))
+    log_string(str(datetime.now()))
     update_progress(0)
     # Reset metrics
     loss_sum = 0

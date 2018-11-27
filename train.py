@@ -36,7 +36,6 @@ NUM_CLASSES = TRAIN_DATASET.num_classes
 
 # Start logging
 LOG_FOUT = open(os.path.join(PARAMS["logdir"], "log_train.txt"), "w")
-
 EPOCH_CNT = 0
 
 
@@ -46,11 +45,14 @@ def log_string(out_str):
     print(out_str)
 
 
-# update_progress() : Displays or updates a console progress bar
-## Accepts a float between 0 and 1. Any int will be converted to a float.
-## A value under 0 represents a 'halt'.
-## A value at 1 or bigger represents 100%
 def update_progress(progress):
+    """
+    Displays or updates a console progress bar
+    Args:
+        progress: A float between 0 and 1. Any int will be converted to a float.
+                  A value under 0 represents a 'halt'.
+                  A value at 1 or bigger represents 100%
+    """
     barLength = 10  # Modify this to change the length of the progress bar
     status = ""
     if isinstance(progress, int):
@@ -122,7 +124,9 @@ def get_batch(split):
         return VALIDATION_DATASET.next_batch(PARAMS["batch_size"], augment=False)
 
 
-def fill_queues(stack_train, stack_validation, num_train_batches, num_validation_batches):
+def fill_queues(
+    stack_train, stack_validation, num_train_batches, num_validation_batches
+):
     """
     Args:
         stack_train: mp.Queue to be filled asynchronously
@@ -167,12 +171,19 @@ def init_stacking():
     with tf.device("/cpu:0"):
         # Queues that contain several batches in advance
         num_train_batches = TRAIN_DATASET.get_num_batches(PARAMS["batch_size"])
-        num_validation_batches = VALIDATION_DATASET.get_num_batches(PARAMS["batch_size"])
+        num_validation_batches = VALIDATION_DATASET.get_num_batches(
+            PARAMS["batch_size"]
+        )
         stack_train = mp.Queue(num_train_batches)
         stack_validation = mp.Queue(num_validation_batches)
         stacker = mp.Process(
             target=fill_queues,
-            args=(stack_train, stack_validation, num_train_batches, num_validation_batches),
+            args=(
+                stack_train,
+                stack_validation,
+                num_train_batches,
+                num_validation_batches,
+            ),
         )
         stacker.start()
         return stacker, stack_validation, stack_train
@@ -285,7 +296,14 @@ def train_single():
 
 
 def training_loop(
-    sess, ops, saver, stacker, train_writer, stack_train, validation_writer, stack_validation
+    sess,
+    ops,
+    saver,
+    stacker,
+    train_writer,
+    stack_train,
+    validation_writer,
+    stack_validation,
 ):
     best_acc = -1
     # Train for PARAMS["max_epoch"] epochs
@@ -449,7 +467,9 @@ def eval_one_epoch(sess, ops, validation_writer, stack):
     log_string("Average IoU : %f" % (confusion_matrix.get_mean_iou()))
     iou_per_class = [0] + iou_per_class  # label 0 is ignored
     for i in range(1, NUM_CLASSES):
-        log_string("IoU of %s : %f" % (VALIDATION_DATASET.labels_names[i], iou_per_class[i]))
+        log_string(
+            "IoU of %s : %f" % (VALIDATION_DATASET.labels_names[i], iou_per_class[i])
+        )
 
     EPOCH_CNT += 5
     return confusion_matrix.get_accuracy()

@@ -314,33 +314,6 @@ class SemanticDataset:
         )
         return data - shift
 
-    def extract_box(self, seed, scene):
-        # 10 meters seems intuitively to be a good value to understand the scene, we
-        # must test that
-
-        box_min = seed - [self.box_size / 2, self.box_size / 2, self.box_size / 2]
-        box_max = seed + [self.box_size / 2, self.box_size / 2, self.box_size / 2]
-
-        i_min = np.searchsorted(scene[:, 0], box_min[0])
-        i_max = np.searchsorted(scene[:, 0], box_max[0])
-        mask = (
-            np.sum(
-                (scene[i_min[0] : i_max, :] >= box_min)
-                * (scene[i_min[0] : i_max, :] <= box_max),
-                axis=1,
-            )
-            == 3
-        )
-        mask = np.hstack(
-            (
-                np.zeros(i_min, dtype=bool),
-                mask,
-                np.zeros(len(scene) - i_max, dtype=bool),
-            )
-        )
-        print(mask.shape)
-        return mask
-
     def extract_z_box(self, seed, scene, scene_idx):
         ## TAKES LOT OF TIME !! THINK OF AN ALTERNATIVE !
         # 2D crop, takes all the z axis

@@ -47,6 +47,10 @@ def down_sample(
 
 if __name__ == "__main__":
     voxel_size = 0.05
+
+    # By default
+    # raw data: "dataset/semantic_raw"
+    # downsampled data: "dataset/semantic_downsampled"
     current_dir = os.path.dirname(os.path.realpath(__file__))
     dataset_dir = os.path.join(current_dir, "dataset")
     raw_dir = os.path.join(dataset_dir, "semantic_raw")

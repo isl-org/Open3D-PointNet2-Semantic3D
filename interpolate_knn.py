@@ -46,11 +46,12 @@ if __name__ == "__main__":
         sparse_pcd_tree = open3d.KDTreeFlann(sparse_pcd)
         print("sparse_pcd_tree ready")
 
-        def match_knn_label(dense_point):
+        def match_knn_label(dense_index):
             global dense_points
             global sparse_labels
             global sparse_pcd_tree
 
+            dense_point = dense_points[dense_index]
             k, sparse_indexes, _ = sparse_pcd_tree.search_hybrid_vector_3d(
                 dense_point, 0.2, 20
             )
@@ -65,8 +66,9 @@ if __name__ == "__main__":
 
         # Assign labels
         start = time.time()
+        dense_indexes = list(range(len(dense_points)))
         with multiprocessing.Pool() as pool:
-            dense_labels = pool.map(match_knn_label, dense_points)
+            dense_labels = pool.map(match_knn_label, dense_indexes)
         print("knn match time: ", time.time() - start)
 
         # Eval

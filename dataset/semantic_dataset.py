@@ -1,8 +1,8 @@
 import os
 import open3d
 import numpy as np
-import utils.provider as provider
-from utils.point_cloud_util import load_labels
+import util.provider as provider
+from util.point_cloud_util import load_labels
 
 train_file_prefixes = [
     "bildstein_station1_xyz_intensity_rgb",
@@ -16,7 +16,7 @@ train_file_prefixes = [
     "sg27_station2_intensity_rgb",
 ]
 
-valid_file_prefixes = [
+validation_file_prefixes = [
     "sg27_station4_intensity_rgb",
     "sg27_station5_intensity_rgb",
     "sg27_station9_intensity_rgb",
@@ -43,7 +43,7 @@ test_file_prefixes = [
     "stgallencathedral_station6_intensity_rgb",
 ]
 
-all_file_prefixes = train_file_prefixes + valid_file_prefixes + test_file_prefixes
+all_file_prefixes = train_file_prefixes + validation_file_prefixes + test_file_prefixes
 
 
 class SemanticDataset:
@@ -74,9 +74,6 @@ class SemanticDataset:
             "scanning artefacts",
             "cars",
         ]
-        self.file_names_train = train_file_prefixes
-        self.file_names_test = valid_file_prefixes
-        self.file_names_real_test = test_file_prefixes
 
         # Load the data
         self.load_data()
@@ -86,24 +83,22 @@ class SemanticDataset:
         self.set_pc_zmax_zmin()
 
         # Prepare the points weights if it is a training set
-        if self.split == "train" or self.split == "train_short" or self.split == "full":
+        if self.split == "train" or self.split == "train_full":
             # Compute the weights
             label_weights = np.zeros(9)
+
             # First, compute the histogram of each labels
             for seg in self.list_labels:
                 tmp, _ = np.histogram(seg, range(10))
                 label_weights += tmp
 
-            # Then, an heuristic gives the weights : 1/log(1.2 + probability of occurrence)
+            # Then, an heuristic gives the weights
+            # 1 / log(1.2 + probability of occurrence)
             label_weights = label_weights.astype(np.float32)
             label_weights = label_weights / np.sum(label_weights)
             self.label_weights = 1 / np.log(1.2 + label_weights)
 
-        elif (
-            self.split == "test"
-            or self.split == "test_short"
-            or self.split == "test_full"
-        ):
+        elif self.split == "validation" or self.split == "test":
             self.label_weights = np.ones(9)
 
     def load_data(self):
@@ -117,20 +112,21 @@ class SemanticDataset:
             self.list_labels
             self.list_colors
         """
-        print("Loading semantic data...")
+        print("Loading semantic data:", self.split)
 
         # Get file names to load
         if self.split == "train":
-            file_names = self.file_names_train
+            file_prefixes = train_file_prefixes
+        elif self.split == "validation":
+            file_prefixes = validation_file_prefixes
         elif self.split == "test":
-            file_names = self.file_names_test
-        elif self.split == "full":
-            file_names = self.file_names_train + self.file_names_test
+            file_prefixes = test_file_prefixes
         else:
-            assert self.split == "test_full"
-            file_names = self.file_names_real_test
+            assert self.split == "train_full"
+            file_prefixes = train_file_prefixes + validation_file_prefixes
+        print("Loading file_prefixes:", file_prefixes)
 
-        self.list_file_path = [os.path.join(self.path, file) for file in file_names]
+        self.list_file_path = [os.path.join(self.path, file) for file in file_prefixes]
         self.list_points = list()
         self.list_labels = list()
         self.list_colors = list()
@@ -153,7 +149,7 @@ class SemanticDataset:
             points_max = np.max(points, axis=0)
 
             # Load label. In pure test set, fill with zero
-            if self.split == "test_full":
+            if self.split == "test":
                 labels = np.zeros(len(points)).astype(bool)
             else:
                 labels = load_labels(file_path + ".labels")

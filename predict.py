@@ -3,19 +3,23 @@ import os
 import json
 import numpy as np
 import tensorflow as tf
-import models.model as MODEL
 import open3d
+
+import model
 from dataset.semantic_dataset import SemanticDataset
-from utils.metric import ConfusionMatrix
+from util.metric import ConfusionMatrix
 
 
 # Parser
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    "--n", type=int, default=8, help="# samples, each contains num_point points"
+    "--num_samples",
+    type=int,
+    default=8,
+    help="# samples, each contains num_point points",
 )
 parser.add_argument("--ckpt", default="", help="Checkpoint file")
-parser.add_argument("--set", default="test", help="train or test [default: test]")
+parser.add_argument("--set", default="validation", help="train, validation, test")
 
 # Two global arg collections
 FLAGS = parser.parse_args()
@@ -34,7 +38,7 @@ def predict_one_input(sess, ops, data):
 
 if __name__ == "__main__":
     # Create output dir
-    output_dir = os.path.join("results", "sparse")
+    output_dir = os.path.join("result", "sparse")
     os.makedirs(output_dir, exist_ok=True)
 
     # Import dataset
@@ -47,14 +51,14 @@ if __name__ == "__main__":
     )
 
     with tf.device("/gpu:0"):
-        pointclouds_pl, labels_pl, _ = MODEL.placeholder_inputs(
+        pointclouds_pl, labels_pl, _ = model.placeholder_inputs(
             1, PARAMS["num_point"], hyperparams=PARAMS
         )
         print(tf.shape(pointclouds_pl))
         is_training_pl = tf.placeholder(tf.bool, shape=())
 
         # Simple model
-        pred, _ = MODEL.get_model(
+        pred, _ = model.get_model(
             pointclouds_pl, is_training_pl, dataset.num_classes, hyperparams=PARAMS
         )
 
@@ -85,7 +89,7 @@ if __name__ == "__main__":
     ground_truth = [np.array([]) for i in range(num_scenes)]
     predicted_labels = [np.array([]) for i in range(num_scenes)]
 
-    for batch_index in range(FLAGS.n * num_scenes):
+    for batch_index in range(FLAGS.num_samples * num_scenes):
         scene_index, data, raw_data, true_labels, col, _ = dataset.next_input(
             sample=True, verbose=False, predicting=True
         )

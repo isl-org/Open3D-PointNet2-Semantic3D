@@ -63,7 +63,7 @@ def update_progress(progress):
     if progress >= 1:
         progress = 1
     block = int(round(barLength * progress))
-    text = "\rProgress: [{}] {}% \n".format(
+    text = "\rProgress: [{}] {}%".format(
         "#" * block + "-" * (barLength - block), progress * 100
     )
     sys.stdout.write(text)

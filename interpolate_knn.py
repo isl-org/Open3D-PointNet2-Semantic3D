@@ -15,6 +15,10 @@ if __name__ == "__main__":
     dense_dir = "result/dense"
     gt_dir = "dataset/semantic_raw"
 
+    # Parameters
+    radius = 0.2
+    k = 20
+
     for file_prefix in validation_file_prefixes:
         print("Interpolating:", file_prefix)
 
@@ -50,14 +54,16 @@ if __name__ == "__main__":
             global dense_points
             global sparse_labels
             global sparse_pcd_tree
+            global radius
+            global k
 
             dense_point = dense_points[dense_index]
-            k, sparse_indexes, _ = sparse_pcd_tree.search_hybrid_vector_3d(
-                dense_point, 0.2, 20
+            result_k, sparse_indexes, _ = sparse_pcd_tree.search_hybrid_vector_3d(
+                dense_point, radius, k
             )
-            if k == 0:
-                k, sparse_indexes, _ = sparse_pcd_tree.search_knn_vector_3d(
-                    dense_point, 20
+            if result_k == 0:
+                result_k, sparse_indexes, _ = sparse_pcd_tree.search_knn_vector_3d(
+                    dense_point, k
                 )
             knn_sparse_labels = sparse_labels[sparse_indexes]
             dense_label = np.bincount(knn_sparse_labels).argmax()
@@ -75,5 +81,3 @@ if __name__ == "__main__":
         cm = ConfusionMatrix(9)
         cm.increment_from_list(dense_gt_labels, dense_labels)
         cm.print_metrics()
-
-        break

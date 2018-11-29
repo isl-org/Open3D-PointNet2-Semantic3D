@@ -4,23 +4,27 @@ import json
 import datetime
 import numpy as np
 import tensorflow as tf
-import util.metric as metric
 import multiprocessing as mp
+import argparse
 import time
 from datetime import datetime
 
+import util.metric as metric
 import model
 from dataset.semantic_dataset import SemanticDataset
 
-PARAMS = json.loads(open("semantic.json").read())
+parser = argparse.ArgumentParser()
+parser.add_argument("--train_set", default="train", help="train, train_full")
 
-# Import model
+# Two global arg collections
+FLAGS = parser.parse_args()
+PARAMS = json.loads(open("semantic.json").read())
 os.makedirs(PARAMS["logdir"], exist_ok=True)
 
 # Import dataset
 TRAIN_DATASET = SemanticDataset(
     npoints=PARAMS["num_point"],
-    split="train",
+    split=FLAGS.train_set,
     box_size=PARAMS["box_size"],
     use_color=PARAMS["use_color"],
     path=PARAMS["data_path"],
@@ -185,158 +189,6 @@ def init_stacking():
         return stacker, stack_validation, stack_train
 
 
-def train_single():
-    """Train the model on a single GPU
-    """
-    with tf.Graph().as_default():
-        stacker, stack_validation, stack_train = init_stacking()
-
-        with tf.device("/gpu:" + str(PARAMS["gpu"])):
-            pointclouds_pl, labels_pl, smpws_pl = model.placeholder_inputs(
-                PARAMS["batch_size"], PARAMS["num_point"], hyperparams=PARAMS
-            )
-            is_training_pl = tf.placeholder(tf.bool, shape=())
-
-            # Note the global_step=batch parameter to minimize.
-            # That tells the optimizer to helpfully increment the 'batch' parameter for
-            # you every time it trains.
-            batch = tf.Variable(0)
-            bn_decay = get_bn_decay(batch)
-            tf.summary.scalar("bn_decay", bn_decay)
-
-            print("--- Get model and loss")
-            # Get model and loss
-            pred, end_points = model.get_model(
-                pointclouds_pl,
-                is_training_pl,
-                NUM_CLASSES,
-                hyperparams=PARAMS,
-                bn_decay=bn_decay,
-            )
-            loss = model.get_loss(pred, labels_pl, smpws_pl, end_points)
-            tf.summary.scalar("loss", loss)
-
-            # Compute accuracy
-            correct = tf.equal(tf.argmax(pred, 2), tf.to_int64(labels_pl))
-            accuracy = tf.reduce_sum(tf.cast(correct, tf.float32)) / float(
-                PARAMS["batch_size"] * PARAMS["num_point"]
-            )
-            tf.summary.scalar("accuracy", accuracy)
-
-            # Computer mean intersection over union
-            mean_intersection_over_union, update_iou_op = tf.metrics.mean_iou(
-                tf.to_int32(labels_pl), tf.to_int32(tf.argmax(pred, 2)), NUM_CLASSES
-            )
-            tf.summary.scalar("mIoU", tf.to_float(mean_intersection_over_union))
-
-            print("--- Get training operator")
-            # Get training operator
-            learning_rate = get_learning_rate(batch)
-            tf.summary.scalar("learning_rate", learning_rate)
-            if PARAMS["optimizer"] == "momentum":
-                optimizer = tf.train.MomentumOptimizer(
-                    learning_rate, momentum=PARAMS["momentum"]
-                )
-            else:
-                assert PARAMS["optimizer"] == "adam"
-                optimizer = tf.train.AdamOptimizer(learning_rate)
-            train_op = optimizer.minimize(loss, global_step=batch)
-
-            # Add ops to save and restore all the variables.
-            saver = tf.train.Saver()
-
-        # Create a session
-        config = tf.ConfigProto()
-        config.gpu_options.allow_growth = True
-        config.allow_soft_placement = True
-        config.log_device_placement = False
-        sess = tf.Session(config=config)
-
-        # Add summary writers
-        merged = tf.summary.merge_all()
-        train_writer = tf.summary.FileWriter(
-            os.path.join(PARAMS["logdir"], "train"), sess.graph
-        )
-        validation_writer = tf.summary.FileWriter(
-            os.path.join(PARAMS["logdir"], "validation"), sess.graph
-        )
-
-        # Init variables
-        sess.run(tf.global_variables_initializer())
-        sess.run(tf.local_variables_initializer())  # important for mIoU
-
-        ops = {
-            "pointclouds_pl": pointclouds_pl,
-            "labels_pl": labels_pl,
-            "smpws_pl": smpws_pl,
-            "is_training_pl": is_training_pl,
-            "pred": pred,
-            "loss": loss,
-            "train_op": train_op,
-            "merged": merged,
-            "step": batch,
-            "end_points": end_points,
-            "update_iou": update_iou_op,
-        }
-
-        training_loop(
-            sess,
-            ops,
-            saver,
-            stacker,
-            train_writer,
-            stack_train,
-            validation_writer,
-            stack_validation,
-        )
-
-
-def training_loop(
-    sess,
-    ops,
-    saver,
-    stacker,
-    train_writer,
-    stack_train,
-    validation_writer,
-    stack_validation,
-):
-    best_acc = -1
-    # Train for PARAMS["max_epoch"] epochs
-    for epoch in range(PARAMS["max_epoch"]):
-        print("in epoch", epoch)
-        print("max_epoch", PARAMS["max_epoch"])
-
-        log_string("**** EPOCH %03d ****" % (epoch))
-        sys.stdout.flush()
-
-        # Train one epoch
-        train_one_epoch(sess, ops, train_writer, stack_train)
-
-        # Evaluate, save, and compute the accuracy
-        if epoch % 5 == 0:
-            acc = eval_one_epoch(sess, ops, validation_writer, stack_validation)
-        if acc > best_acc:
-            best_acc = acc
-            save_path = saver.save(
-                sess,
-                os.path.join(PARAMS["logdir"], "best_model_epoch_%03d.ckpt" % (epoch)),
-            )
-            log_string("Model saved in file: %s" % save_path)
-            print("Model saved in file: %s" % save_path)
-
-        # Save the variables to disk.
-        if epoch % 10 == 0:
-            save_path = saver.save(sess, os.path.join(PARAMS["logdir"], "model.ckpt"))
-            log_string("Model saved in file: %s" % save_path)
-            print("Model saved in file: %s" % save_path)
-
-    # Kill the process, close the file and exit
-    stacker.terminate()
-    LOG_FOUT.close()
-    sys.exit()
-
-
 def train_one_epoch(sess, ops, train_writer, stack):
     """Train one epoch
 
@@ -471,5 +323,138 @@ def eval_one_epoch(sess, ops, validation_writer, stack):
     return confusion_matrix.get_accuracy()
 
 
+def train():
+    """Train the model on a single GPU
+    """
+    with tf.Graph().as_default():
+        stacker, stack_validation, stack_train = init_stacking()
+
+        with tf.device("/gpu:" + str(PARAMS["gpu"])):
+            pointclouds_pl, labels_pl, smpws_pl = model.placeholder_inputs(
+                PARAMS["batch_size"], PARAMS["num_point"], hyperparams=PARAMS
+            )
+            is_training_pl = tf.placeholder(tf.bool, shape=())
+
+            # Note the global_step=batch parameter to minimize.
+            # That tells the optimizer to helpfully increment the 'batch' parameter for
+            # you every time it trains.
+            batch = tf.Variable(0)
+            bn_decay = get_bn_decay(batch)
+            tf.summary.scalar("bn_decay", bn_decay)
+
+            print("--- Get model and loss")
+            # Get model and loss
+            pred, end_points = model.get_model(
+                pointclouds_pl,
+                is_training_pl,
+                NUM_CLASSES,
+                hyperparams=PARAMS,
+                bn_decay=bn_decay,
+            )
+            loss = model.get_loss(pred, labels_pl, smpws_pl, end_points)
+            tf.summary.scalar("loss", loss)
+
+            # Compute accuracy
+            correct = tf.equal(tf.argmax(pred, 2), tf.to_int64(labels_pl))
+            accuracy = tf.reduce_sum(tf.cast(correct, tf.float32)) / float(
+                PARAMS["batch_size"] * PARAMS["num_point"]
+            )
+            tf.summary.scalar("accuracy", accuracy)
+
+            # Computer mean intersection over union
+            mean_intersection_over_union, update_iou_op = tf.metrics.mean_iou(
+                tf.to_int32(labels_pl), tf.to_int32(tf.argmax(pred, 2)), NUM_CLASSES
+            )
+            tf.summary.scalar("mIoU", tf.to_float(mean_intersection_over_union))
+
+            print("--- Get training operator")
+            # Get training operator
+            learning_rate = get_learning_rate(batch)
+            tf.summary.scalar("learning_rate", learning_rate)
+            if PARAMS["optimizer"] == "momentum":
+                optimizer = tf.train.MomentumOptimizer(
+                    learning_rate, momentum=PARAMS["momentum"]
+                )
+            else:
+                assert PARAMS["optimizer"] == "adam"
+                optimizer = tf.train.AdamOptimizer(learning_rate)
+            train_op = optimizer.minimize(loss, global_step=batch)
+
+            # Add ops to save and restore all the variables.
+            saver = tf.train.Saver()
+
+        # Create a session
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+        config.allow_soft_placement = True
+        config.log_device_placement = False
+        sess = tf.Session(config=config)
+
+        # Add summary writers
+        merged = tf.summary.merge_all()
+        train_writer = tf.summary.FileWriter(
+            os.path.join(PARAMS["logdir"], "train"), sess.graph
+        )
+        validation_writer = tf.summary.FileWriter(
+            os.path.join(PARAMS["logdir"], "validation"), sess.graph
+        )
+
+        # Init variables
+        sess.run(tf.global_variables_initializer())
+        sess.run(tf.local_variables_initializer())  # important for mIoU
+
+        ops = {
+            "pointclouds_pl": pointclouds_pl,
+            "labels_pl": labels_pl,
+            "smpws_pl": smpws_pl,
+            "is_training_pl": is_training_pl,
+            "pred": pred,
+            "loss": loss,
+            "train_op": train_op,
+            "merged": merged,
+            "step": batch,
+            "end_points": end_points,
+            "update_iou": update_iou_op,
+        }
+
+        # Train for PARAMS["max_epoch"] epochs
+        best_acc = 0
+        for epoch in range(PARAMS["max_epoch"]):
+            print("in epoch", epoch)
+            print("max_epoch", PARAMS["max_epoch"])
+
+            log_string("**** EPOCH %03d ****" % (epoch))
+            sys.stdout.flush()
+
+            # Train one epoch
+            train_one_epoch(sess, ops, train_writer, stack_train)
+
+            # Evaluate, save, and compute the accuracy
+            if epoch % 5 == 0:
+                acc = eval_one_epoch(sess, ops, validation_writer, stack_validation)
+
+            if acc > best_acc:
+                best_acc = acc
+                save_path = saver.save(
+                    sess,
+                    os.path.join(PARAMS["logdir"],
+                                 "best_model_epoch_%03d.ckpt" % (epoch)),
+                )
+                log_string("Model saved in file: %s" % save_path)
+                print("Model saved in file: %s" % save_path)
+
+            # Save the variables to disk.
+            if epoch % 10 == 0:
+                save_path = saver.save(sess,
+                                       os.path.join(PARAMS["logdir"], "model.ckpt"))
+                log_string("Model saved in file: %s" % save_path)
+                print("Model saved in file: %s" % save_path)
+
+        # Kill the process, close the file and exit
+        stacker.terminate()
+        LOG_FOUT.close()
+        sys.exit()
+
+
 if __name__ == "__main__":
-    train_single()
+    train()

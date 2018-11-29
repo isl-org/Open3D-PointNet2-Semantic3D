@@ -19,6 +19,9 @@ if __name__ == "__main__":
     radius = 0.2
     k = 20
 
+    # Global statistics
+    cm_global = ConfusionMatrix(9)
+
     for file_prefix in validation_file_prefixes:
         print("Interpolating:", file_prefix)
 
@@ -81,3 +84,7 @@ if __name__ == "__main__":
         cm = ConfusionMatrix(9)
         cm.increment_from_list(dense_gt_labels, dense_labels)
         cm.print_metrics()
+        cm_global.increment_from_list(dense_gt_labels, dense_labels)
+
+    print("Global results")
+    cm_global.print_metrics()

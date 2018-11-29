@@ -1,8 +1,8 @@
-# Semantic3D semantic segmentation with Open3D and PointNet2
+# Semantic3D segmentation with Open3D and PointNet2
 
-## Acknowledgement
+## Reference
 
-This is forked from Mathieu Orhan and Guillaume Dekeyser's
+This project is forked from Mathieu Orhan and Guillaume Dekeyser's
 [repo](https://github.com/mathieuorhan/pointnet2_semantic), which, is forked
 from the original [PointNet2](https://github.com/charlesq34/pointnet2).
 
@@ -11,8 +11,7 @@ from the original [PointNet2](https://github.com/charlesq34/pointnet2).
 ### 1. Download
 
 Download the dataset from [Semantic3D](http://www.semantic3d.net/view_dbase.php)
-and extract to `dataset/semantic_raw`. After extraction, the directory shall
-look like the following.
+and extract to `dataset/semantic_raw`.
 
 ```shell
 Open3D-PointNet-Semantic/dataset/semantic_raw
@@ -23,7 +22,7 @@ Open3D-PointNet-Semantic/dataset/semantic_raw
 ├── ...
 ```
 
-### 2. Preprocess: convert `.txt` points to pcd file
+### 2. Convert txt to pcd file
 
 Run
 
@@ -31,9 +30,7 @@ Run
 python preprocess.py
 ```
 
-After the conversion, the `dataset/semantic_raw` directory shall look like the
-following. Open3D is able to read `.pcd` files much more efficiently compared to
-loading the point cloud via `.txt` files line-by-line.
+Open3D is able to read `.pcd` files much more efficiently.
 
 ```shell
 Open3D-PointNet-Semantic/dataset/semantic_raw
@@ -48,15 +45,13 @@ Open3D-PointNet-Semantic/dataset/semantic_raw
 
 ### 3. Downsample
 
-Due to the size of the dataset, downsampling is required before training. In
-this step, points with label 0 (unlabled) are excluded.
+Points with label 0 (unlabled) are excluded during downsampling.
 
 ```shell
 python downsample.py
 ```
 
-The downsampled dataset will be written to `dataset/semantic_downsampled`. The
-directory shall look like the following.
+The downsampled dataset will be written to `dataset/semantic_downsampled`.
 
 ```shell
 Open3D-PointNet-Semantic/dataset/semantic_downsampled
@@ -70,7 +65,8 @@ Open3D-PointNet-Semantic/dataset/semantic_downsampled
 ### 4. Train
 
 First, we'll need to build TF kernels in `tf_ops`. Run `.sh` build scripts for
-each op in the `tf_ops` folder respectively.
+each op in the `tf_ops` folder respectively. The dataset split is defined in
+`dataset/semantic_dataset.py`.
 
 Then, run
 
@@ -127,44 +123,4 @@ Open3D-PointNet-Semantic/result/dense
 ├── sg27_station5_intensity_rgb.labels
 ├── sg27_station5_intensity_rgb.pcd
 ├── ...
-```
-
-## Dataset split
-```
-# Train (9)
-bildstein_station1_xyz_intensity_rgb
-bildstein_station3_xyz_intensity_rgb
-bildstein_station5_xyz_intensity_rgb
-domfountain_station1_xyz_intensity_rgb
-domfountain_station2_xyz_intensity_rgb
-domfountain_station3_xyz_intensity_rgb
-neugasse_station1_xyz_intensity_rgb
-sg27_station1_intensity_rgb
-sg27_station2_intensity_rgb
-
-
-# Validation (6)
-sg27_station4_intensity_rgb
-sg27_station5_intensity_rgb
-sg27_station9_intensity_rgb
-sg28_station4_intensity_rgb
-untermaederbrunnen_station1_xyz_intensity_rgb
-untermaederbrunnen_station3_xyz_intensity_rgb
-
-# Test (15)
-birdfountain_station1_xyz_intensity_rgb
-castleblatten_station1_intensity_rgb
-castleblatten_station5_xyz_intensity_rgb
-marketplacefeldkirch_station1_intensity_rgb
-marketplacefeldkirch_station4_intensity_rgb
-marketplacefeldkirch_station7_intensity_rgb
-sg27_station10_intensity_rgb
-sg27_station3_intensity_rgb
-sg27_station6_intensity_rgb
-sg27_station8_intensity_rgb
-sg28_station2_intensity_rgb
-sg28_station5_xyz_intensity_rgb
-stgallencathedral_station1_intensity_rgb
-stgallencathedral_station3_intensity_rgb
-stgallencathedral_station6_intensity_rgb
 ```

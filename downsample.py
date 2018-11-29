@@ -24,16 +24,24 @@ def down_sample(
     except:
         dense_labels = None
 
-    # Skip label 0
+    # Skip label 0, we use explicit frees to reduce memory usage
     print("Num points:", np.asarray(dense_pcd.points).shape[0])
     if dense_labels is not None:
         non_zero_indexes = dense_labels != 0
+
         dense_points = np.asarray(dense_pcd.points)[non_zero_indexes]
-        dense_colors = np.asarray(dense_pcd.colors)[non_zero_indexes]
-        dense_labels = dense_labels[non_zero_indexes]
+        dense_pcd.points = open3d.Vector3dVector()
         dense_pcd.points = open3d.Vector3dVector(dense_points)
+        del dense_points
+
+        dense_colors = np.asarray(dense_pcd.colors)[non_zero_indexes]
+        dense_pcd.colors = open3d.Vector3dVector()
         dense_pcd.colors = open3d.Vector3dVector(dense_colors)
-        print("Num points after 0-skip:", dense_points.shape[0])
+        del dense_colors
+
+        dense_labels = dense_labels[non_zero_indexes]
+        print("Num points after 0-skip:", np.asarray(dense_pcd.points).shape[0])
+
 
     # Downsample points
     min_bound = dense_pcd.get_min_bound() - voxel_size * 0.5

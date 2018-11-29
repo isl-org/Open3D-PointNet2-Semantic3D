@@ -46,12 +46,6 @@ def point_cloud_txt_to_pcd(raw_dir, file_prefix):
     open3d.write_point_cloud(pcd_file, point_cloud)
     os.remove(pts_file)
 
-    # Sanity check
-    # Disabled: if array is too large may cause memory error
-    # point_cloud_loaded = open3d.read_point_cloud(pcd_file)
-    # np.testing.assert_allclose(np.asarray(point_cloud.points),
-    #                            np.asarray(point_cloud_loaded.points))
-
 
 if __name__ == "__main__":
     # By default

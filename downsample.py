@@ -42,7 +42,6 @@ def down_sample(
         dense_labels = dense_labels[non_zero_indexes]
         print("Num points after 0-skip:", np.asarray(dense_pcd.points).shape[0])
 
-
     # Downsample points
     min_bound = dense_pcd.get_min_bound() - voxel_size * 0.5
     max_bound = dense_pcd.get_max_bound() + voxel_size * 0.5

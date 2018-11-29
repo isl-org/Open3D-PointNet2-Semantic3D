@@ -33,7 +33,6 @@ if __name__ == "__main__":
 
         # Sparse points
         sparse_pcd = open3d.read_point_cloud(sparse_points_path)
-        sparse_points = np.asarray(sparse_pcd.points)
         print("sparse_pcd loaded")
 
         # Sparse labels

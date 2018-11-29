@@ -120,5 +120,3 @@ if __name__ == "__main__":
         cm = ConfusionMatrix(9)
         cm.increment_from_list(dense_gt_labels, dense_labels)
         cm.print_metrics()
-
-        break

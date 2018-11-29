@@ -437,16 +437,18 @@ def train():
                 best_acc = acc
                 save_path = saver.save(
                     sess,
-                    os.path.join(PARAMS["logdir"],
-                                 "best_model_epoch_%03d.ckpt" % (epoch)),
+                    os.path.join(
+                        PARAMS["logdir"], "best_model_epoch_%03d.ckpt" % (epoch)
+                    ),
                 )
                 log_string("Model saved in file: %s" % save_path)
                 print("Model saved in file: %s" % save_path)
 
             # Save the variables to disk.
             if epoch % 10 == 0:
-                save_path = saver.save(sess,
-                                       os.path.join(PARAMS["logdir"], "model.ckpt"))
+                save_path = saver.save(
+                    sess, os.path.join(PARAMS["logdir"], "model.ckpt")
+                )
                 log_string("Model saved in file: %s" % save_path)
                 print("Model saved in file: %s" % save_path)
 

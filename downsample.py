@@ -17,32 +17,47 @@ def down_sample(
     else:
         print("Processing:", file_prefix)
 
+    # Inputs
+    dense_pcd = open3d.read_point_cloud(dense_pcd_path)
+    try:
+        dense_labels = load_labels(dense_label_path)
+    except:
+        dense_labels = None
+
+    # Skip label 0
+    print("Num points:", np.asarray(dense_pcd.points).shape[0])
+    if dense_labels is not None:
+        non_zero_indexes = dense_labels != 0
+        dense_points = np.asarray(dense_pcd.points)[non_zero_indexes]
+        dense_colors = np.asarray(dense_pcd.colors)[non_zero_indexes]
+        dense_labels = dense_labels[non_zero_indexes]
+        dense_pcd.points = open3d.Vector3dVector(dense_points)
+        dense_pcd.colors = open3d.Vector3dVector(dense_colors)
+        print("Num points after 0-skip:", dense_points.shape[0])
+
     # Downsample points
-    pcd = open3d.read_point_cloud(dense_pcd_path)
-    min_bound = pcd.get_min_bound() - voxel_size * 0.5
-    max_bound = pcd.get_max_bound() + voxel_size * 0.5
+    min_bound = dense_pcd.get_min_bound() - voxel_size * 0.5
+    max_bound = dense_pcd.get_max_bound() + voxel_size * 0.5
 
     sparse_pcd, cubics_ids = open3d.voxel_down_sample_and_trace(
-        pcd, voxel_size, min_bound, max_bound, False
+        dense_pcd, voxel_size, min_bound, max_bound, False
     )
-    print("Number of points before:", np.asarray(pcd.points).shape[0])
-    print("Number of points after:", np.asarray(sparse_pcd.points).shape[0])
-    print("Point cloud written to:", sparse_pcd_path)
+    print("Num points after down sampling:", np.asarray(sparse_pcd.points).shape[0])
+
     open3d.write_point_cloud(sparse_pcd_path, sparse_pcd)
+    print("Point cloud written to:", sparse_pcd_path)
 
     # Downsample labels
-    try:
-        dense_labels = np.array(load_labels(dense_label_path))
-    except:
-        return
-    sparse_labels = []
-    for cubic_ids in cubics_ids:
-        cubic_ids = cubic_ids[cubic_ids != -1]
-        cubic_labels = dense_labels[cubic_ids]
-        sparse_labels.append(np.bincount(cubic_labels).argmax())
-    sparse_labels = np.array(sparse_labels)
-    write_labels(sparse_label_path, sparse_labels)
-    print("Labels written to:", sparse_label_path)
+    if dense_labels is not None:
+        sparse_labels = []
+        for cubic_ids in cubics_ids:
+            cubic_ids = cubic_ids[cubic_ids != -1]
+            cubic_labels = dense_labels[cubic_ids]
+            sparse_labels.append(np.bincount(cubic_labels).argmax())
+        sparse_labels = np.array(sparse_labels)
+
+        write_labels(sparse_label_path, sparse_labels)
+        print("Labels written to:", sparse_label_path)
 
 
 if __name__ == "__main__":

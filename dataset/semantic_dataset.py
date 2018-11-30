@@ -45,6 +45,14 @@ test_file_prefixes = [
 
 all_file_prefixes = train_file_prefixes + validation_file_prefixes + test_file_prefixes
 
+map_name_to_file_prefixes = {
+    "train": train_file_prefixes,
+    "train_full": train_file_prefixes + validation_file_prefixes,
+    "validation": validation_file_prefixes,
+    "test": test_file_prefixes,
+    "all": all_file_prefixes,
+}
+
 
 class SemanticDataset:
     def __init__(self, npoints, split, use_color, box_size, path):

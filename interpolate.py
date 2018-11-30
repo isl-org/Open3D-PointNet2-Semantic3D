@@ -1,3 +1,4 @@
+import argparse
 import os
 import numpy as np
 import open3d
@@ -6,11 +7,16 @@ import multiprocessing
 
 from util.metric import ConfusionMatrix
 from util.point_cloud_util import load_labels, write_labels
-from dataset.semantic_dataset import validation_file_prefixes
+from dataset.semantic_dataset import map_name_to_file_prefixes
 
 
 if __name__ == "__main__":
-    # TODO: handle test set
+    # Parser
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--set", default="validation", help="train, validation, test")
+    flags = parser.parse_args()
+
+    # Directories
     sparse_dir = "result/sparse"
     dense_dir = "result/dense"
     gt_dir = "dataset/semantic_raw"
@@ -22,7 +28,7 @@ if __name__ == "__main__":
     # Global statistics
     cm_global = ConfusionMatrix(9)
 
-    for file_prefix in validation_file_prefixes:
+    for file_prefix in map_name_to_file_prefixes[flags.set]:
         print("Interpolating:", file_prefix, flush=True)
 
         # Paths

@@ -91,7 +91,7 @@ required by PointNet2. To specify the number of such samples per scene, use the
 ```shell
 python predict.py --ckpt log/semantic/best_model_epoch_040.ckpt \
                   --set=validation \
-                  --num_samples=200
+                  --num_samples=500
 ```
 
 The prediction results will be written to `result/sparse`.

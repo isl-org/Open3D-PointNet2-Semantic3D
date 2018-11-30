@@ -14,7 +14,7 @@ Download the dataset from [Semantic3D](http://www.semantic3d.net/view_dbase.php)
 and extract to `dataset/semantic_raw`.
 
 ```shell
-Open3D-PointNet-Semantic/dataset/semantic_raw
+Open3D-PointNet2-Semantic3D/dataset/semantic_raw
 ├── bildstein_station1_xyz_intensity_rgb.labels
 ├── bildstein_station1_xyz_intensity_rgb.txt
 ├── bildstein_station3_xyz_intensity_rgb.labels
@@ -33,7 +33,7 @@ python preprocess.py
 Open3D is able to read `.pcd` files much more efficiently.
 
 ```shell
-Open3D-PointNet-Semantic/dataset/semantic_raw
+Open3D-PointNet2-Semantic3D/dataset/semantic_raw
 ├── bildstein_station1_xyz_intensity_rgb.labels
 ├── bildstein_station1_xyz_intensity_rgb.pcd (new)
 ├── bildstein_station1_xyz_intensity_rgb.txt
@@ -54,7 +54,7 @@ python downsample.py
 The downsampled dataset will be written to `dataset/semantic_downsampled`.
 
 ```shell
-Open3D-PointNet-Semantic/dataset/semantic_downsampled
+Open3D-PointNet2-Semantic3D/dataset/semantic_downsampled
 ├── bildstein_station1_xyz_intensity_rgb.labels
 ├── bildstein_station1_xyz_intensity_rgb.pcd
 ├── bildstein_station3_xyz_intensity_rgb.labels
@@ -97,7 +97,7 @@ python predict.py --ckpt log/semantic/best_model_epoch_040.ckpt \
 The prediction results will be written to `result/sparse`.
 
 ```
-Open3D-PointNet-Semantic/result/sparse
+Open3D-PointNet2-Semantic3D/result/sparse
 ├── sg27_station4_intensity_rgb.labels
 ├── sg27_station4_intensity_rgb.pcd
 ├── sg27_station5_intensity_rgb.labels
@@ -117,7 +117,7 @@ python interpolate.py
 The prediction results will be written to `result/dense`.
 
 ```
-Open3D-PointNet-Semantic/result/dense
+Open3D-PointNet2-Semantic3D/result/dense
 ├── sg27_station4_intensity_rgb.labels
 ├── sg27_station4_intensity_rgb.pcd
 ├── sg27_station5_intensity_rgb.labels

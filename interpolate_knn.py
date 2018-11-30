@@ -5,7 +5,7 @@ import time
 import multiprocessing
 
 from util.metric import ConfusionMatrix
-from util.point_cloud_util import load_labels
+from util.point_cloud_util import load_labels, write_labels
 from dataset.semantic_dataset import validation_file_prefixes
 
 
@@ -23,41 +23,42 @@ if __name__ == "__main__":
     cm_global = ConfusionMatrix(9)
 
     for file_prefix in validation_file_prefixes:
-        print("Interpolating:", file_prefix)
+        print("Interpolating:", file_prefix, flush=True)
 
         # Paths
         sparse_points_path = os.path.join(sparse_dir, file_prefix + ".pcd")
         sparse_labels_path = os.path.join(sparse_dir, file_prefix + ".labels")
         dense_points_path = os.path.join(gt_dir, file_prefix + ".pcd")
+        dense_labels_path = os.path.join(dense_dir, file_prefix + ".labels")
         dense_gt_labels_path = os.path.join(gt_dir, file_prefix + ".labels")
 
         # Sparse points
         sparse_pcd = open3d.read_point_cloud(sparse_points_path)
-        print("sparse_pcd loaded")
+        print("sparse_pcd loaded", flush=True)
+        sparse_pcd_tree = open3d.KDTreeFlann(sparse_pcd)
+        del sparse_pcd
+        print("sparse_pcd_tree ready", flush=True)
 
         # Sparse labels
         sparse_labels = load_labels(sparse_labels_path)
-        print("sparse_labels loaded")
+        print("sparse_labels loaded", flush=True)
 
         # Dense points
         dense_pcd = open3d.read_point_cloud(dense_points_path)
         dense_points = np.asarray(dense_pcd.points)
-        print("dense_pcd loaded")
+        del dense_pcd
+        print("dense_pcd loaded", flush=True)
 
         # Dense Ground-truth labels
         dense_gt_labels = load_labels(os.path.join(gt_dir, file_prefix + ".labels"))
-        print("dense_gt_labels loaded")
-
-        # Build KNN tree
-        sparse_pcd_tree = open3d.KDTreeFlann(sparse_pcd)
-        print("sparse_pcd_tree ready")
+        print("dense_gt_labels loaded", flush=True)
 
         def match_knn_label(dense_index):
-            global dense_points
-            global sparse_labels
-            global sparse_pcd_tree
-            global radius
-            global k
+            nonlocal dense_points
+            nonlocal sparse_labels
+            nonlocal sparse_pcd_tree
+            nonlocal radius
+            nonlocal k
 
             dense_point = dense_points[dense_index]
             result_k, sparse_indexes, _ = sparse_pcd_tree.search_hybrid_vector_3d(
@@ -77,7 +78,11 @@ if __name__ == "__main__":
         dense_indexes = list(range(len(dense_points)))
         with multiprocessing.Pool() as pool:
             dense_labels = pool.map(match_knn_label, dense_indexes)
-        print("knn match time: ", time.time() - start)
+        print("knn match time: ", time.time() - start, flush=True)
+
+        # Write labels
+        write_labels(dense_labels_path, dense_labels)
+        print("Dense labels written to:", dense_labels_path, flush=True)
 
         # Eval
         cm = ConfusionMatrix(9)

@@ -104,7 +104,11 @@ if __name__ == "__main__":
         )
 
         if batch_index % 100 == 0:
-            print("Batch {} predicted".format(batch_index))
+            print(
+                "Batch {} predicted, num points in scenes {}".format(
+                    batch_index, [len(labels) for labels in predicted_labels]
+                )
+            )
 
     file_names = dataset.get_data_filenames()
     print("{} point clouds to export".format(len(file_names)))

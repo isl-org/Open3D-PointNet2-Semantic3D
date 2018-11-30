@@ -20,6 +20,7 @@ def _label_to_colors(labels):
 def colorize_point_cloud(point_cloud, labels):
     if len(point_cloud.points) != len(labels):
         raise ValueError("len(point_cloud.points) != len(labels)")
+    point_cloud.colors = open3d.Vector3dVector()  # Clear it to save memory
     point_cloud.colors = open3d.Vector3dVector(_label_to_colors(labels))
 
 

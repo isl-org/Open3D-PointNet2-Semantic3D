@@ -54,11 +54,11 @@ if __name__ == "__main__":
         print("dense_gt_labels loaded", flush=True)
 
         def match_knn_label(dense_index):
-            nonlocal dense_points
-            nonlocal sparse_labels
-            nonlocal sparse_pcd_tree
-            nonlocal radius
-            nonlocal k
+            global dense_points
+            global sparse_labels
+            global sparse_pcd_tree
+            global radius
+            global k
 
             dense_point = dense_points[dense_index]
             result_k, sparse_indexes, _ = sparse_pcd_tree.search_hybrid_vector_3d(

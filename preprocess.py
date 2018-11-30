@@ -32,10 +32,18 @@ def point_cloud_txt_to_pcd(raw_dir, file_prefix):
         return
 
     # .txt to .pts
+    # We could just prepend the line count, however, there are some intensity value
+    # which are non-integers.
     print("[txt->pts]")
     print("txt: {}".format(txt_file))
     print("pts: {}".format(pts_file))
-    shutil.copyfile(txt_file, pts_file)
+    with open(txt_file, "r") as txt_f, open(pts_file, "w") as pts_f:
+        for line in txt_f:
+            # x, y, z, i, r, g, b
+            tokens = line.split()
+            tokens[3] = str(int(float(tokens[3])))
+            line = " ".join(tokens)
+            pts_f.write(line + "\n")
     prepend_line(pts_file, str(wc(txt_file)))
 
     # .pts -> .pcd

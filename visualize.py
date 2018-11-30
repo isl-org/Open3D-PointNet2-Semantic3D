@@ -5,9 +5,9 @@ from util.metric import ConfusionMatrix
 import time
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     gt_dir = "dataset/semantic_raw"
-    pd_dir = "result/dense" # Dense prediction
+    pd_dir = "result/dense"  # Dense prediction
 
     file_prefix = "sg27_station4_intensity_rgb"
     gt_labels_path = os.path.join(gt_dir, file_prefix + ".labels")

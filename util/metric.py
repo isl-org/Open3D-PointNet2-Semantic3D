@@ -1,6 +1,7 @@
 from __future__ import print_function
 import numpy as np
 from pprint import pprint
+from sklearn.metrics import confusion_matrix as skl_get_confusion_matrix
 
 
 class ConfusionMatrix:
@@ -9,28 +10,24 @@ class ConfusionMatrix:
         label must be {0, 1, 2, ..., num_classes - 1}
         """
         self.num_classes = num_classes
-        self.confusion_matrix = np.zeros((self.num_classes, self.num_classes))
+        self.confusion_matrix = np.zeros(
+            (self.num_classes, self.num_classes), dtype=np.int64
+        )
         self.valid_labels = set(range(self.num_classes))
 
     def increment(self, gt_label, pd_label):
-        # Disabled checking for performance
-        # if gt_label not in self.valid_labels:
-        #     raise ValueError("Invalid value for gt_label")
-        # if pd_label not in self.valid_labels:
-        #     raise ValueError("Invalid value for pd_label")
+        if gt_label not in self.valid_labels:
+            raise ValueError("Invalid value for gt_label")
+        if pd_label not in self.valid_labels:
+            raise ValueError("Invalid value for pd_label")
         self.confusion_matrix[gt_label][pd_label] += 1
 
     def increment_from_list(self, gt_labels, pd_labels):
-        # TODO: vectorize this
-        for gt_label, pd_label in zip(gt_labels, pd_labels):
-            self.increment(gt_label, pd_label)
-
-    def increment_from_file(self, gt_file, pd_file):
-        with open(gt_file, "r") as gt_f, open(pd_file, "r") as pd_f:
-            for gt_line, pd_line in zip(gt_f, pd_f):
-                gt_label = int(float(gt_line.strip()))
-                pd_label = int(float(pd_line.strip()))
-                self.increment(gt_label, pd_label)
+        increment_cm = skl_get_confusion_matrix(
+            gt_labels, pd_labels, labels=list(range(self.num_classes))
+        )
+        np.testing.assert_array_equal(self.confusion_matrix.shape, increment_cm.shape)
+        self.confusion_matrix += increment_cm
 
     def get_per_class_ious(self):
         """

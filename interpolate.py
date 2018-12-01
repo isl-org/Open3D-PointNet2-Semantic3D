@@ -56,8 +56,12 @@ if __name__ == "__main__":
         print("dense_pcd loaded", flush=True)
 
         # Dense Ground-truth labels
-        dense_gt_labels = load_labels(os.path.join(gt_dir, file_prefix + ".labels"))
-        print("dense_gt_labels loaded", flush=True)
+        try:
+            dense_gt_labels = load_labels(os.path.join(gt_dir, file_prefix + ".labels"))
+            print("dense_gt_labels loaded", flush=True)
+        except:
+            print("dense_gt_labels not found, treat as test set")
+            dense_gt_labels = None
 
         def match_knn_label(dense_index):
             global dense_points
@@ -91,10 +95,11 @@ if __name__ == "__main__":
         print("Dense labels written to:", dense_labels_path, flush=True)
 
         # Eval
-        cm = ConfusionMatrix(9)
-        cm.increment_from_list(dense_gt_labels, dense_labels)
-        cm.print_metrics()
-        cm_global.increment_from_list(dense_gt_labels, dense_labels)
+        if dense_gt_labels:
+            cm = ConfusionMatrix(9)
+            cm.increment_from_list(dense_gt_labels, dense_labels)
+            cm.print_metrics()
+            cm_global.increment_from_list(dense_gt_labels, dense_labels)
 
     print("Global results")
     cm_global.print_metrics()

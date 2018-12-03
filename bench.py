@@ -15,6 +15,8 @@ _map_label_to_color = [
     [128, 128, 0],  # olive
 ]
 
+_label_to_color_matrix = np.array(_map_label_to_color, dtype=np.int32)
+
 
 def _label_index_to_color(label_index):
     global labels
@@ -29,6 +31,14 @@ def _labels_to_colors(labels):
         colors = pool.map(_label_index_to_color, label_indexes)
     return np.array(colors).astype(np.int32)
 
+def _labels_to_colors_matmul(labels):
+    labels = np.array(labels).astype(np.int32)
+    num_points = len(labels)
+    labels_one_hot = np.zeros((num_points, 9))
+    labels_one_hot[np.arange(num_points), labels] = 1
+    colors = labels_one_hot @ _label_to_color_matrix
+    return colors
+
 
 labels = list(np.random.randint(0, 9, size=(5000000,), dtype=np.int32))
 
@@ -38,7 +48,7 @@ colors = np.array(colors).astype(np.int32)
 print("time to direct", time.time() - s, flush=True)
 
 s = time.time()
-colors_parallel = _labels_to_colors(labels)
+colors_parallel = _labels_to_colors_matmul(labels)
 print("time to map", time.time() - s, flush=True)
 
 np.testing.assert_array_equal(colors, colors_parallel)

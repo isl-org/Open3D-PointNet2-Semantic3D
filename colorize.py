@@ -12,7 +12,8 @@ if __name__ == "__main__":
 
     pd_labels_paths = glob.glob(os.path.join(pd_dir, "*.labels"))
     for pd_labels_path in pd_labels_paths:
-        file_prefix = os.path.splitext(pd_labels_path)[0]
+        print("Processing", pd_labels_path)
+        file_prefix = os.path.basename(os.path.splitext(pd_labels_path)[0])
 
         # Input pcd
         pcd_path = os.path.join(gt_dir, file_prefix + ".pcd")

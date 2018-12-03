@@ -16,15 +16,17 @@ _map_label_to_color = [
 ]
 
 
-def _label_chunk_to_color(label_chunk):
-    return [_map_label_to_color[l] for l in label_chunk]
+def _label_index_to_color(label_index):
+    global labels
+    return _map_label_to_color[labels[label_index]]
 
 
-def _label_to_colors(labels):
+def _labels_to_colors(labels):
     labels = np.array(labels).astype(np.int32)
     labels = list(labels)
+    label_indexes = range(len(labels))
     with multiprocessing.Pool() as pool:
-        colors = pool.map(_map_label_to_color.__getitem__, labels)
+        colors = pool.map(_label_index_to_color, label_indexes)
     return np.array(colors).astype(np.int32)
 
 
@@ -36,7 +38,7 @@ colors = np.array(colors).astype(np.int32)
 print("time to direct", time.time() - s, flush=True)
 
 s = time.time()
-colors_parallel = _label_to_colors(labels)
+colors_parallel = _labels_to_colors(labels)
 print("time to map", time.time() - s, flush=True)
 
 np.testing.assert_array_equal(colors, colors_parallel)

@@ -23,14 +23,8 @@ def _label_chunk_to_color(label_chunk):
 def _label_to_colors(labels):
     labels = np.array(labels).astype(np.int32)
     labels = list(labels)
-    num_cpu = multiprocessing.cpu_count()
-    chunk_size = int(np.ceil(len(labels) / float(num_cpu)))
-    label_chunks = [
-        labels[i : i + chunk_size] for i in range(0, len(labels), chunk_size)
-    ]
     with multiprocessing.Pool() as pool:
-        colors_chunks = pool.map(_label_chunk_to_color, label_chunks)
-        colors = list(itertools.chain.from_iterable(colors_chunks))
+        colors = pool.map(_map_label_to_color.__getitem__, labels)
     return np.array(colors).astype(np.int32)
 
 

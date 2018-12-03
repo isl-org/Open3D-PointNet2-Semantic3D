@@ -9,6 +9,8 @@ if __name__ == "__main__":
     pd_dir = "result/dense"
     colorized_pd_dir = "result/dense_colorized"
     colorized_gt_dir = "result/dense_colorized_gt"
+    os.makedirs(colorized_pd_dir, exist_ok=True)
+    os.makedirs(colorized_gt_dir, exist_ok=True)
 
     pd_labels_paths = glob.glob(os.path.join(pd_dir, "*.labels"))
     for pd_labels_path in pd_labels_paths:

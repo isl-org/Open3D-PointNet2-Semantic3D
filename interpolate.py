@@ -20,6 +20,7 @@ if __name__ == "__main__":
     sparse_dir = "result/sparse"
     dense_dir = "result/dense"
     gt_dir = "dataset/semantic_raw"
+    os.makedirs(dense_dir, exist_ok=True)
 
     # Parameters
     radius = 0.2

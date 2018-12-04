@@ -1,3 +1,4 @@
+# CMake 3.8+ has build-in cuda support
 cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
 project(tf_ops LANGUAGES CXX CUDA)
 set(CMAKE_CXX_STANDARD 11)
@@ -5,7 +6,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 link_directories(
     /home/ylao/repo/venvs/semantic3/lib/python3.6/site-packages/tensorflow
-    /usr/local/cuda/lib64
+    ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES}
 )
 include_directories(
     /home/ylao/repo/venvs/semantic3/lib/python3.6/site-packages/tensorflow/include

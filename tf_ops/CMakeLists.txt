@@ -1,4 +1,6 @@
 # CMake 3.8+ has build-in cuda support
+# ref: https://devblogs.nvidia.com/building-cuda-applications-cmake/
+# ref: https://stackoverflow.com/a/51769885/1255535
 cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
 project(tf_ops LANGUAGES CXX CUDA)
 set(CMAKE_CXX_STANDARD 11)

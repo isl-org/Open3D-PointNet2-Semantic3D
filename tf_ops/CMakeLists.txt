@@ -20,5 +20,6 @@ add_library(tf_grouping_so SHARED
     tf_grouping.cpp
 )
 target_compile_features(tf_grouping_so PUBLIC cxx_std_11)
-set_target_properties(tf_grouping_so PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 target_link_libraries(tf_grouping_so cudart tensorflow_framework)
+set_target_properties(tf_grouping_so PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+set_target_properties(tf_grouping_so PROPERTIES PREFIX "") # Skip the "lib" name

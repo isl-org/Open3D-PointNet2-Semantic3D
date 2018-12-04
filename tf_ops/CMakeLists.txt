@@ -27,6 +27,7 @@ include_directories(
     ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}
 )
 
+# Grouping
 add_library(tf_grouping SHARED
     tf_grouping_g.cu
     tf_grouping.cpp
@@ -34,3 +35,10 @@ add_library(tf_grouping SHARED
 target_compile_features(tf_grouping PUBLIC cxx_std_11)
 target_link_libraries(tf_grouping cudart tensorflow_framework)
 set_target_properties(tf_grouping PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+
+# Interpolate
+add_library(tf_interpolate SHARED
+    tf_interpolate.cpp
+)
+target_compile_features(tf_interpolate PUBLIC cxx_std_11)
+target_link_libraries(tf_interpolate tensorflow_framework)

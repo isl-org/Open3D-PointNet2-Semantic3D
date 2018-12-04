@@ -5,7 +5,9 @@ import os
 
 BASE_DIR = os.path.dirname(__file__)
 sys.path.append(BASE_DIR)
-interpolate_module = tf.load_op_library(os.path.join(BASE_DIR, "tf_interpolate_so.so"))
+interpolate_module = tf.load_op_library(
+    os.path.join(BASE_DIR, "build", "libtf_interpolate.so")
+)
 
 
 def three_nn(xyz1, xyz2):

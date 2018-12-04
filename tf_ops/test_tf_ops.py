@@ -57,7 +57,24 @@ class TestGrouping(tf.test.TestCase):
 
 class TestInterpolate(tf.test.TestCase):
     def test(self):
-        pass
+        np.random.seed(100)
+        pts = np.random.random((32, 128, 64)).astype("float32")
+        tmp1 = np.random.random((32, 512, 3)).astype("float32")
+        tmp2 = np.random.random((32, 128, 3)).astype("float32")
+        with tf.device("/cpu:0"):
+            points = tf.constant(pts)
+            xyz1 = tf.constant(tmp1)
+            xyz2 = tf.constant(tmp2)
+            dist, idx = three_nn(xyz1, xyz2)
+            weight = tf.ones_like(dist) / 3.0
+            interpolated_points = three_interpolate(points, idx, weight)
+        with tf.Session("") as sess:
+            now = time.time()
+            for _ in range(100):
+                ret = sess.run(interpolated_points)
+            print(time.time() - now)
+            print(ret.shape, ret.dtype)
+            # print ret
 
     def test_grad(self):
         with self.test_session():

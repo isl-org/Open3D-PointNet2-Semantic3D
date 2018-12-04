@@ -9,7 +9,7 @@ link_directories(
 )
 include_directories(
     /home/ylao/repo/venvs/semantic3/lib/python3.6/site-packages/tensorflow/include
-    /usr/local/cuda/include
+    ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}
 )
 
 add_library(tf_grouping_so SHARED

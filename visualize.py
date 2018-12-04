@@ -5,7 +5,7 @@ import sys
 
 if __name__ == "__main__":
     if len(sys.argv) <= 1:
-        raise ValueError("Usage: python visulize.py point_cloud_path.pcd")
+        raise ValueError("Usage: python visualize.py point_cloud_path.pcd")
 
     pcd_path = sys.argv[1]
     s = time.time()

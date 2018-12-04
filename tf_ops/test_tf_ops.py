@@ -1,11 +1,37 @@
 import tensorflow as tf
 import numpy as np
-from tf_grouping import query_ball_point, group_point
+import time
+from tf_grouping import query_ball_point, group_point, knn_point
 
 
 class GroupPointTest(tf.test.TestCase):
     def test(self):
-        pass
+        knn = True
+        np.random.seed(100)
+        pts = np.random.random((32, 512, 64)).astype("float32")
+        tmp1 = np.random.random((32, 512, 3)).astype("float32")
+        tmp2 = np.random.random((32, 128, 3)).astype("float32")
+        with tf.device("/gpu:0"):
+            points = tf.constant(pts)
+            xyz1 = tf.constant(tmp1)
+            xyz2 = tf.constant(tmp2)
+            radius = 0.1
+            nsample = 64
+            if knn:
+                _, idx = knn_point(nsample, xyz1, xyz2)
+                grouped_points = group_point(points, idx)
+            else:
+                idx, _ = query_ball_point(radius, nsample, xyz1, xyz2)
+                grouped_points = group_point(points, idx)
+                # grouped_points_grad = tf.ones_like(grouped_points)
+                # points_grad = tf.gradients(grouped_points, points, grouped_points_grad)
+        with tf.Session("") as sess:
+            now = time.time()
+            for _ in range(100):
+                ret = sess.run(grouped_points)
+            print(time.time() - now)
+            print(ret.shape, ret.dtype)
+            print(ret)
 
     def test_grad(self):
         with tf.device("/gpu:0"):

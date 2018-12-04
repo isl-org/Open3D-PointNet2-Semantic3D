@@ -42,3 +42,12 @@ add_library(tf_interpolate SHARED
 )
 target_compile_features(tf_interpolate PUBLIC cxx_std_11)
 target_link_libraries(tf_interpolate tensorflow_framework)
+
+# Grouping
+add_library(tf_sampling SHARED
+    tf_sampling_g.cu
+    tf_sampling.cpp
+)
+target_compile_features(tf_sampling PUBLIC cxx_std_11)
+target_link_libraries(tf_sampling cudart tensorflow_framework)
+set_target_properties(tf_sampling PROPERTIES CUDA_SEPARABLE_COMPILATION ON)

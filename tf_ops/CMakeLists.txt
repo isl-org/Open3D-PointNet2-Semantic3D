@@ -27,11 +27,10 @@ include_directories(
     ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}
 )
 
-add_library(tf_grouping_so SHARED
+add_library(tf_grouping SHARED
     tf_grouping_g.cu
     tf_grouping.cpp
 )
-target_compile_features(tf_grouping_so PUBLIC cxx_std_11)
-target_link_libraries(tf_grouping_so cudart tensorflow_framework)
-set_target_properties(tf_grouping_so PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-set_target_properties(tf_grouping_so PROPERTIES PREFIX "") # Skip the "lib" name
+target_compile_features(tf_grouping PUBLIC cxx_std_11)
+target_link_libraries(tf_grouping cudart tensorflow_framework)
+set_target_properties(tf_grouping PROPERTIES CUDA_SEPARABLE_COMPILATION ON)

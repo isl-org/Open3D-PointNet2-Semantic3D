@@ -6,7 +6,7 @@ import os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
 grouping_module = tf.load_op_library(
-    os.path.join(BASE_DIR, "build", "tf_grouping_so.so")
+    os.path.join(BASE_DIR, "build", "libtf_grouping.so")
 )
 
 

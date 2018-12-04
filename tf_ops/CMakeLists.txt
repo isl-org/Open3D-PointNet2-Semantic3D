@@ -9,12 +9,21 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 # Custom finders path
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR})
 
+# This exports the following variables
+# TensorFlow_INCLUDE_DIR
+# TensorFlow_DIR
+# TensorFlow_CXX_ABI
+# TensorFlow_GIT_VERSION
+# TensorFlow_VERSION
+find_package(TensorFlow REQUIRED)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=${TensorFlow_CXX_ABI}")
+
 link_directories(
-    /home/ylao/repo/venvs/semantic3/lib/python3.6/site-packages/tensorflow
+    ${TensorFlow_DIR}
     ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES}
 )
 include_directories(
-    /home/ylao/repo/venvs/semantic3/lib/python3.6/site-packages/tensorflow/include
+    ${TensorFlow_INCLUDE_DIR}
     ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}
 )
 

@@ -1,3 +1,4 @@
+import argparse
 import os
 import numpy as np
 import open3d
@@ -6,14 +7,20 @@ import multiprocessing
 
 from util.metric import ConfusionMatrix
 from util.point_cloud_util import load_labels, write_labels
-from dataset.semantic_dataset import validation_file_prefixes
+from dataset.semantic_dataset import map_name_to_file_prefixes
 
 
 if __name__ == "__main__":
-    # TODO: handle test set
+    # Parser
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--set", default="validation", help="train, validation, test")
+    flags = parser.parse_args()
+
+    # Directories
     sparse_dir = "result/sparse"
     dense_dir = "result/dense"
     gt_dir = "dataset/semantic_raw"
+    os.makedirs(dense_dir, exist_ok=True)
 
     # Parameters
     radius = 0.2
@@ -22,7 +29,7 @@ if __name__ == "__main__":
     # Global statistics
     cm_global = ConfusionMatrix(9)
 
-    for file_prefix in validation_file_prefixes:
+    for file_prefix in map_name_to_file_prefixes[flags.set]:
         print("Interpolating:", file_prefix, flush=True)
 
         # Paths
@@ -50,8 +57,12 @@ if __name__ == "__main__":
         print("dense_pcd loaded", flush=True)
 
         # Dense Ground-truth labels
-        dense_gt_labels = load_labels(os.path.join(gt_dir, file_prefix + ".labels"))
-        print("dense_gt_labels loaded", flush=True)
+        try:
+            dense_gt_labels = load_labels(os.path.join(gt_dir, file_prefix + ".labels"))
+            print("dense_gt_labels loaded", flush=True)
+        except:
+            print("dense_gt_labels not found, treat as test set")
+            dense_gt_labels = None
 
         def match_knn_label(dense_index):
             global dense_points
@@ -85,10 +96,11 @@ if __name__ == "__main__":
         print("Dense labels written to:", dense_labels_path, flush=True)
 
         # Eval
-        cm = ConfusionMatrix(9)
-        cm.increment_from_list(dense_gt_labels, dense_labels)
-        cm.print_metrics()
-        cm_global.increment_from_list(dense_gt_labels, dense_labels)
+        if dense_gt_labels:
+            cm = ConfusionMatrix(9)
+            cm.increment_from_list(dense_gt_labels, dense_labels)
+            cm.print_metrics()
+            cm_global.increment_from_list(dense_gt_labels, dense_labels)
 
     print("Global results")
     cm_global.print_metrics()

@@ -9,7 +9,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 # Custom finders path
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR})
 
-# This exports the following variables
+# This exports the following variables:
 # TensorFlow_INCLUDE_DIR
 # TensorFlow_DIR
 # TensorFlow_CXX_ABI

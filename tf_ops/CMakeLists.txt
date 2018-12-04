@@ -6,6 +6,9 @@ project(tf_ops LANGUAGES CXX CUDA)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+# Custom finders path
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR})
+
 link_directories(
     /home/ylao/repo/venvs/semantic3/lib/python3.6/site-packages/tensorflow
     ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES}

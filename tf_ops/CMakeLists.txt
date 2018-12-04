@@ -1,7 +1,21 @@
 cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
 project(tf_ops LANGUAGES CXX CUDA)
-set (CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-add_library(tf_grouping_g STATIC tf_grouping_g.cu)
-target_compile_features(tf_grouping_g PUBLIC cxx_std_11)
-set_target_properties(tf_grouping_g PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+link_directories(
+    /home/ylao/repo/venvs/semantic3/lib/python3.6/site-packages/tensorflow
+    /usr/local/cuda/lib64
+)
+include_directories(
+    /home/ylao/repo/venvs/semantic3/lib/python3.6/site-packages/tensorflow/include
+    /usr/local/cuda/include
+)
+
+add_library(tf_grouping_so SHARED
+    tf_grouping_g.cu
+    tf_grouping.cpp
+)
+target_compile_features(tf_grouping_so PUBLIC cxx_std_11)
+set_target_properties(tf_grouping_so PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+target_link_libraries(tf_grouping_so cudart tensorflow_framework)

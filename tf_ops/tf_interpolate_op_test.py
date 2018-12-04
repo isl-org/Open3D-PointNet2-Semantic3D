@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-from .tf_interpolate import three_nn, three_interpolate
+from tf_interpolate import three_nn, three_interpolate
 
 
 class GroupPointTest(tf.test.TestCase):

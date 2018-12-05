@@ -29,7 +29,7 @@ include_directories(
 
 # Grouping
 add_library(tf_grouping SHARED
-    tf_grouping_g.cu
+    tf_grouping.cu
     tf_grouping.cpp
 )
 target_compile_features(tf_grouping PUBLIC cxx_std_11)
@@ -45,7 +45,7 @@ target_link_libraries(tf_interpolate tensorflow_framework)
 
 # Grouping
 add_library(tf_sampling SHARED
-    tf_sampling_g.cu
+    tf_sampling.cu
     tf_sampling.cpp
 )
 target_compile_features(tf_sampling PUBLIC cxx_std_11)

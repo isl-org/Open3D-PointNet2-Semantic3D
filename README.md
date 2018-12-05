@@ -1,10 +1,34 @@
-# Semantic3D segmentation with Open3D and PointNet2
+# Semantic3D semantic segmentation with Open3D and PointNet++
 
-## Reference
+## Intro
+
+Demo project for Semantic3D (semantic-8) segmentation with
+[Open3D](https://github.com/IntelVCL/Open3D) and PointNet++. The
+purpose of this project is to showcase the usage of Open3D in deep learning pipelines
+and provide a clean baseline implementation for semantic segmentation on Semantic3D
+dataset.  Here's
+[our entry](http://www.semantic3d.net/view_method_detail.php?method=PointNet2_Demo)
+on the semantic-8 test benchmark page.
+
+
+[Open3D](https://github.com/IntelVCL/Open3D) is an open-source library that supports
+rapid development of software that deals with 3D data. The Open3D frontend exposes a
+set of carefully selected data structures and algorithms in both C++ and Python. The
+backend is highly optimized and is set up for parallelization. We welcome contributions
+from the open-source community.
+
+In this project, Open3D was used for
+- Point cloud data loading, writing, and visualization. Open3D provides efficient
+  implementations of various point cloud manipulation methods.
+- Data pre-processing, in particular, voxel-based down-sampling.
+- Point cloud interpolation, in particular, fast nearest neighbor search for label
+  interpolation.
+- And more.
 
 This project is forked from Mathieu Orhan and Guillaume Dekeyser's
 [repo](https://github.com/mathieuorhan/pointnet2_semantic), which, is forked
-from the original [PointNet2](https://github.com/charlesq34/pointnet2).
+from the original [PointNet2](https://github.com/charlesq34/pointnet2). We thank the
+original authors for sharing their methods.
 
 ## Usage
 

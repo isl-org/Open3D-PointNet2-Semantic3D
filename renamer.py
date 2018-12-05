@@ -26,7 +26,8 @@ conversion_dict = {
 
 
 if __name__ == "__main__":
-    for src_path in glob.glob("result_archive/result_dec_03_full_trainset/dense/*"):
+    # for src_path in glob.glob("result_archive/result_dec_03_full_trainset/dense/*"):
+    for src_path in glob.glob("result/dense/*"):
         dir_name = os.path.dirname(src_path)
         src_name = os.path.basename(src_path)
         dst_name = conversion_dict.get(src_name, None)

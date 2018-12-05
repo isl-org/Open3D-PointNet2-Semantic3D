@@ -173,13 +173,20 @@ python interpolate.py
 
 The prediction results will be written to `result/dense`.
 
-```
+```shell
 Open3D-PointNet2-Semantic3D/result/dense
 ├── sg27_station4_intensity_rgb.labels
-├── sg27_station4_intensity_rgb.pcd
 ├── sg27_station5_intensity_rgb.labels
-├── sg27_station5_intensity_rgb.pcd
 ├── ...
+```
+
+### 8. Submission
+
+Finally, if you're submitting to Semantic3D benchmark, we've included a handy
+tools to rename the submission file names.
+
+```shell
+python renamer.py
 ```
 
 ### Summary of directories

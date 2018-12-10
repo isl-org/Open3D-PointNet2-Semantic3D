@@ -10,14 +10,6 @@ from dataset.semantic_dataset import SemanticDataset
 from util.metric import ConfusionMatrix
 
 
-class Predictor(object):
-    def __init__(self, model_path):
-        pass
-
-    def predict(self):
-        pass
-
-
 # Parser
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -44,12 +36,50 @@ def predict_one_input(sess, ops, data):
     return pd_label
 
 
+class Predictor(object):
+    def __init__(self, checkpoint_path):
+        with tf.device("/gpu:0"):
+            # Get place holder
+            pointclouds_pl, labels_pl, _ = model.get_placeholders(
+                1, PARAMS["num_point"], hyperparams=PARAMS
+            )
+            print(tf.shape(pointclouds_pl))
+            is_training_pl = tf.placeholder(tf.bool, shape=())
+
+            # Simple model
+            pred, _ = model.get_model(
+                pointclouds_pl, is_training_pl, dataset.num_classes, hyperparams=PARAMS
+            )
+
+            # Add ops to save and restore all the variables
+            saver = tf.train.Saver()
+
+        # Restore checkpoint to session
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+        config.allow_soft_placement = True
+        config.log_device_placement = False
+        self.sess = tf.Session(config=config)
+        saver.restore(self.sess, checkpoint_path)
+        print("Model restored.")
+
+        self.ops = {
+            "pointclouds_pl": pointclouds_pl,
+            "labels_pl": labels_pl,
+            "is_training_pl": is_training_pl,
+            "pred": pred,
+        }
+
+    def predict(self, data):
+        return predict_one_input(self.sess, self.ops, data)
+
+
 if __name__ == "__main__":
     # Create output dir
     output_dir = os.path.join("result", "sparse")
     os.makedirs(output_dir, exist_ok=True)
 
-    # Import dataset
+    # Dataset
     dataset = SemanticDataset(
         npoints=PARAMS["num_point"],
         split=FLAGS.set,
@@ -58,38 +88,8 @@ if __name__ == "__main__":
         path=PARAMS["data_path"],
     )
 
-    with tf.device("/gpu:0"):
-        pointclouds_pl, labels_pl, _ = model.get_placeholders(
-            1, PARAMS["num_point"], hyperparams=PARAMS
-        )
-        print(tf.shape(pointclouds_pl))
-        is_training_pl = tf.placeholder(tf.bool, shape=())
-
-        # Simple model
-        pred, _ = model.get_model(
-            pointclouds_pl, is_training_pl, dataset.num_classes, hyperparams=PARAMS
-        )
-
-        # Add ops to save and restore all the variables
-        saver = tf.train.Saver()
-
-    # Create a session
-    config = tf.ConfigProto()
-    config.gpu_options.allow_growth = True
-    config.allow_soft_placement = True
-    config.log_device_placement = False
-    sess = tf.Session(config=config)
-
-    # Restore variables from disk.
-    saver.restore(sess, FLAGS.ckpt)
-    print("Model restored.")
-
-    ops = {
-        "pointclouds_pl": pointclouds_pl,
-        "labels_pl": labels_pl,
-        "is_training_pl": is_training_pl,
-        "pred": pred,
-    }
+    # Model
+    predictor = Predictor(checkpoint_path=FLAGS.ckpt)
 
     num_scenes = len(dataset)
     p = 6 if PARAMS["use_color"] else 3
@@ -104,7 +104,7 @@ if __name__ == "__main__":
         if p == 6:
             raw_data = np.hstack((raw_data, col))
             data = np.hstack((data, col))
-        pred_labels = predict_one_input(sess, ops, data)
+        pred_labels = predictor.predict(data)
         scene_points[scene_index] = np.vstack((scene_points[scene_index], raw_data))
         ground_truth[scene_index] = np.hstack((ground_truth[scene_index], true_labels))
         predicted_labels[scene_index] = np.hstack(

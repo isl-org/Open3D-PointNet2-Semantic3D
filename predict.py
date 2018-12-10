@@ -26,16 +26,6 @@ FLAGS = parser.parse_args()
 PARAMS = json.loads(open("semantic.json").read())
 
 
-def predict_one_input(sess, ops, data):
-    is_training = False
-    batch_data = np.array([data])  # 1 x PARAMS["num_point"] x 3
-    feed_dict = {ops["pointclouds_pl"]: batch_data, ops["is_training_pl"]: is_training}
-    pd_val = sess.run([ops["pred"]], feed_dict=feed_dict)
-    pd_val = pd_val[0][0]  # PARAMS["num_point"] x 9
-    pd_label = np.argmax(pd_val, 1)
-    return pd_label
-
-
 class Predictor(object):
     def __init__(self, checkpoint_path):
         with tf.device("/gpu:0"):
@@ -71,7 +61,16 @@ class Predictor(object):
         }
 
     def predict(self, data):
-        return predict_one_input(self.sess, self.ops, data)
+        is_training = False
+        batch_data = np.array([data])  # 1 x PARAMS["num_point"] x 3
+        feed_dict = {
+            self.ops["pointclouds_pl"]: batch_data,
+            self.ops["is_training_pl"]: is_training,
+        }
+        pd_val = self.sess.run([self.ops["pred"]], feed_dict=feed_dict)
+        pd_val = pd_val[0][0]  # PARAMS["num_point"] x 9
+        pd_label = np.argmax(pd_val, 1)
+        return pd_label
 
 
 if __name__ == "__main__":

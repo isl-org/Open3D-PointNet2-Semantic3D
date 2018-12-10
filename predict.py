@@ -10,6 +10,14 @@ from dataset.semantic_dataset import SemanticDataset
 from util.metric import ConfusionMatrix
 
 
+class Predictor(object):
+    def __init__(self, model_path):
+        pass
+
+    def predict(self):
+        pass
+
+
 # Parser
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -51,7 +59,7 @@ if __name__ == "__main__":
     )
 
     with tf.device("/gpu:0"):
-        pointclouds_pl, labels_pl, _ = model.placeholder_inputs(
+        pointclouds_pl, labels_pl, _ = model.get_placeholders(
             1, PARAMS["num_point"], hyperparams=PARAMS
         )
         print(tf.shape(pointclouds_pl))
@@ -62,7 +70,7 @@ if __name__ == "__main__":
             pointclouds_pl, is_training_pl, dataset.num_classes, hyperparams=PARAMS
         )
 
-        # Add ops to save and restore all the variables.
+        # Add ops to save and restore all the variables
         saver = tf.train.Saver()
 
     # Create a session

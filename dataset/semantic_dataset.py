@@ -118,45 +118,19 @@ class SemanticDataset:
         ]
 
         # Load the data
-        self.load_data()
-
-        # Pre-compute the random scene probabilities, and zmax
-        self.compute_random_scene_index_proba()
-        self.set_pc_zmax_zmin()
-
-        # Prepare the points weights if it is a training set
-        if self.split == "train" or self.split == "train_full":
-            # Compute the weights
-            label_weights = np.zeros(9)
-
-            # First, compute the histogram of each labels
-            for seg in self.list_labels:
-                tmp, _ = np.histogram(seg, range(10))
-                label_weights += tmp
-
-            # Then, an heuristic gives the weights
-            # 1 / log(1.2 + probability of occurrence)
-            label_weights = label_weights.astype(np.float32)
-            label_weights = label_weights / np.sum(label_weights)
-            self.label_weights = 1 / np.log(1.2 + label_weights)
-
-    def load_data(self):
-        """
-        Fills:
-            self.list_file_path
-            self.list_points
-            self.list_points_min_raw
-            self.list_points_min
-            self.list_points_max
-            self.list_labels
-            self.list_colors
-        """
         print("Loading semantic data:", self.split)
 
         # Get file names to load
         file_prefixes = map_name_to_file_prefixes[self.split]
         print("Loading file_prefixes:", file_prefixes)
 
+        # self.list_file_path
+        # self.list_points
+        # self.list_points_min_raw
+        # self.list_points_min
+        # self.list_points_max
+        # self.list_labels
+        # self.list_colors
         # Load data to map_prefix_to_file_data
         self.map_prefix_to_file_data = dict()
         for file_prefix in file_prefixes:
@@ -193,6 +167,31 @@ class SemanticDataset:
             self.map_prefix_to_file_data[file_prefix].points_min_raw
             for file_prefix in file_prefixes
         ]
+
+        # Pre-compute the probability of picking a point
+        # in a given scene. This is useful to compute the scene index later,
+        # in order to pick more seeds in bigger scenes
+        self.scene_probas = []
+        total = self.get_total_num_points()
+        for scene_index in range(len(self)):
+            proba = float(len(self.list_points[scene_index])) / float(total)
+            self.scene_probas.append(proba)
+
+        # Prepare the points weights if it is a training set
+        if self.split == "train" or self.split == "train_full":
+            # Compute the weights
+            label_weights = np.zeros(9)
+
+            # First, compute the histogram of each labels
+            for seg in self.list_labels:
+                tmp, _ = np.histogram(seg, range(10))
+                label_weights += tmp
+
+            # Then, an heuristic gives the weights
+            # 1 / log(1.2 + probability of occurrence)
+            label_weights = label_weights.astype(np.float32)
+            label_weights = label_weights / np.sum(label_weights)
+            self.label_weights = 1 / np.log(1.2 + label_weights)
 
     def next_batch(self, batch_size, augment=True):
         batch_data = []
@@ -274,29 +273,12 @@ class SemanticDataset:
                 colors,
             )
 
-    def set_pc_zmax_zmin(self):
-        self.pc_zmin = []
-        self.pc_zmax = []
-        for scene_index in range(len(self)):
-            self.pc_zmin.append(np.min(self.list_points[scene_index], axis=0)[2])
-            self.pc_zmax.append(np.max(self.list_points[scene_index], axis=0)[2])
-
     def get_random_scene_index(self):
         # Does not take into account the scene number of points
         # return np.random.randint(0,len(self.list_points))
         return np.random.choice(
             np.arange(0, len(self.list_points)), p=self.scene_probas
         )
-
-    def compute_random_scene_index_proba(self):
-        # Precompute the probability of picking a point
-        # in a given scene. This is useful to compute the scene index later,
-        # in order to pick more seeds in bigger scenes
-        self.scene_probas = []
-        total = self.get_total_num_points()
-        for scene_index in range(len(self)):
-            proba = float(len(self.list_points[scene_index])) / float(total)
-            self.scene_probas.append(proba)
 
     def center_box(self, data):
         # Shift the box so that z = 0 is the min and x = 0 and y = 0 is the box center

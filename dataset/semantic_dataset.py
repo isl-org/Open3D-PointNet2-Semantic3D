@@ -255,16 +255,17 @@ class SemanticDataset:
             while len(sample_mask) < self.num_points:
                 sample_mask = np.concatenate((sample_mask, sample_mask), axis=0)
             sample_mask = sample_mask[:self.num_points]
+
         points = points[sample_mask]
-
-        # Center the box in 2D
-        points_centered = self.center_box(points)
-
         labels = labels[sample_mask]
         if self.use_color:
             colors = colors[sample_mask]
 
-        # Compute the weights
+        # Shift the points, such that min(z) == 0, and x = 0 and y = 0 is the center
+        # This canonical column is used for both training and inference
+        points_centered = self.center_box(points)
+
+        # Compute weights
         weights = self.label_weights[labels]
 
         if predicting:

@@ -21,8 +21,6 @@ def get_placeholders(batch_size, num_point, hyperparams):
 
 def get_model(point_cloud, is_training, num_class, hyperparams, bn_decay=None):
     """ Semantic segmentation PointNet, input is BxNx3, output Bxnum_class """
-    batch_size = point_cloud.get_shape()[0].value
-    num_point = point_cloud.get_shape()[1].value
     end_points = {}
 
     if hyperparams["use_color"]:

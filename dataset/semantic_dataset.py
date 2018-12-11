@@ -54,6 +54,14 @@ map_name_to_file_prefixes = {
 }
 
 
+class FileData:
+    def __init__(self, num_points, use_color, box_size, pcd_path):
+        """
+        Loads file data
+        """
+        pass
+
+
 class SemanticDataset:
     def __init__(self, num_points, split, use_color, box_size, path):
         """Create a dataset holder

@@ -26,7 +26,7 @@ FLAGS = parser.parse_args()
 PARAMS = json.loads(open("semantic.json").read())
 
 
-class Predictor(object):
+class Predictor:
     def __init__(self, checkpoint_path):
         # Get ops from graph
         with tf.device("/gpu:0"):

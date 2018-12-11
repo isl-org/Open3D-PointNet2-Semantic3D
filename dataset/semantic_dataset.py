@@ -313,8 +313,8 @@ class SemanticDataset:
             self.scene_probas.append(proba)
 
     def center_box(self, data):
-        # Shift the box so that z= 0 is the min and x=0 and y=0 is the center of the
-        # box horizontally
+        # Shift the box so that z = 0 is the min and x = 0 and y = 0 is the box center
+        # E.g. if box_size == 10, then the new mins are (-5, -5, 0)
         box_min = np.min(data, axis=0)
         shift = np.array(
             [box_min[0] + self.box_size / 2, box_min[1] + self.box_size / 2, box_min[2]]
@@ -322,9 +322,10 @@ class SemanticDataset:
         return data - shift
 
     def extract_z_box(self, seed, scene, scene_idx):
+        # A "column" sample of the points. The z axis is the vertical axis.
+
         ## TAKES LOT OF TIME !! THINK OF AN ALTERNATIVE !
         # 2D crop, takes all the z axis
-
         scene_max = self.list_points_max[scene_idx]
         scene_min = self.list_points_min[scene_idx]
         scene_z_size = scene_max[2] - scene_min[2]

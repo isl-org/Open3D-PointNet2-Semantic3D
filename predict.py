@@ -128,7 +128,6 @@ if __name__ == "__main__":
             )
 
     file_names = dataset.get_file_paths_without_extension()
-    print(file_names)
     print("{} point clouds to export".format(len(file_names)))
     cm = ConfusionMatrix(9)
 

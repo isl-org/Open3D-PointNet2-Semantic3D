@@ -60,17 +60,17 @@ class Predictor(object):
         saver.restore(self.sess, checkpoint_path)
         print("Model restored.")
 
-    def predict(self, data):
+    def predict(self, points):
         is_training = False
-        batch_data = np.array([data])  # 1 x PARAMS["num_point"] x 3
+        batch_data = np.array([points])  # 1 x PARAMS["num_point"] x 3
         feed_dict = {
             self.ops["pl_points"]: batch_data,
             self.ops["pl_is_training"]: is_training,
         }
-        pd_val = self.sess.run([self.ops["pred"]], feed_dict=feed_dict)
-        pd_val = pd_val[0][0]  # PARAMS["num_point"] x 9
-        pd_label = np.argmax(pd_val, 1)
-        return pd_label
+        pred_val = self.sess.run([self.ops["pred"]], feed_dict=feed_dict)
+        pred_val = pred_val[0][0]  # PARAMS["num_point"] x 9
+        pred_labels = np.argmax(pred_val, 1)
+        return pred_labels
 
 
 if __name__ == "__main__":

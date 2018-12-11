@@ -81,6 +81,8 @@ class Predictor:
 
 
 if __name__ == "__main__":
+    np.random.seed(0)
+
     # Create output dir
     output_dir = os.path.join("result", "sparse")
     os.makedirs(output_dir, exist_ok=True)

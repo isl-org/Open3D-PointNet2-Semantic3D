@@ -161,7 +161,7 @@ class SemanticDataset:
         # in order to pick more seeds in bigger scenes
         self.scene_probas = []
         total = self.get_total_num_points()
-        for scene_index in range(len(self)):
+        for scene_index in range(len(self.list_points)):
             proba = float(len(self.list_points[scene_index])) / float(total)
             self.scene_probas.append(proba)
 
@@ -312,16 +312,13 @@ class SemanticDataset:
         return mask
 
     def get_total_num_points(self):
-        total = 0
-        for scene_index in range(len(self)):
-            total += len(self.list_points[scene_index])
-        return total
+        total_num_points = 0
+        for scene_index in range(len(self.list_file_data)):
+            total_num_points += len(self.list_points[scene_index])
+        return total_num_points
 
     def get_num_batches(self, batch_size):
         return int(self.get_total_num_points() / (batch_size * self.num_points))
-
-    def __len__(self):
-        return len(self.list_points)
 
     def get_file_paths_without_extension(self):
         return [file_data.file_path for file_data in self.list_file_data]

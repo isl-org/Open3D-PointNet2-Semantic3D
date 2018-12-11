@@ -228,25 +228,24 @@ class SemanticDataset:
         while not input_ok:
             # Randomly select scene, scenes with more points -> more likely to be chosen
             scene_index = self.get_random_scene_index()
-            scene = self.list_points[scene_index]  # [[x,y,z],...[x,y,z]]
-            scene_labels = self.list_labels[scene_index]
+            points = self.list_points[scene_index]  # [[x,y,z],...[x,y,z]]
+            labels = self.list_labels[scene_index]
             if self.use_color:
                 scene_colors = self.list_colors[scene_index]
 
-            # Random (on points)
-            seed_index = np.random.randint(0, len(scene))
-            seed = scene[seed_index]  # [x, y, z]
+            # Randomly select a point, and crop a z-box around that point
+            seed_index = np.random.randint(0, len(points))
+            seed = points[seed_index]  # [x, y, z]
+            scene_extract_mask = self.extract_z_box(seed, points, scene_index)
 
-            # Crop a z-box around that seed
-            scene_extract_mask = self.extract_z_box(seed, scene, scene_index)
             # Verify the cloud is not empty
             if np.sum(scene_extract_mask) == 0:
                 continue
             else:
                 input_ok = True
 
-            data = scene[scene_extract_mask]
-            labels = scene_labels[scene_extract_mask]
+            data = points[scene_extract_mask]
+            labels = labels[scene_extract_mask]
             if self.use_color:
                 colors = scene_colors[scene_extract_mask]
             else:

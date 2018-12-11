@@ -55,10 +55,13 @@ map_name_to_file_prefixes = {
 
 
 class FileData:
-    def __init__(self, num_points, split, use_color, box_size, file_path):
+    def __init__(self, file_prefix, num_points, split, use_color, box_size, file_path):
         """
         Loads file data
         """
+        self.file_prefix = file_prefix
+        self.file_path = file_path
+
         # Load points
         pcd = open3d.read_point_cloud(file_path + ".pcd")
         self.points = np.asarray(pcd.points)
@@ -136,13 +139,16 @@ class SemanticDataset:
         for file_prefix in file_prefixes:
             file_path = os.path.join(self.path, file_prefix)
             file_data = FileData(
-                self.num_points, self.split, self.use_color, self.box_size, file_path
+                file_prefix,
+                self.num_points,
+                self.split,
+                self.use_color,
+                self.box_size,
+                file_path,
             )
             self.list_file_data.append(file_data)
 
         # TODO: remove this
-        # Fill lists
-        self.list_file_path = [os.path.join(self.path, file) for file in file_prefixes]
         self.list_points = [fd.points for fd in self.list_file_data]
         self.list_labels = [fd.labels for fd in self.list_file_data]
         self.list_colors = [fd.colors for fd in self.list_file_data]
@@ -322,5 +328,5 @@ class SemanticDataset:
     def __len__(self):
         return len(self.list_points)
 
-    def get_data_filenames(self):
-        return self.list_file_path
+    def get_file_paths_without_extension(self):
+        return [file_data.file_path for file_data in self.list_file_data]

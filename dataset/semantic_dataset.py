@@ -199,7 +199,7 @@ class SemanticDataset:
         batch_label = []
         batch_weights = []
         for _ in range(batch_size):
-            data, label, colors, weights = self.next_input()
+            data, label, colors, weights = self.next_input(is_training=True)
             if self.use_color:
                 data = np.hstack((data, colors))
             batch_data.append(data)
@@ -219,7 +219,7 @@ class SemanticDataset:
 
         return batch_data, batch_label, batch_weights
 
-    def next_input(self, predicting=False):
+    def next_input(self, is_training):
         """
         Returns points and other info within a z - cropped box.
         """
@@ -262,7 +262,10 @@ class SemanticDataset:
         # This canonical column is used for both training and inference
         points_centered = self.center_box(points)
 
-        if predicting:
+        if is_training:
+            weights = self.label_weights[labels]
+            return points_centered, labels, colors, weights
+        else:
             return (
                 scene_index,
                 points_centered,
@@ -270,9 +273,6 @@ class SemanticDataset:
                 labels,
                 colors,
             )
-        else:
-            weights = self.label_weights[labels]
-            return points_centered, labels, colors, weights
 
     def set_pc_zmax_zmin(self):
         self.pc_zmin = []

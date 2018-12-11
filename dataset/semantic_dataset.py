@@ -229,9 +229,6 @@ class SemanticDataset:
             # Randomly select scene, scenes with more points -> more likely to be chosen
             scene_index = self.get_random_scene_index()
             points = self.list_points[scene_index]  # [[x,y,z],...[x,y,z]]
-            labels = self.list_labels[scene_index]
-            if self.use_color:
-                scene_colors = self.list_colors[scene_index]
 
             # Randomly select a point, and crop a z-box around that point
             seed_index = np.random.randint(0, len(points))
@@ -243,11 +240,14 @@ class SemanticDataset:
                 continue
             else:
                 input_ok = True
-
             data = points[scene_extract_mask]
-            labels = labels[scene_extract_mask]
+
+            # Get labels with mask
+            labels = self.list_labels[scene_index][scene_extract_mask]
+
+            # Get colors with mask
             if self.use_color:
-                colors = scene_colors[scene_extract_mask]
+                colors = self.list_colors[scene_index][scene_extract_mask]
             else:
                 colors = None
 

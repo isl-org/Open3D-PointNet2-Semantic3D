@@ -228,9 +228,8 @@ class SemanticDataset:
         points = self.list_points[scene_index]  # [[x,y,z],...[x,y,z]]
 
         # Sample a point, and crop a z-box around
-        seed_index = np.random.randint(0, len(points))
-        seed = points[seed_index]  # [x, y, z]
-        scene_extract_mask = self.extract_z_box(seed, points, scene_index)
+        center_point = points[np.random.randint(0, len(points))]
+        scene_extract_mask = self.extract_z_box(center_point, points, scene_index)
         data = points[scene_extract_mask]
 
         # Crop labels and colors
@@ -310,22 +309,28 @@ class SemanticDataset:
         )
         return data - shift
 
-    def extract_z_box(self, seed, scene, scene_idx):
-        # A "column" sample of the points. The z axis is the vertical axis.
+    def extract_z_box(self, center_point, points, scene_idx):
+        """
+        Crop along z axis (vertical) from the center_point.
 
-        ## TAKES LOT OF TIME !! THINK OF AN ALTERNATIVE !
-        # 2D crop, takes all the z axis
+        Args:
+            center_point: only x and y coordinates will be used
+            points: points (n * 3)
+            scene_idx: scene index to get the min and max of the whole scene
+        """
+        # TODO TAKES LOT OF TIME !! THINK OF AN ALTERNATIVE !
         scene_max = self.list_points_max[scene_idx]
         scene_min = self.list_points_min[scene_idx]
         scene_z_size = scene_max[2] - scene_min[2]
-        box_min = seed - [self.box_size / 2, self.box_size / 2, scene_z_size]
-        box_max = seed + [self.box_size / 2, self.box_size / 2, scene_z_size]
+        box_min = center_point - [self.box_size / 2, self.box_size / 2, scene_z_size]
+        box_max = center_point + [self.box_size / 2, self.box_size / 2, scene_z_size]
 
-        i_min = np.searchsorted(scene[:, 0], box_min[0])
-        i_max = np.searchsorted(scene[:, 0], box_max[0])
+        i_min = np.searchsorted(points[:, 0], box_min[0])
+        i_max = np.searchsorted(points[:, 0], box_max[0])
         mask = (
             np.sum(
-                (scene[i_min:i_max, :] >= box_min) * (scene[i_min:i_max, :] <= box_max),
+                (points[i_min:i_max, :] >= box_min)
+                * (points[i_min:i_max, :] <= box_max),
                 axis=1,
             )
             == 3
@@ -334,11 +339,11 @@ class SemanticDataset:
             (
                 np.zeros(i_min, dtype=bool),
                 mask,
-                np.zeros(len(scene) - i_max, dtype=bool),
+                np.zeros(len(points) - i_max, dtype=bool),
             )
         )
 
-        # mask = np.sum((scene>=box_min)*(scene<=box_max),axis=1) == 3
+        # mask = np.sum((points>=box_min)*(points<=box_max),axis=1) == 3
         assert np.sum(mask) != 0
         return mask
 

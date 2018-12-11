@@ -212,7 +212,9 @@ class SemanticDataset:
         Returns points and other info within a z - cropped box.
         """
         # Pick a scene, scenes with more points are more likely to be chosen
-        scene_index = self.get_random_scene_index()
+        scene_index = np.random.choice(
+            np.arange(0, len(self.list_points)), p=self.scene_probas
+        )
         points = self.list_points[scene_index]
 
         # Pick a point, and crop a z-box around
@@ -261,13 +263,6 @@ class SemanticDataset:
                 labels,
                 colors,
             )
-
-    def get_random_scene_index(self):
-        # Does not take into account the scene number of points
-        # return np.random.randint(0,len(self.list_points))
-        return np.random.choice(
-            np.arange(0, len(self.list_points)), p=self.scene_probas
-        )
 
     def center_box(self, data):
         # Shift the box so that z = 0 is the min and x = 0 and y = 0 is the box center

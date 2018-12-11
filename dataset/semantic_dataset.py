@@ -55,9 +55,9 @@ map_name_to_file_prefixes = {
 
 
 class SemanticDataset:
-    def __init__(self, npoints, split, use_color, box_size, path):
+    def __init__(self, num_points, split, use_color, box_size, path):
         """Create a dataset holder
-        npoints (int): Defaults to 8192. The number of point in each input
+        num_points (int): Defaults to 8192. The number of point in each input
         split (str): Defaults to 'train'. The selected part of the data (train, test,
                      reduced...)
         color (bool): Defaults to True. Whether to use colors or not
@@ -65,7 +65,7 @@ class SemanticDataset:
         path (float): Defaults to 'dataset/semantic_data/'.
         """
         # Dataset parameters
-        self.npoints = npoints
+        self.num_points = num_points
         self.split = split
         self.use_color = use_color
         self.box_size = box_size
@@ -206,10 +206,8 @@ class SemanticDataset:
         return batch_data, batch_label, batch_weights
 
     def next_input(self, predicting=False):
-
-        input_ok = False
-
         # Try to find a non-empty cloud to process
+        input_ok = False
         while not input_ok:
             # Randomly choose a scene, taking account that some scenes contains more
             # points than others
@@ -241,17 +239,17 @@ class SemanticDataset:
                 colors = None
 
         # Sampling #######################
-        if len(data) - self.npoints > 0:
-            trueArray = np.ones(self.npoints, dtype=bool)
-            falseArray = np.zeros(len(data) - self.npoints, dtype=bool)
+        if len(data) - self.num_points > 0:
+            trueArray = np.ones(self.num_points, dtype=bool)
+            falseArray = np.zeros(len(data) - self.num_points, dtype=bool)
             sample_mask = np.concatenate((trueArray, falseArray), axis=0)
             np.random.shuffle(sample_mask)
         else:
             # Not enough points, recopy the data until there are enough points
             sample_mask = np.arange(len(data))
-            while len(sample_mask) < self.npoints:
+            while len(sample_mask) < self.num_points:
                 sample_mask = np.concatenate((sample_mask, sample_mask), axis=0)
-            sample_mask = sample_mask[np.arange(self.npoints)]
+            sample_mask = sample_mask[np.arange(self.num_points)]
         raw_data = data[sample_mask]
 
         # Center the box in 2D
@@ -347,7 +345,7 @@ class SemanticDataset:
         return total
 
     def get_num_batches(self, batch_size):
-        return int(self.get_total_num_points() / (batch_size * self.npoints))
+        return int(self.get_total_num_points() / (batch_size * self.num_points))
 
     def __len__(self):
         return len(self.list_points)

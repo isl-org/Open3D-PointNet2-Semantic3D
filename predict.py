@@ -28,21 +28,28 @@ PARAMS = json.loads(open("semantic.json").read())
 
 class Predictor(object):
     def __init__(self, checkpoint_path):
+        # Get ops from graph
         with tf.device("/gpu:0"):
-            # Get place holder
-            pointclouds_pl, labels_pl, _ = model.get_placeholders(
+            # Placeholder
+            pl_points, _, _ = model.get_placeholders(
                 1, PARAMS["num_point"], hyperparams=PARAMS
             )
-            print(tf.shape(pointclouds_pl))
-            is_training_pl = tf.placeholder(tf.bool, shape=())
+            pl_is_training = tf.placeholder(tf.bool, shape=())
+            print(tf.shape(pl_points))
 
-            # Simple model
+            # Prediction
             pred, _ = model.get_model(
-                pointclouds_pl, is_training_pl, dataset.num_classes, hyperparams=PARAMS
+                pl_points, pl_is_training, dataset.num_classes, hyperparams=PARAMS
             )
 
-            # Add ops to save and restore all the variables
+            # Saver
             saver = tf.train.Saver()
+
+        self.ops = {
+            "pl_points": pl_points,
+            "pl_is_training": pl_is_training,
+            "pred": pred,
+        }
 
         # Restore checkpoint to session
         config = tf.ConfigProto()
@@ -53,19 +60,12 @@ class Predictor(object):
         saver.restore(self.sess, checkpoint_path)
         print("Model restored.")
 
-        self.ops = {
-            "pointclouds_pl": pointclouds_pl,
-            "labels_pl": labels_pl,
-            "is_training_pl": is_training_pl,
-            "pred": pred,
-        }
-
     def predict(self, data):
         is_training = False
         batch_data = np.array([data])  # 1 x PARAMS["num_point"] x 3
         feed_dict = {
-            self.ops["pointclouds_pl"]: batch_data,
-            self.ops["is_training_pl"]: is_training,
+            self.ops["pl_points"]: batch_data,
+            self.ops["pl_is_training"]: is_training,
         }
         pd_val = self.sess.run([self.ops["pred"]], feed_dict=feed_dict)
         pd_val = pd_val[0][0]  # PARAMS["num_point"] x 9

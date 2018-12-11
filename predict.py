@@ -105,7 +105,7 @@ if __name__ == "__main__":
 
     for batch_index in range(FLAGS.num_samples * num_scenes):
         scene_index, data, raw_data, true_labels, col, _ = dataset.next_input(
-            verbose=False, predicting=True
+            predicting=True
         )
         if p == 6:
             raw_data = np.hstack((raw_data, col))

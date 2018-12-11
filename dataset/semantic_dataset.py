@@ -205,14 +205,12 @@ class SemanticDataset:
 
         return batch_data, batch_label, batch_weights
 
-    def next_input(self, verbose=False, predicting=False):
+    def next_input(self, predicting=False):
 
         input_ok = False
-        count_try = 0
 
         # Try to find a non-empty cloud to process
         while not input_ok:
-            count_try += 1
             # Randomly choose a scene, taking account that some scenes contains more
             # points than others
             scene_index = self.get_random_scene_index()
@@ -231,14 +229,8 @@ class SemanticDataset:
             scene_extract_mask = self.extract_z_box(seed, scene, scene_index)
             # Verify the cloud is not empty
             if np.sum(scene_extract_mask) == 0:
-                if verbose:
-                    print("Warning : empty box")
                 continue
             else:
-                if verbose:
-                    print(
-                        "There are %i points in the box" % (np.sum(scene_extract_mask))
-                    )
                 input_ok = True
 
             data = scene[scene_extract_mask]

@@ -216,10 +216,11 @@ class SemanticDataset:
         batch_weights = np.array(batch_weights)
 
         # Optional batch augmentation
-        if augment and feature_size:
-            batch_data = provider.rotate_feature_point_cloud(batch_data, feature_size)
-        if augment and not feature_size:
-            batch_data = provider.rotate_point_cloud(batch_data)
+        if augment:
+            if feature_size:
+                batch_data = provider.rotate_feature_point_cloud(batch_data, feature_size)
+            else:
+                batch_data = provider.rotate_point_cloud(batch_data)
 
         return batch_data, batch_label, batch_weights
 

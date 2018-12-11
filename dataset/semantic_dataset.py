@@ -132,41 +132,23 @@ class SemanticDataset:
         # self.list_labels
         # self.list_colors
         # Load data to map_prefix_to_file_data
-        self.map_prefix_to_file_data = dict()
+        self.list_file_data = []
         for file_prefix in file_prefixes:
             file_path = os.path.join(self.path, file_prefix)
             file_data = FileData(
                 self.num_points, self.split, self.use_color, self.box_size, file_path
             )
-            self.map_prefix_to_file_data[file_prefix] = file_data
+            self.list_file_data.append(file_data)
 
         # TODO: remove this
         # Fill lists
         self.list_file_path = [os.path.join(self.path, file) for file in file_prefixes]
-        self.list_points = [
-            self.map_prefix_to_file_data[file_prefix].points
-            for file_prefix in file_prefixes
-        ]
-        self.list_labels = [
-            self.map_prefix_to_file_data[file_prefix].labels
-            for file_prefix in file_prefixes
-        ]
-        self.list_colors = [
-            self.map_prefix_to_file_data[file_prefix].colors
-            for file_prefix in file_prefixes
-        ]
-        self.list_points_max = [
-            self.map_prefix_to_file_data[file_prefix].points_max
-            for file_prefix in file_prefixes
-        ]
-        self.list_points_min = [
-            self.map_prefix_to_file_data[file_prefix].points_min
-            for file_prefix in file_prefixes
-        ]
-        self.list_points_min_raw = [
-            self.map_prefix_to_file_data[file_prefix].points_min_raw
-            for file_prefix in file_prefixes
-        ]
+        self.list_points = [fd.points for fd in self.list_file_data]
+        self.list_labels = [fd.labels for fd in self.list_file_data]
+        self.list_colors = [fd.colors for fd in self.list_file_data]
+        self.list_points_max = [fd.points_max for fd in self.list_file_data]
+        self.list_points_min = [fd.points_min for fd in self.list_file_data]
+        self.list_points_min_raw = [fd.points_min_raw for fd in self.list_file_data]
 
         # Pre-compute the probability of picking a point
         # in a given scene. This is useful to compute the scene index later,

@@ -223,11 +223,14 @@ class SemanticDataset:
         return batch_data, batch_label, batch_weights
 
     def next_input(self, predicting=False):
-        # Sample a scene, scenes with more points are more likely to be chosen
+        """
+        Returns points and other info within a z - cropped box.
+        """
+        # Pick a scene, scenes with more points are more likely to be chosen
         scene_index = self.get_random_scene_index()
-        points = self.list_points[scene_index]  # [[x,y,z],...[x,y,z]]
+        points = self.list_points[scene_index]
 
-        # Sample a point, and crop a z-box around
+        # Pick a point, and crop a z-box around
         center_point = points[np.random.randint(0, len(points))]
         scene_extract_mask = self.extract_z_box(center_point, points, scene_index)
         data = points[scene_extract_mask]
@@ -239,18 +242,19 @@ class SemanticDataset:
         else:
             colors = None
 
-        # Sampling #######################
+        # TODO: change this to numpy's build-in functions
+        # Shuffling or up-sampling if needed
         if len(data) - self.num_points > 0:
-            trueArray = np.ones(self.num_points, dtype=bool)
-            falseArray = np.zeros(len(data) - self.num_points, dtype=bool)
-            sample_mask = np.concatenate((trueArray, falseArray), axis=0)
+            true_array = np.ones(self.num_points, dtype=bool)
+            false_array = np.zeros(len(data) - self.num_points, dtype=bool)
+            sample_mask = np.concatenate((true_array, false_array), axis=0)
             np.random.shuffle(sample_mask)
         else:
             # Not enough points, recopy the data until there are enough points
             sample_mask = np.arange(len(data))
             while len(sample_mask) < self.num_points:
                 sample_mask = np.concatenate((sample_mask, sample_mask), axis=0)
-            sample_mask = sample_mask[np.arange(self.num_points)]
+            sample_mask = sample_mask[:self.num_points]
         raw_data = data[sample_mask]
 
         # Center the box in 2D
@@ -262,7 +266,6 @@ class SemanticDataset:
 
         # Compute the weights
         weights = self.label_weights[labels]
-        # End sampling #######################
 
         if predicting:
             return (

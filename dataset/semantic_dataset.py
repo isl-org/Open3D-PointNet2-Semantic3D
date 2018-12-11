@@ -55,15 +55,14 @@ map_name_to_file_prefixes = {
 
 
 class FileData:
-    def __init__(self, file_prefix, num_points, split, use_color, box_size, file_path):
+    def __init__(self, num_points, split, use_color, box_size, file_path_without_ext):
         """
         Loads file data
         """
-        self.file_prefix = file_prefix
-        self.file_path = file_path
+        self.file_path_without_ext = file_path_without_ext
 
         # Load points
-        pcd = open3d.read_point_cloud(file_path + ".pcd")
+        pcd = open3d.read_point_cloud(file_path_without_ext + ".pcd")
         self.points = np.asarray(pcd.points)
 
         # Shift points to min (0, 0, 0), per-image
@@ -79,7 +78,7 @@ class FileData:
         if split == "test":
             self.labels = np.zeros(len(self.points)).astype(bool)
         else:
-            self.labels = load_labels(file_path + ".labels")
+            self.labels = load_labels(file_path_without_ext + ".labels")
 
         # Load colors, regardless of whether use_color is true
         self.colors = np.asarray(pcd.colors)
@@ -120,11 +119,9 @@ class SemanticDataset:
             "cars",
         ]
 
-        # Load the data
-        print("Loading semantic data:", self.split)
-
-        # Get file names to load
+        # Get file_prefixes
         file_prefixes = map_name_to_file_prefixes[self.split]
+        print("Dataset split:", self.split)
         print("Loading file_prefixes:", file_prefixes)
 
         # self.list_file_path
@@ -137,14 +134,13 @@ class SemanticDataset:
         # Load data to map_prefix_to_file_data
         self.list_file_data = []
         for file_prefix in file_prefixes:
-            file_path = os.path.join(self.path, file_prefix)
+            file_path_without_ext = os.path.join(self.path, file_prefix)
             file_data = FileData(
-                file_prefix,
                 self.num_points,
                 self.split,
                 self.use_color,
                 self.box_size,
-                file_path,
+                file_path_without_ext,
             )
             self.list_file_data.append(file_data)
 
@@ -320,5 +316,5 @@ class SemanticDataset:
     def get_num_batches(self, batch_size):
         return int(self.get_total_num_points() / (batch_size * self.num_points))
 
-    def get_file_paths_without_extension(self):
-        return [file_data.file_path for file_data in self.list_file_data]
+    def get_file_paths_without_ext(self):
+        return [file_data.file_path_without_ext for file_data in self.list_file_data]

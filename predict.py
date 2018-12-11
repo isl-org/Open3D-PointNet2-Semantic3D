@@ -127,12 +127,12 @@ if __name__ == "__main__":
                 )
             )
 
-    file_names = dataset.get_file_paths_without_extension()
-    print("{} point clouds to export".format(len(file_names)))
+    file_paths_without_ext = dataset.get_file_paths_without_ext()
+    print("{} point clouds to export".format(len(file_paths_without_ext)))
     cm = ConfusionMatrix(9)
 
     for scene_index in range(num_scenes):
-        file_prefix = os.path.basename(file_names[scene_index])
+        file_prefix = os.path.basename(file_paths_without_ext[scene_index])
 
         # Save sparse point cloud
         pcd = open3d.PointCloud()

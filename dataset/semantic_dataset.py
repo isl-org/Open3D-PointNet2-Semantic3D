@@ -223,33 +223,22 @@ class SemanticDataset:
         return batch_data, batch_label, batch_weights
 
     def next_input(self, predicting=False):
-        # Try to find a non-empty cloud to process
-        input_ok = False
-        while not input_ok:
-            # Randomly select scene, scenes with more points -> more likely to be chosen
-            scene_index = self.get_random_scene_index()
-            points = self.list_points[scene_index]  # [[x,y,z],...[x,y,z]]
+        # Sample a scene, scenes with more points are more likely to be chosen
+        scene_index = self.get_random_scene_index()
+        points = self.list_points[scene_index]  # [[x,y,z],...[x,y,z]]
 
-            # Randomly select a point, and crop a z-box around that point
-            seed_index = np.random.randint(0, len(points))
-            seed = points[seed_index]  # [x, y, z]
-            scene_extract_mask = self.extract_z_box(seed, points, scene_index)
+        # Sample a point, and crop a z-box around
+        seed_index = np.random.randint(0, len(points))
+        seed = points[seed_index]  # [x, y, z]
+        scene_extract_mask = self.extract_z_box(seed, points, scene_index)
+        data = points[scene_extract_mask]
 
-            # Verify the cloud is not empty
-            if np.sum(scene_extract_mask) == 0:
-                continue
-            else:
-                input_ok = True
-            data = points[scene_extract_mask]
-
-            # Get labels with mask
-            labels = self.list_labels[scene_index][scene_extract_mask]
-
-            # Get colors with mask
-            if self.use_color:
-                colors = self.list_colors[scene_index][scene_extract_mask]
-            else:
-                colors = None
+        # Crop labels and colors
+        labels = self.list_labels[scene_index][scene_extract_mask]
+        if self.use_color:
+            colors = self.list_colors[scene_index][scene_extract_mask]
+        else:
+            colors = None
 
         # Sampling #######################
         if len(data) - self.num_points > 0:
@@ -350,6 +339,7 @@ class SemanticDataset:
         )
 
         # mask = np.sum((scene>=box_min)*(scene<=box_max),axis=1) == 3
+        assert np.sum(mask) != 0
         return mask
 
     def get_total_num_points(self):

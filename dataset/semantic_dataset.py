@@ -226,11 +226,8 @@ class SemanticDataset:
         # Try to find a non-empty cloud to process
         input_ok = False
         while not input_ok:
-            # Randomly choose a scene, taking account that some scenes contains more
-            # points than others
+            # Randomly select scene, scenes with more points -> more likely to be chosen
             scene_index = self.get_random_scene_index()
-
-            # Randomly choose a seed
             scene = self.list_points[scene_index]  # [[x,y,z],...[x,y,z]]
             scene_labels = self.list_labels[scene_index]
             if self.use_color:

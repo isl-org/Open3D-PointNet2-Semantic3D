@@ -201,11 +201,9 @@ class SemanticDataset:
         batch_data = []
         batch_label = []
         batch_weights = []
-        feature_size = 0
         for _ in range(batch_size):
             data, label, colors, weights = self.next_input()
             if self.use_color:
-                feature_size = 3
                 data = np.hstack((data, colors))
             batch_data.append(data)
             batch_label.append(label)
@@ -217,8 +215,8 @@ class SemanticDataset:
 
         # Optional batch augmentation
         if augment:
-            if feature_size:
-                batch_data = provider.rotate_feature_point_cloud(batch_data, feature_size)
+            if self.use_color:
+                batch_data = provider.rotate_feature_point_cloud(batch_data, 3)
             else:
                 batch_data = provider.rotate_point_cloud(batch_data)
 

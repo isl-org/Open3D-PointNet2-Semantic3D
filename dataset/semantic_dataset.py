@@ -79,7 +79,7 @@ class SemanticDataset:
             "low vegetation",
             "buildings",
             "hard scape",
-            "scanning artefacts",
+            "scanning artifact",
             "cars",
         ]
 

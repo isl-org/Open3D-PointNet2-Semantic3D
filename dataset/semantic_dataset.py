@@ -303,18 +303,18 @@ class SemanticDataset:
         # Does not take into account the scene number of points
         # return np.random.randint(0,len(self.list_points))
         return np.random.choice(
-            np.arange(0, len(self.list_points)), p=self.scenes_proba
+            np.arange(0, len(self.list_points)), p=self.scene_probas
         )
 
     def compute_random_scene_index_proba(self):
         # Precompute the probability of picking a point
         # in a given scene. This is useful to compute the scene index later,
         # in order to pick more seeds in bigger scenes
-        self.scenes_proba = []
+        self.scene_probas = []
         total = self.get_total_num_points()
         for scene_index in range(len(self)):
             proba = float(len(self.list_points[scene_index])) / float(total)
-            self.scenes_proba.append(proba)
+            self.scene_probas.append(proba)
 
     def center_box(self, data):
         # Shift the box so that z= 0 is the min and x=0 and y=0 is the center of the

@@ -140,9 +140,6 @@ class SemanticDataset:
             label_weights = label_weights / np.sum(label_weights)
             self.label_weights = 1 / np.log(1.2 + label_weights)
 
-        elif self.split == "validation" or self.split == "test":
-            self.label_weights = np.ones(9)
-
     def load_data(self):
         """
         Fills:
@@ -254,7 +251,7 @@ class SemanticDataset:
             sample_mask = np.arange(len(points))
             while len(sample_mask) < self.num_points:
                 sample_mask = np.concatenate((sample_mask, sample_mask), axis=0)
-            sample_mask = sample_mask[:self.num_points]
+            sample_mask = sample_mask[: self.num_points]
 
         points = points[sample_mask]
         labels = labels[sample_mask]
@@ -265,9 +262,6 @@ class SemanticDataset:
         # This canonical column is used for both training and inference
         points_centered = self.center_box(points)
 
-        # Compute weights
-        weights = self.label_weights[labels]
-
         if predicting:
             return (
                 scene_index,
@@ -275,9 +269,9 @@ class SemanticDataset:
                 points + self.list_points_min_raw[scene_index],
                 labels,
                 colors,
-                weights,
             )
         else:
+            weights = self.label_weights[labels]
             return points_centered, labels, colors, weights
 
     def set_pc_zmax_zmin(self):

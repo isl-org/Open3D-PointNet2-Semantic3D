@@ -106,7 +106,7 @@ if __name__ == "__main__":
     predicted_labels = [np.array([]) for i in range(num_scenes)]
 
     for batch_index in range(FLAGS.num_samples * num_scenes):
-        scene_index, data, raw_data, true_labels, col, _ = dataset.next_input(
+        scene_index, data, raw_data, true_labels, col = dataset.next_input(
             predicting=True
         )
         if p == 6:

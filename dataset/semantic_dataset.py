@@ -55,11 +55,37 @@ map_name_to_file_prefixes = {
 
 
 class FileData:
-    def __init__(self, num_points, use_color, box_size, pcd_path):
+    def __init__(self, num_points, split, use_color, box_size, file_path):
         """
         Loads file data
         """
-        pass
+        # Load points
+        pcd = open3d.read_point_cloud(file_path + ".pcd")
+        self.points = np.asarray(pcd.points)
+
+        # Shift points to min (0, 0, 0), per-image
+        # Training: use the normalized points for training
+        # Testing: use the normalized points for testing. However, when writing back
+        #          point clouds, the shift should be added back.
+        self.points_min_raw = np.min(self.points, axis=0)
+        self.points = self.points - self.points_min_raw
+        self.points_min = np.min(self.points, axis=0)
+        self.points_max = np.max(self.points, axis=0)
+
+        # Load label. In pure test set, fill with zero
+        if split == "test":
+            self.labels = np.zeros(len(self.points)).astype(bool)
+        else:
+            self.labels = load_labels(file_path + ".labels")
+
+        # Load colors, regardless of whether use_color is true
+        self.colors = np.asarray(pcd.colors)
+
+        # Sort according to x to speed up computation of boxes and z-boxes
+        sort_idx = np.argsort(self.points[:, 0])
+        self.points = self.points[sort_idx]
+        self.labels = self.labels[sort_idx]
+        self.colors = self.colors[sort_idx]
 
 
 class SemanticDataset:
@@ -131,61 +157,45 @@ class SemanticDataset:
         print("Loading semantic data:", self.split)
 
         # Get file names to load
-        if self.split == "train":
-            file_prefixes = train_file_prefixes
-        elif self.split == "validation":
-            file_prefixes = validation_file_prefixes
-        elif self.split == "test":
-            file_prefixes = test_file_prefixes
-        else:
-            assert self.split == "train_full"
-            file_prefixes = train_file_prefixes + validation_file_prefixes
+        file_prefixes = map_name_to_file_prefixes[self.split]
         print("Loading file_prefixes:", file_prefixes)
 
+        # Load data to map_prefix_to_file_data
+        self.map_prefix_to_file_data = dict()
+        for file_prefix in file_prefixes:
+            file_path = os.path.join(self.path, file_prefix)
+            file_data = FileData(
+                self.num_points, self.split, self.use_color, self.box_size, file_path
+            )
+            self.map_prefix_to_file_data[file_prefix] = file_data
+
+        # TODO: remove this
+        # Fill lists
         self.list_file_path = [os.path.join(self.path, file) for file in file_prefixes]
-        self.list_points = list()
-        self.list_labels = list()
-        self.list_colors = list()
-        self.list_points_max = list()
-        self.list_points_min = list()
-        self.list_points_min_raw = list()
-
-        for file_path in self.list_file_path:
-            # Load points
-            pcd = open3d.read_point_cloud(file_path + ".pcd")
-            points = np.asarray(pcd.points)
-
-            # Shift points to min (0, 0, 0), per-image
-            # Training: use the normalized points for training
-            # Testing: use the normalized points for testing. However, when writing back
-            #          point clouds, the shift should be added back.
-            points_min_raw = np.min(points, axis=0)
-            points = points - points_min_raw
-            points_min = np.min(points, axis=0)
-            points_max = np.max(points, axis=0)
-
-            # Load label. In pure test set, fill with zero
-            if self.split == "test":
-                labels = np.zeros(len(points)).astype(bool)
-            else:
-                labels = load_labels(file_path + ".labels")
-
-            # Load colors, regardless of whether use_color is true
-            colors = np.asarray(pcd.colors)
-
-            # Sort according to x to speed up computation of boxes and z-boxes
-            sort_idx = np.argsort(points[:, 0])
-            points = points[sort_idx]
-            labels = labels[sort_idx]
-            colors = colors[sort_idx]
-
-            # Append to list
-            self.list_points.append(points)
-            self.list_points_min_raw.append(points_min_raw)
-            self.list_points_min.append(points_min)
-            self.list_points_max.append(points_max)
-            self.list_labels.append(labels.astype(np.int8))
-            self.list_colors.append(colors)
+        self.list_points = [
+            self.map_prefix_to_file_data[file_prefix].points
+            for file_prefix in file_prefixes
+        ]
+        self.list_labels = [
+            self.map_prefix_to_file_data[file_prefix].labels
+            for file_prefix in file_prefixes
+        ]
+        self.list_colors = [
+            self.map_prefix_to_file_data[file_prefix].colors
+            for file_prefix in file_prefixes
+        ]
+        self.list_points_max = [
+            self.map_prefix_to_file_data[file_prefix].points_max
+            for file_prefix in file_prefixes
+        ]
+        self.list_points_min = [
+            self.map_prefix_to_file_data[file_prefix].points_min
+            for file_prefix in file_prefixes
+        ]
+        self.list_points_min_raw = [
+            self.map_prefix_to_file_data[file_prefix].points_min_raw
+            for file_prefix in file_prefixes
+        ]
 
     def next_batch(self, batch_size, augment=True):
         batch_data = []

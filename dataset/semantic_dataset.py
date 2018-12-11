@@ -147,7 +147,7 @@ class SemanticDataset:
             pcd = open3d.read_point_cloud(file_path + ".pcd")
             points = np.asarray(pcd.points)
 
-            # Shift points to min (0, 0, 0)
+            # Shift points to min (0, 0, 0), per-image
             # Training: use the normalized points for training
             # Testing: use the normalized points for testing. However, when writing back
             #          point clouds, the shift should be added back.
@@ -205,7 +205,7 @@ class SemanticDataset:
 
         return batch_data, batch_label, batch_weights
 
-    def next_input(self, sample=True, verbose=False, predicting=False):
+    def next_input(self, verbose=False, predicting=False):
 
         input_ok = False
         count_try = 0
@@ -225,7 +225,7 @@ class SemanticDataset:
 
             # Random (on points)
             seed_index = np.random.randint(0, len(scene))
-            seed = scene[seed_index]  # [x,y,z]
+            seed = scene[seed_index]  # [x, y, z]
 
             # Crop a z-box around that seed
             scene_extract_mask = self.extract_z_box(seed, scene, scene_index)
@@ -248,29 +248,30 @@ class SemanticDataset:
             else:
                 colors = None
 
-        if sample:
-            if len(data) - self.npoints > 0:
-                trueArray = np.ones(self.npoints, dtype=bool)
-                falseArray = np.zeros(len(data) - self.npoints, dtype=bool)
-                sample_mask = np.concatenate((trueArray, falseArray), axis=0)
-                np.random.shuffle(sample_mask)
-            else:
-                # Not enough points, recopy the data until there are enough points
-                sample_mask = np.arange(len(data))
-                while len(sample_mask) < self.npoints:
-                    sample_mask = np.concatenate((sample_mask, sample_mask), axis=0)
-                sample_mask = sample_mask[np.arange(self.npoints)]
-            raw_data = data[sample_mask]
+        # Sampling #######################
+        if len(data) - self.npoints > 0:
+            trueArray = np.ones(self.npoints, dtype=bool)
+            falseArray = np.zeros(len(data) - self.npoints, dtype=bool)
+            sample_mask = np.concatenate((trueArray, falseArray), axis=0)
+            np.random.shuffle(sample_mask)
+        else:
+            # Not enough points, recopy the data until there are enough points
+            sample_mask = np.arange(len(data))
+            while len(sample_mask) < self.npoints:
+                sample_mask = np.concatenate((sample_mask, sample_mask), axis=0)
+            sample_mask = sample_mask[np.arange(self.npoints)]
+        raw_data = data[sample_mask]
 
-            # Center the box in 2D
-            data = self.center_box(raw_data)
+        # Center the box in 2D
+        data = self.center_box(raw_data)
 
-            labels = labels[sample_mask]
-            if self.use_color:
-                colors = colors[sample_mask]
+        labels = labels[sample_mask]
+        if self.use_color:
+            colors = colors[sample_mask]
 
-            # Compute the weights
-            weights = self.label_weights[labels]
+        # Compute the weights
+        weights = self.label_weights[labels]
+        # End sampling #######################
 
         if predicting:
             return (

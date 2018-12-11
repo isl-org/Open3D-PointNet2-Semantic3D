@@ -35,7 +35,7 @@ class Predictor(object):
                 1, PARAMS["num_point"], hyperparams=PARAMS
             )
             pl_is_training = tf.placeholder(tf.bool, shape=())
-            print(tf.shape(pl_points))
+            print("pl_points shape", tf.shape(pl_points))
 
             # Prediction
             pred, _ = model.get_model(
@@ -58,18 +58,25 @@ class Predictor(object):
         config.log_device_placement = False
         self.sess = tf.Session(config=config)
         saver.restore(self.sess, checkpoint_path)
-        print("Model restored.")
+        print("Model restored")
 
     def predict(self, points):
+        """
+        Args:
+            points: batch_size * num_point * 3
+
+        Returns:
+            pred_labels: batch_size * num_point * 1
+        """
         is_training = False
-        batch_data = np.array([points])  # 1 x PARAMS["num_point"] x 3
+        batch_data = np.array([points])  # batch_size * num_point * 3
         feed_dict = {
             self.ops["pl_points"]: batch_data,
             self.ops["pl_is_training"]: is_training,
         }
         pred_val = self.sess.run([self.ops["pred"]], feed_dict=feed_dict)
-        pred_val = pred_val[0][0]  # PARAMS["num_point"] x 9
-        pred_labels = np.argmax(pred_val, 1)
+        pred_val = pred_val[0]  # batch_size * num_point * 1
+        pred_labels = np.argmax(pred_val, 2)  # batch_size * num_point * 1
         return pred_labels
 
 
@@ -104,6 +111,7 @@ if __name__ == "__main__":
             raw_data = np.hstack((raw_data, col))
             data = np.hstack((data, col))
         pred_labels = predictor.predict(data)
+        pred_labels = np.squeeze(pred_labels)
         scene_points[scene_index] = np.vstack((scene_points[scene_index], raw_data))
         ground_truth[scene_index] = np.hstack((ground_truth[scene_index], true_labels))
         predicted_labels[scene_index] = np.hstack(

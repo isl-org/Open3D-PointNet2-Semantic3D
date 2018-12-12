@@ -55,13 +55,11 @@ map_name_to_file_prefixes = {
 
 
 class FileData:
-    def __init__(self, file_path_without_ext, split, use_color, box_size):
+    def __init__(self, file_path_without_ext, has_label, use_color, box_size):
         """
         Loads file data
         """
         self.file_path_without_ext = file_path_without_ext
-        self.split = split
-        self.use_color = use_color
         self.box_size = box_size
 
         # Load points
@@ -77,14 +75,17 @@ class FileData:
         self.points_min = np.min(self.points, axis=0)
         self.points_max = np.max(self.points, axis=0)
 
-        # Load label. In pure test set, fill with zero
-        if split == "test":
-            self.labels = np.zeros(len(self.points)).astype(bool)
-        else:
+        # Load label. In pure test set, fill with zeros.
+        if has_label:
             self.labels = load_labels(file_path_without_ext + ".labels")
+        else:
+            self.labels = np.zeros(len(self.points)).astype(bool)
 
-        # Load colors, regardless of whether use_color is true
-        self.colors = np.asarray(pcd.colors)
+        # Load colors. If not use_color, fill with zeros.
+        if use_color:
+            self.colors = np.asarray(pcd.colors)
+        else:
+            self.colors = np.zeros_like(self.points)
 
         # Sort according to x to speed up computation of boxes and z-boxes
         sort_idx = np.argsort(self.points[:, 0])
@@ -99,13 +100,8 @@ class FileData:
         center_point = points[np.random.randint(0, len(points))]
         scene_extract_mask = self.extract_z_box(center_point)
         points = points[scene_extract_mask]
-
-        # Crop labels and colors
         labels = self.labels[scene_extract_mask]
-        if self.use_color:
-            colors = self.colors[scene_extract_mask]
-        else:
-            colors = None
+        colors = self.colors[scene_extract_mask]
 
         # TODO: change this to numpy's build-in functions
         # Shuffling or up-sampling if needed
@@ -120,11 +116,9 @@ class FileData:
             while len(sample_mask) < num_points_per_sample:
                 sample_mask = np.concatenate((sample_mask, sample_mask), axis=0)
             sample_mask = sample_mask[:num_points_per_sample]
-
         points = points[sample_mask]
         labels = labels[sample_mask]
-        if self.use_color:
-            colors = colors[sample_mask]
+        colors = colors[sample_mask]
 
         # Shift the points, such that min(z) == 0, and x = 0 and y = 0 is the center
         # This canonical column is used for both training and inference
@@ -219,7 +213,10 @@ class SemanticDataset:
         for file_prefix in file_prefixes:
             file_path_without_ext = os.path.join(self.path, file_prefix)
             file_data = FileData(
-                file_path_without_ext, self.split, self.use_color, self.box_size
+                file_path_without_ext=file_path_without_ext,
+                has_label=self.split != "test",
+                use_color=self.use_color,
+                box_size=self.box_size,
             )
             self.list_file_data.append(file_data)
 

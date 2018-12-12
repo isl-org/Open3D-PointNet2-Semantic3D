@@ -55,14 +55,11 @@ map_name_to_file_prefixes = {
 
 
 class FileData:
-    def __init__(
-        self, num_points_per_sample, split, use_color, box_size, file_path_without_ext
-    ):
+    def __init__(self, split, use_color, box_size, file_path_without_ext):
         """
         Loads file data
         """
         self.file_path_without_ext = file_path_without_ext
-        self.num_points_per_sample = num_points_per_sample
         self.split = split
         self.use_color = use_color
         self.box_size = box_size
@@ -95,7 +92,7 @@ class FileData:
         self.labels = self.labels[sort_idx]
         self.colors = self.colors[sort_idx]
 
-    def next_input(self):
+    def next_sample(self, num_points_per_sample):
         points = self.points
 
         # Pick a point, and crop a z-box around
@@ -112,17 +109,17 @@ class FileData:
 
         # TODO: change this to numpy's build-in functions
         # Shuffling or up-sampling if needed
-        if len(points) - self.num_points_per_sample > 0:
-            true_array = np.ones(self.num_points_per_sample, dtype=bool)
-            false_array = np.zeros(len(points) - self.num_points_per_sample, dtype=bool)
+        if len(points) - num_points_per_sample > 0:
+            true_array = np.ones(num_points_per_sample, dtype=bool)
+            false_array = np.zeros(len(points) - num_points_per_sample, dtype=bool)
             sample_mask = np.concatenate((true_array, false_array), axis=0)
             np.random.shuffle(sample_mask)
         else:
             # Not enough points, recopy the data until there are enough points
             sample_mask = np.arange(len(points))
-            while len(sample_mask) < self.num_points_per_sample:
+            while len(sample_mask) < num_points_per_sample:
                 sample_mask = np.concatenate((sample_mask, sample_mask), axis=0)
-            sample_mask = sample_mask[: self.num_points_per_sample]
+            sample_mask = sample_mask[:num_points_per_sample]
 
         points = points[sample_mask]
         labels = labels[sample_mask]
@@ -222,11 +219,7 @@ class SemanticDataset:
         for file_prefix in file_prefixes:
             file_path_without_ext = os.path.join(self.path, file_prefix)
             file_data = FileData(
-                self.num_points_per_sample,
-                self.split,
-                self.use_color,
-                self.box_size,
-                file_path_without_ext,
+                self.split, self.use_color, self.box_size, file_path_without_ext
             )
             self.list_file_data.append(file_data)
 
@@ -258,7 +251,7 @@ class SemanticDataset:
         batch_weights = []
 
         for _ in range(batch_size):
-            points, labels, colors, weights = self.next_input(is_training=True)
+            points, labels, colors, weights = self.next_sample(is_training=True)
             if self.use_color:
                 batch_data.append(np.hstack((points, colors)))
             else:
@@ -278,7 +271,7 @@ class SemanticDataset:
 
         return batch_data, batch_label, batch_weights
 
-    def next_input(self, is_training):
+    def next_sample(self, is_training):
         """
         Returns points and other info within a z - cropped box.
         """
@@ -290,7 +283,7 @@ class SemanticDataset:
         # Sample from the selected scene
         points_centered, points_raw, labels, colors = self.list_file_data[
             scene_index
-        ].next_input()
+        ].next_sample(num_points_per_sample=self.num_points_per_sample)
 
         if is_training:
             weights = self.label_weights[labels]

@@ -77,8 +77,6 @@ if __name__ == "__main__":
     )
     parser.add_argument("--ckpt", default="", help="Checkpoint file")
     parser.add_argument("--set", default="validation", help="train, validation, test")
-
-    # Two global arg collections
     flags = parser.parse_args()
     hyper_params = json.loads(open("semantic.json").read())
 
@@ -105,12 +103,12 @@ if __name__ == "__main__":
     predicted_labels = [np.array([]) for i in range(num_scenes)]
 
     for batch_index in range(flags.num_samples * num_scenes):
-        scene_index, data, raw_data, true_labels, col = dataset.next_sample(
+        scene_index, data, raw_data, true_labels, colors = dataset.next_sample(
             is_training=False
         )
         if p == 6:
-            raw_data = np.hstack((raw_data, col))
-            data = np.hstack((data, col))
+            raw_data = np.hstack((raw_data, colors))
+            data = np.hstack((data, colors))
         pred_labels = predictor.predict(data)
         pred_labels = np.squeeze(pred_labels)
         scene_points[scene_index] = np.vstack((scene_points[scene_index], raw_data))
@@ -150,4 +148,16 @@ if __name__ == "__main__":
         # Print
         print("Exported: {} with {} points".format(file_prefix, len(pd_labels)))
 
+    cm.print_metrics()
+
+    # Process each file
+    semantic_file_data = dataset.list_file_data[0]
+    points, points_raw, gt_labels, colors = semantic_file_data.next_sample(
+        hyper_params["num_point"]
+    )
+    points_with_colors = np.hstack((points, colors))
+    pd_labels = predictor.predict(points_with_colors)[0]
+    cm = ConfusionMatrix(9)
+    import ipdb; ipdb.set_trace()
+    cm.increment_from_list(gt_labels, pd_labels)
     cm.print_metrics()

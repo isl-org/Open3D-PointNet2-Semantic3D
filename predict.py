@@ -99,7 +99,7 @@ if __name__ == "__main__":
     # Model
     predictor = Predictor(checkpoint_path=FLAGS.ckpt)
 
-    num_scenes = len(dataset.list_file_data)
+    num_scenes = dataset.num_scenes
     p = 6 if PARAMS["use_color"] else 3
     scene_points = [np.array([]).reshape((0, p)) for i in range(num_scenes)]
     ground_truth = [np.array([]) for i in range(num_scenes)]

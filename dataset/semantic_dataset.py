@@ -215,14 +215,7 @@ class SemanticDataset:
         print("Dataset split:", self.split)
         print("Loading file_prefixes:", file_prefixes)
 
-        # self.list_file_path
-        # self.list_points
-        # self.list_points_min_raw
-        # self.list_points_min
-        # self.list_points_max
-        # self.list_labels
-        # self.list_colors
-        # Load data to map_prefix_to_file_data
+        # Load files
         self.list_file_data = []
         for file_prefix in file_prefixes:
             file_path_without_ext = os.path.join(self.path, file_prefix)
@@ -235,29 +228,20 @@ class SemanticDataset:
             )
             self.list_file_data.append(file_data)
 
-        # TODO: remove this
-        self.list_points = [fd.points for fd in self.list_file_data]
-        self.list_labels = [fd.labels for fd in self.list_file_data]
-        self.list_colors = [fd.colors for fd in self.list_file_data]
-        self.list_points_max = [fd.points_max for fd in self.list_file_data]
-        self.list_points_min = [fd.points_min for fd in self.list_file_data]
-        self.list_points_min_raw = [fd.points_min_raw for fd in self.list_file_data]
-
         # Pre-compute the probability of picking a scene
-        self.scene_probas = []
-        total = self.get_total_num_points()
-        for scene_index in range(len(self.list_points)):
-            proba = float(len(self.list_points[scene_index])) / float(total)
-            self.scene_probas.append(proba)
+        self.num_scenes = len(self.list_file_data)
+        self.scene_probas = [
+            len(fd.points) / self.get_total_num_points() for fd in self.list_file_data
+        ]
 
-        # Prepare the points weights if it is a training set
+        # Pre-compute the points weights if it is a training set
         if self.split == "train" or self.split == "train_full":
             # Compute the weights
             label_weights = np.zeros(9)
 
             # First, compute the histogram of each labels
-            for seg in self.list_labels:
-                tmp, _ = np.histogram(seg, range(10))
+            for labels in [fd.labels for fd in self.list_file_data]:
+                tmp, _ = np.histogram(labels, range(10))
                 label_weights += tmp
 
             # Then, a heuristic gives the weights
@@ -313,10 +297,8 @@ class SemanticDataset:
             return scene_index, points_centered, points_raw, labels, colors
 
     def get_total_num_points(self):
-        total_num_points = 0
-        for scene_index in range(len(self.list_file_data)):
-            total_num_points += len(self.list_points[scene_index])
-        return total_num_points
+        list_num_points = [len(fd.points) for fd in self.list_file_data]
+        return np.sum(list_num_points)
 
     def get_num_batches(self, batch_size):
         return int(self.get_total_num_points() / (batch_size * self.num_points))

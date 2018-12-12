@@ -417,7 +417,7 @@ def train():
             "update_iou": update_iou_op,
         }
 
-        # Train for PARAMS["max_epoch"] epochs
+        # Train for hyper_params["max_epoch"] epochs
         best_acc = 0
         for epoch in range(PARAMS["max_epoch"]):
             print("in epoch", epoch)

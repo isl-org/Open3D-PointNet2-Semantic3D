@@ -10,36 +10,20 @@ from dataset.semantic_dataset import SemanticDataset
 from util.metric import ConfusionMatrix
 
 
-# Parser
-parser = argparse.ArgumentParser()
-parser.add_argument(
-    "--num_samples",
-    type=int,
-    default=8,
-    help="# samples, each contains num_point points",
-)
-parser.add_argument("--ckpt", default="", help="Checkpoint file")
-parser.add_argument("--set", default="validation", help="train, validation, test")
-
-# Two global arg collections
-FLAGS = parser.parse_args()
-PARAMS = json.loads(open("semantic.json").read())
-
-
 class Predictor:
-    def __init__(self, checkpoint_path):
+    def __init__(self, checkpoint_path, hyper_params):
         # Get ops from graph
         with tf.device("/gpu:0"):
             # Placeholder
             pl_points, _, _ = model.get_placeholders(
-                1, PARAMS["num_point"], hyperparams=PARAMS
+                1, hyper_params["num_point"], hyperparams=hyper_params
             )
             pl_is_training = tf.placeholder(tf.bool, shape=())
             print("pl_points shape", tf.shape(pl_points))
 
             # Prediction
             pred, _ = model.get_model(
-                pl_points, pl_is_training, dataset.num_classes, hyperparams=PARAMS
+                pl_points, pl_is_training, dataset.num_classes, hyperparams=hyper_params
             )
 
             # Saver
@@ -83,29 +67,44 @@ class Predictor:
 if __name__ == "__main__":
     np.random.seed(0)
 
+    # Parser
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--num_samples",
+        type=int,
+        default=8,
+        help="# samples, each contains num_point points",
+    )
+    parser.add_argument("--ckpt", default="", help="Checkpoint file")
+    parser.add_argument("--set", default="validation", help="train, validation, test")
+
+    # Two global arg collections
+    flags = parser.parse_args()
+    hyper_params = json.loads(open("semantic.json").read())
+
     # Create output dir
     output_dir = os.path.join("result", "sparse")
     os.makedirs(output_dir, exist_ok=True)
 
     # Dataset
     dataset = SemanticDataset(
-        num_points_per_sample=PARAMS["num_point"],
-        split=FLAGS.set,
-        box_size=PARAMS["box_size"],
-        use_color=PARAMS["use_color"],
-        path=PARAMS["data_path"],
+        num_points_per_sample=hyper_params["num_point"],
+        split=flags.set,
+        box_size=hyper_params["box_size"],
+        use_color=hyper_params["use_color"],
+        path=hyper_params["data_path"],
     )
 
     # Model
-    predictor = Predictor(checkpoint_path=FLAGS.ckpt)
+    predictor = Predictor(checkpoint_path=flags.ckpt, hyper_params=hyper_params)
 
     num_scenes = dataset.num_scenes
-    p = 6 if PARAMS["use_color"] else 3
+    p = 6 if hyper_params["use_color"] else 3
     scene_points = [np.array([]).reshape((0, p)) for i in range(num_scenes)]
     ground_truth = [np.array([]) for i in range(num_scenes)]
     predicted_labels = [np.array([]) for i in range(num_scenes)]
 
-    for batch_index in range(FLAGS.num_samples * num_scenes):
+    for batch_index in range(flags.num_samples * num_scenes):
         scene_index, data, raw_data, true_labels, col = dataset.next_sample(
             is_training=False
         )

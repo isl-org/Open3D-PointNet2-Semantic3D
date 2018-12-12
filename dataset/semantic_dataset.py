@@ -126,14 +126,15 @@ class FileData:
 
         return points_centered, points + self.points_min_raw, labels, colors
 
-    def center_box(self, data):
+    def center_box(self, points):
         # Shift the box so that z = 0 is the min and x = 0 and y = 0 is the box center
         # E.g. if box_size == 10, then the new mins are (-5, -5, 0)
-        box_min = np.min(data, axis=0)
+        box_min = np.min(points, axis=0)
         shift = np.array(
             [box_min[0] + self.box_size / 2, box_min[1] + self.box_size / 2, box_min[2]]
         )
-        return data - shift
+        points_centered = points - shift
+        return points_centered
 
     def extract_z_box(self, center_point):
         """

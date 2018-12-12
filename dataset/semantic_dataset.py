@@ -93,7 +93,7 @@ class FileData:
         self.labels = self.labels[sort_idx]
         self.colors = self.colors[sort_idx]
 
-    def next_input(self, is_training):
+    def next_input(self):
         points = self.points
 
         # Pick a point, and crop a z-box around
@@ -131,11 +131,7 @@ class FileData:
         # This canonical column is used for both training and inference
         points_centered = self.center_box(points)
 
-        if is_training:
-            # weights = self.label_weights[labels]
-            return points_centered, labels, colors
-        else:
-            return (points_centered, points + self.points_min_raw, labels, colors)
+        return points_centered, points + self.points_min_raw, labels, colors
 
     def center_box(self, data):
         # Shift the box so that z = 0 is the min and x = 0 and y = 0 is the box center
@@ -305,16 +301,15 @@ class SemanticDataset:
             np.arange(0, len(self.list_file_data)), p=self.scene_probas
         )
 
+        # Sample from the selected scene
+        points_centered, points_raw, labels, colors = self.list_file_data[
+            scene_index
+        ].next_input()
+
         if is_training:
-            points, labels, colors = self.list_file_data[scene_index].next_input(
-                is_training
-            )
             weights = self.label_weights[labels]
-            return points, labels, colors, weights
+            return points_centered, labels, colors, weights
         else:
-            points_centered, points_raw, labels, colors = self.list_file_data[
-                scene_index
-            ].next_input(is_training)
             return scene_index, points_centered, points_raw, labels, colors
 
     def get_total_num_points(self):

@@ -55,7 +55,9 @@ map_name_to_file_prefixes = {
 
 
 class FileData:
-    def __init__(self, num_points_per_sample, split, use_color, box_size, file_path_without_ext):
+    def __init__(
+        self, num_points_per_sample, split, use_color, box_size, file_path_without_ext
+    ):
         """
         Loads file data
         """
@@ -301,7 +303,9 @@ class SemanticDataset:
         return np.sum(list_num_points)
 
     def get_num_batches(self, batch_size):
-        return int(self.get_total_num_points() / (batch_size * self.num_points_per_sample))
+        return int(
+            self.get_total_num_points() / (batch_size * self.num_points_per_sample)
+        )
 
     def get_file_paths_without_ext(self):
         return [file_data.file_path_without_ext for file_data in self.list_file_data]

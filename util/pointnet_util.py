@@ -210,7 +210,9 @@ def pointnet_sa_module(
             if use_nchw:
                 new_points = tf.transpose(new_points, [0, 2, 3, 1])
 
-        new_points = tf.squeeze(new_points, [2])  # (batch_size, num_points_per_sample, mlp2[-1])
+        new_points = tf.squeeze(
+            new_points, [2]
+        )  # (batch_size, num_points_per_sample, mlp2[-1])
         return new_xyz, new_points, idx
 
 

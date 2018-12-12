@@ -229,10 +229,8 @@ class SemanticDataset:
 
         # Pre-compute the points weights if it is a training set
         if self.split == "train" or self.split == "train_full":
-            # Compute the weights
-            label_weights = np.zeros(9)
-
             # First, compute the histogram of each labels
+            label_weights = np.zeros(9)
             for labels in [fd.labels for fd in self.list_file_data]:
                 tmp, _ = np.histogram(labels, range(10))
                 label_weights += tmp
@@ -242,6 +240,8 @@ class SemanticDataset:
             label_weights = label_weights.astype(np.float32)
             label_weights = label_weights / np.sum(label_weights)
             self.label_weights = 1 / np.log(1.2 + label_weights)
+        else:
+            self.label_weights = np.zeros(9)
 
     def next_batch(self, batch_size, augment=True):
         batch_data = []

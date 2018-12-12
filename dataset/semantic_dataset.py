@@ -60,6 +60,10 @@ class FileData:
         Loads file data
         """
         self.file_path_without_ext = file_path_without_ext
+        self.num_points = num_points
+        self.split = split
+        self.use_color = use_color
+        self.box_size = box_size
 
         # Load points
         pcd = open3d.read_point_cloud(file_path_without_ext + ".pcd")
@@ -89,11 +93,102 @@ class FileData:
         self.labels = self.labels[sort_idx]
         self.colors = self.colors[sort_idx]
 
+    def next_input(self, is_training):
+        points = self.points
+
+        # Pick a point, and crop a z-box around
+        center_point = points[np.random.randint(0, len(points))]
+        scene_extract_mask = self.extract_z_box(center_point)
+        points = points[scene_extract_mask]
+
+        # Crop labels and colors
+        labels = self.labels[scene_extract_mask]
+        if self.use_color:
+            colors = self.colors[scene_extract_mask]
+        else:
+            colors = None
+
+        # TODO: change this to numpy's build-in functions
+        # Shuffling or up-sampling if needed
+        if len(points) - self.num_points > 0:
+            true_array = np.ones(self.num_points, dtype=bool)
+            false_array = np.zeros(len(points) - self.num_points, dtype=bool)
+            sample_mask = np.concatenate((true_array, false_array), axis=0)
+            np.random.shuffle(sample_mask)
+        else:
+            # Not enough points, recopy the data until there are enough points
+            sample_mask = np.arange(len(points))
+            while len(sample_mask) < self.num_points:
+                sample_mask = np.concatenate((sample_mask, sample_mask), axis=0)
+            sample_mask = sample_mask[: self.num_points]
+
+        points = points[sample_mask]
+        labels = labels[sample_mask]
+        if self.use_color:
+            colors = colors[sample_mask]
+
+        # Shift the points, such that min(z) == 0, and x = 0 and y = 0 is the center
+        # This canonical column is used for both training and inference
+        points_centered = self.center_box(points)
+
+        if is_training:
+            # weights = self.label_weights[labels]
+            return points_centered, labels, colors
+        else:
+            return (points_centered, points + self.points_min_raw, labels, colors)
+
+    def center_box(self, data):
+        # Shift the box so that z = 0 is the min and x = 0 and y = 0 is the box center
+        # E.g. if box_size == 10, then the new mins are (-5, -5, 0)
+        box_min = np.min(data, axis=0)
+        shift = np.array(
+            [box_min[0] + self.box_size / 2, box_min[1] + self.box_size / 2, box_min[2]]
+        )
+        return data - shift
+
+    def extract_z_box(self, center_point):
+        """
+        Crop along z axis (vertical) from the center_point.
+
+        Args:
+            center_point: only x and y coordinates will be used
+            points: points (n * 3)
+            scene_idx: scene index to get the min and max of the whole scene
+        """
+        # TODO TAKES LOT OF TIME !! THINK OF AN ALTERNATIVE !
+        scene_max = self.points_max
+        scene_min = self.points_min
+        scene_z_size = scene_max[2] - scene_min[2]
+        box_min = center_point - [self.box_size / 2, self.box_size / 2, scene_z_size]
+        box_max = center_point + [self.box_size / 2, self.box_size / 2, scene_z_size]
+
+        i_min = np.searchsorted(self.points[:, 0], box_min[0])
+        i_max = np.searchsorted(self.points[:, 0], box_max[0])
+        mask = (
+            np.sum(
+                (self.points[i_min:i_max, :] >= box_min)
+                * (self.points[i_min:i_max, :] <= box_max),
+                axis=1,
+            )
+            == 3
+        )
+        mask = np.hstack(
+            (
+                np.zeros(i_min, dtype=bool),
+                mask,
+                np.zeros(len(self.points) - i_max, dtype=bool),
+            )
+        )
+
+        # mask = np.sum((points>=box_min)*(points<=box_max),axis=1) == 3
+        assert np.sum(mask) != 0
+        return mask
+
 
 class SemanticDataset:
     def __init__(self, num_points, split, use_color, box_size, path):
         """Create a dataset holder
-        num_points (int): Defaults to 8192. The number of point in each input
+        num_points (int): Defaults to 8192. The number of point per sample
         split (str): Defaults to 'train'. The selected part of the data (train, test,
                      reduced...)
         color (bool): Defaults to True. Whether to use colors or not
@@ -152,9 +247,7 @@ class SemanticDataset:
         self.list_points_min = [fd.points_min for fd in self.list_file_data]
         self.list_points_min_raw = [fd.points_min_raw for fd in self.list_file_data]
 
-        # Pre-compute the probability of picking a point
-        # in a given scene. This is useful to compute the scene index later,
-        # in order to pick more seeds in bigger scenes
+        # Pre-compute the probability of picking a scene
         self.scene_probas = []
         total = self.get_total_num_points()
         for scene_index in range(len(self.list_points)):
@@ -171,7 +264,7 @@ class SemanticDataset:
                 tmp, _ = np.histogram(seg, range(10))
                 label_weights += tmp
 
-            # Then, an heuristic gives the weights
+            # Then, a heuristic gives the weights
             # 1 / log(1.2 + probability of occurrence)
             label_weights = label_weights.astype(np.float32)
             label_weights = label_weights / np.sum(label_weights)
@@ -209,103 +302,20 @@ class SemanticDataset:
         """
         # Pick a scene, scenes with more points are more likely to be chosen
         scene_index = np.random.choice(
-            np.arange(0, len(self.list_points)), p=self.scene_probas
+            np.arange(0, len(self.list_file_data)), p=self.scene_probas
         )
-        points = self.list_points[scene_index]
-
-        # Pick a point, and crop a z-box around
-        center_point = points[np.random.randint(0, len(points))]
-        scene_extract_mask = self.extract_z_box(center_point, points, scene_index)
-        points = points[scene_extract_mask]
-
-        # Crop labels and colors
-        labels = self.list_labels[scene_index][scene_extract_mask]
-        if self.use_color:
-            colors = self.list_colors[scene_index][scene_extract_mask]
-        else:
-            colors = None
-
-        # TODO: change this to numpy's build-in functions
-        # Shuffling or up-sampling if needed
-        if len(points) - self.num_points > 0:
-            true_array = np.ones(self.num_points, dtype=bool)
-            false_array = np.zeros(len(points) - self.num_points, dtype=bool)
-            sample_mask = np.concatenate((true_array, false_array), axis=0)
-            np.random.shuffle(sample_mask)
-        else:
-            # Not enough points, recopy the data until there are enough points
-            sample_mask = np.arange(len(points))
-            while len(sample_mask) < self.num_points:
-                sample_mask = np.concatenate((sample_mask, sample_mask), axis=0)
-            sample_mask = sample_mask[: self.num_points]
-
-        points = points[sample_mask]
-        labels = labels[sample_mask]
-        if self.use_color:
-            colors = colors[sample_mask]
-
-        # Shift the points, such that min(z) == 0, and x = 0 and y = 0 is the center
-        # This canonical column is used for both training and inference
-        points_centered = self.center_box(points)
 
         if is_training:
+            points, labels, colors = self.list_file_data[scene_index].next_input(
+                is_training
+            )
             weights = self.label_weights[labels]
-            return points_centered, labels, colors, weights
+            return points, labels, colors, weights
         else:
-            return (
-                scene_index,
-                points_centered,
-                points + self.list_points_min_raw[scene_index],
-                labels,
-                colors,
-            )
-
-    def center_box(self, data):
-        # Shift the box so that z = 0 is the min and x = 0 and y = 0 is the box center
-        # E.g. if box_size == 10, then the new mins are (-5, -5, 0)
-        box_min = np.min(data, axis=0)
-        shift = np.array(
-            [box_min[0] + self.box_size / 2, box_min[1] + self.box_size / 2, box_min[2]]
-        )
-        return data - shift
-
-    def extract_z_box(self, center_point, points, scene_idx):
-        """
-        Crop along z axis (vertical) from the center_point.
-
-        Args:
-            center_point: only x and y coordinates will be used
-            points: points (n * 3)
-            scene_idx: scene index to get the min and max of the whole scene
-        """
-        # TODO TAKES LOT OF TIME !! THINK OF AN ALTERNATIVE !
-        scene_max = self.list_points_max[scene_idx]
-        scene_min = self.list_points_min[scene_idx]
-        scene_z_size = scene_max[2] - scene_min[2]
-        box_min = center_point - [self.box_size / 2, self.box_size / 2, scene_z_size]
-        box_max = center_point + [self.box_size / 2, self.box_size / 2, scene_z_size]
-
-        i_min = np.searchsorted(points[:, 0], box_min[0])
-        i_max = np.searchsorted(points[:, 0], box_max[0])
-        mask = (
-            np.sum(
-                (points[i_min:i_max, :] >= box_min)
-                * (points[i_min:i_max, :] <= box_max),
-                axis=1,
-            )
-            == 3
-        )
-        mask = np.hstack(
-            (
-                np.zeros(i_min, dtype=bool),
-                mask,
-                np.zeros(len(points) - i_max, dtype=bool),
-            )
-        )
-
-        # mask = np.sum((points>=box_min)*(points<=box_max),axis=1) == 3
-        assert np.sum(mask) != 0
-        return mask
+            points_centered, points_raw, labels, colors = self.list_file_data[
+                scene_index
+            ].next_input(is_training)
+            return scene_index, points_centered, points_raw, labels, colors
 
     def get_total_num_points(self):
         total_num_points = 0

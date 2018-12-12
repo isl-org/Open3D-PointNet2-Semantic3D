@@ -55,7 +55,7 @@ map_name_to_file_prefixes = {
 
 
 class FileData:
-    def __init__(self, split, use_color, box_size, file_path_without_ext):
+    def __init__(self, file_path_without_ext, split, use_color, box_size):
         """
         Loads file data
         """
@@ -219,7 +219,7 @@ class SemanticDataset:
         for file_prefix in file_prefixes:
             file_path_without_ext = os.path.join(self.path, file_prefix)
             file_data = FileData(
-                self.split, self.use_color, self.box_size, file_path_without_ext
+                file_path_without_ext, self.split, self.use_color, self.box_size
             )
             self.list_file_data.append(file_data)
 

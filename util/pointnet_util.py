@@ -166,27 +166,27 @@ def pointnet_sa_module(
         # Pooling in Local Regions
         if pooling == "max":
             new_points = tf.reduce_max(
-                new_points, axis=[2], keep_dims=True, name="maxpool"
+                new_points, axis=[2], keepdims=True, name="maxpool"
             )
         elif pooling == "avg":
             new_points = tf.reduce_mean(
-                new_points, axis=[2], keep_dims=True, name="avgpool"
+                new_points, axis=[2], keepdims=True, name="avgpool"
             )
         elif pooling == "weighted_avg":
             with tf.variable_scope("weighted_avg"):
-                dists = tf.norm(grouped_xyz, axis=-1, ord=2, keep_dims=True)
+                dists = tf.norm(grouped_xyz, axis=-1, ord=2, keepdims=True)
                 exp_dists = tf.exp(-dists * 5)
                 weights = exp_dists / tf.reduce_sum(
-                    exp_dists, axis=2, keep_dims=True
+                    exp_dists, axis=2, keepdims=True
                 )  # (batch_size, npoint, nsample, 1)
                 new_points *= weights  # (batch_size, npoint, nsample, mlp[-1])
-                new_points = tf.reduce_sum(new_points, axis=2, keep_dims=True)
+                new_points = tf.reduce_sum(new_points, axis=2, keepdims=True)
         elif pooling == "max_and_avg":
             max_points = tf.reduce_max(
-                new_points, axis=[2], keep_dims=True, name="maxpool"
+                new_points, axis=[2], keepdims=True, name="maxpool"
             )
             avg_points = tf.reduce_mean(
-                new_points, axis=[2], keep_dims=True, name="avgpool"
+                new_points, axis=[2], keepdims=True, name="avgpool"
             )
             new_points = tf.concat([avg_points, max_points], axis=-1)
 
@@ -210,7 +210,9 @@ def pointnet_sa_module(
             if use_nchw:
                 new_points = tf.transpose(new_points, [0, 2, 3, 1])
 
-        new_points = tf.squeeze(new_points, [2])  # (batch_size, npoints, mlp2[-1])
+        new_points = tf.squeeze(
+            new_points, [2]
+        )  # (batch_size, num_points_per_sample, mlp2[-1])
         return new_xyz, new_points, idx
 
 
@@ -296,7 +298,7 @@ def pointnet_fp_module(
     with tf.variable_scope(scope) as sc:
         dist, idx = three_nn(xyz1, xyz2)
         dist = tf.maximum(dist, 1e-10)
-        norm = tf.reduce_sum((1.0 / dist), axis=2, keep_dims=True)
+        norm = tf.reduce_sum((1.0 / dist), axis=2, keepdims=True)
         norm = tf.tile(norm, [1, 1, 3])
         weight = (1.0 / dist) / norm
         interpolated_points = three_interpolate(points2, idx, weight)

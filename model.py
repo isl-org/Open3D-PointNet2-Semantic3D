@@ -9,7 +9,7 @@ import util.tf_util as tf_util
 from util.pointnet_util import pointnet_sa_module, pointnet_fp_module
 
 
-def placeholder_inputs(batch_size, num_point, hyperparams):
+def get_placeholders(batch_size, num_point, hyperparams):
     feature_size = 3 * int(hyperparams["use_color"])
     pointclouds_pl = tf.placeholder(
         tf.float32, shape=(batch_size, num_point, 3 + feature_size)
@@ -21,8 +21,6 @@ def placeholder_inputs(batch_size, num_point, hyperparams):
 
 def get_model(point_cloud, is_training, num_class, hyperparams, bn_decay=None):
     """ Semantic segmentation PointNet, input is BxNx3, output Bxnum_class """
-    batch_size = point_cloud.get_shape()[0].value
-    num_point = point_cloud.get_shape()[1].value
     end_points = {}
 
     if hyperparams["use_color"]:

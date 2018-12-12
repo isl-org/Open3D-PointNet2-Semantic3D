@@ -26,77 +26,94 @@ FLAGS = parser.parse_args()
 PARAMS = json.loads(open("semantic.json").read())
 
 
-def predict_one_input(sess, ops, data):
-    is_training = False
-    batch_data = np.array([data])  # 1 x PARAMS["num_point"] x 3
-    feed_dict = {ops["pointclouds_pl"]: batch_data, ops["is_training_pl"]: is_training}
-    pd_val = sess.run([ops["pred"]], feed_dict=feed_dict)
-    pd_val = pd_val[0][0]  # PARAMS["num_point"] x 9
-    pd_label = np.argmax(pd_val, 1)
-    return pd_label
+class Predictor:
+    def __init__(self, checkpoint_path):
+        # Get ops from graph
+        with tf.device("/gpu:0"):
+            # Placeholder
+            pl_points, _, _ = model.get_placeholders(
+                1, PARAMS["num_point"], hyperparams=PARAMS
+            )
+            pl_is_training = tf.placeholder(tf.bool, shape=())
+            print("pl_points shape", tf.shape(pl_points))
+
+            # Prediction
+            pred, _ = model.get_model(
+                pl_points, pl_is_training, dataset.num_classes, hyperparams=PARAMS
+            )
+
+            # Saver
+            saver = tf.train.Saver()
+
+        self.ops = {
+            "pl_points": pl_points,
+            "pl_is_training": pl_is_training,
+            "pred": pred,
+        }
+
+        # Restore checkpoint to session
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+        config.allow_soft_placement = True
+        config.log_device_placement = False
+        self.sess = tf.Session(config=config)
+        saver.restore(self.sess, checkpoint_path)
+        print("Model restored")
+
+    def predict(self, points):
+        """
+        Args:
+            points: batch_size * num_point * 3
+
+        Returns:
+            pred_labels: batch_size * num_point * 1
+        """
+        is_training = False
+        batch_data = np.array([points])  # batch_size * num_point * 3
+        feed_dict = {
+            self.ops["pl_points"]: batch_data,
+            self.ops["pl_is_training"]: is_training,
+        }
+        pred_val = self.sess.run([self.ops["pred"]], feed_dict=feed_dict)
+        pred_val = pred_val[0]  # batch_size * num_point * 1
+        pred_labels = np.argmax(pred_val, 2)  # batch_size * num_point * 1
+        return pred_labels
 
 
 if __name__ == "__main__":
+    np.random.seed(0)
+
     # Create output dir
     output_dir = os.path.join("result", "sparse")
     os.makedirs(output_dir, exist_ok=True)
 
-    # Import dataset
+    # Dataset
     dataset = SemanticDataset(
-        npoints=PARAMS["num_point"],
+        num_points_per_sample=PARAMS["num_point"],
         split=FLAGS.set,
         box_size=PARAMS["box_size"],
         use_color=PARAMS["use_color"],
         path=PARAMS["data_path"],
     )
 
-    with tf.device("/gpu:0"):
-        pointclouds_pl, labels_pl, _ = model.placeholder_inputs(
-            1, PARAMS["num_point"], hyperparams=PARAMS
-        )
-        print(tf.shape(pointclouds_pl))
-        is_training_pl = tf.placeholder(tf.bool, shape=())
+    # Model
+    predictor = Predictor(checkpoint_path=FLAGS.ckpt)
 
-        # Simple model
-        pred, _ = model.get_model(
-            pointclouds_pl, is_training_pl, dataset.num_classes, hyperparams=PARAMS
-        )
-
-        # Add ops to save and restore all the variables.
-        saver = tf.train.Saver()
-
-    # Create a session
-    config = tf.ConfigProto()
-    config.gpu_options.allow_growth = True
-    config.allow_soft_placement = True
-    config.log_device_placement = False
-    sess = tf.Session(config=config)
-
-    # Restore variables from disk.
-    saver.restore(sess, FLAGS.ckpt)
-    print("Model restored.")
-
-    ops = {
-        "pointclouds_pl": pointclouds_pl,
-        "labels_pl": labels_pl,
-        "is_training_pl": is_training_pl,
-        "pred": pred,
-    }
-
-    num_scenes = len(dataset)
+    num_scenes = dataset.num_scenes
     p = 6 if PARAMS["use_color"] else 3
     scene_points = [np.array([]).reshape((0, p)) for i in range(num_scenes)]
     ground_truth = [np.array([]) for i in range(num_scenes)]
     predicted_labels = [np.array([]) for i in range(num_scenes)]
 
     for batch_index in range(FLAGS.num_samples * num_scenes):
-        scene_index, data, raw_data, true_labels, col, _ = dataset.next_input(
-            sample=True, verbose=False, predicting=True
+        scene_index, data, raw_data, true_labels, col = dataset.next_sample(
+            is_training=False
         )
         if p == 6:
             raw_data = np.hstack((raw_data, col))
             data = np.hstack((data, col))
-        pred_labels = predict_one_input(sess, ops, data)
+        pred_labels = predictor.predict(data)
+        pred_labels = np.squeeze(pred_labels)
         scene_points[scene_index] = np.vstack((scene_points[scene_index], raw_data))
         ground_truth[scene_index] = np.hstack((ground_truth[scene_index], true_labels))
         predicted_labels[scene_index] = np.hstack(
@@ -110,12 +127,12 @@ if __name__ == "__main__":
                 )
             )
 
-    file_names = dataset.get_data_filenames()
-    print("{} point clouds to export".format(len(file_names)))
+    file_paths_without_ext = dataset.get_file_paths_without_ext()
+    print("{} point clouds to export".format(len(file_paths_without_ext)))
     cm = ConfusionMatrix(9)
 
     for scene_index in range(num_scenes):
-        file_prefix = os.path.basename(file_names[scene_index])
+        file_prefix = os.path.basename(file_paths_without_ext[scene_index])
 
         # Save sparse point cloud
         pcd = open3d.PointCloud()

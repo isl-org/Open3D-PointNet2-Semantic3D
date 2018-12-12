@@ -1,11 +1,11 @@
 *.pyc
-dataset/semantic_*/
-logs/
-log/
-result/
 *.o
 *.so
 .vscode
-local_test.json
-build/
 .ipynb_checkpoints/
+dataset/semantic_*/
+log/
+logs/
+result/
+results/
+build/

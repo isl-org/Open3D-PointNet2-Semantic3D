@@ -92,7 +92,7 @@ def conv1d(
         assert data_format == "NHWC" or data_format == "NCHW"
         if data_format == "NHWC":
             num_in_channels = inputs.get_shape()[-1].value
-        elif data_format == "NCHW":
+        else:
             num_in_channels = inputs.get_shape()[1].value
         kernel_shape = [kernel_size, num_in_channels, num_output_channels]
         kernel = _variable_with_weight_decay(
@@ -102,8 +102,9 @@ def conv1d(
             stddev=stddev,
             wd=weight_decay,
         )
+        data_format_1d = "NWC" if data_format == "NHWC" else "NCW"
         outputs = tf.nn.conv1d(
-            inputs, kernel, stride=stride, padding=padding, data_format=data_format
+            inputs, kernel, stride=stride, padding=padding, data_format=data_format_1d
         )
         biases = _variable_on_cpu(
             "biases", [num_output_channels], tf.constant_initializer(0.0)

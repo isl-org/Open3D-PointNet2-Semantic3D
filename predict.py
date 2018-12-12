@@ -89,7 +89,7 @@ if __name__ == "__main__":
 
     # Dataset
     dataset = SemanticDataset(
-        num_points=PARAMS["num_point"],
+        num_points_per_sample=PARAMS["num_point"],
         split=FLAGS.set,
         box_size=PARAMS["box_size"],
         use_color=PARAMS["use_color"],

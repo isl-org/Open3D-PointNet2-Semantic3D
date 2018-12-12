@@ -55,12 +55,12 @@ map_name_to_file_prefixes = {
 
 
 class FileData:
-    def __init__(self, num_points, split, use_color, box_size, file_path_without_ext):
+    def __init__(self, num_points_per_sample, split, use_color, box_size, file_path_without_ext):
         """
         Loads file data
         """
         self.file_path_without_ext = file_path_without_ext
-        self.num_points = num_points
+        self.num_points_per_sample = num_points_per_sample
         self.split = split
         self.use_color = use_color
         self.box_size = box_size
@@ -110,17 +110,17 @@ class FileData:
 
         # TODO: change this to numpy's build-in functions
         # Shuffling or up-sampling if needed
-        if len(points) - self.num_points > 0:
-            true_array = np.ones(self.num_points, dtype=bool)
-            false_array = np.zeros(len(points) - self.num_points, dtype=bool)
+        if len(points) - self.num_points_per_sample > 0:
+            true_array = np.ones(self.num_points_per_sample, dtype=bool)
+            false_array = np.zeros(len(points) - self.num_points_per_sample, dtype=bool)
             sample_mask = np.concatenate((true_array, false_array), axis=0)
             np.random.shuffle(sample_mask)
         else:
             # Not enough points, recopy the data until there are enough points
             sample_mask = np.arange(len(points))
-            while len(sample_mask) < self.num_points:
+            while len(sample_mask) < self.num_points_per_sample:
                 sample_mask = np.concatenate((sample_mask, sample_mask), axis=0)
-            sample_mask = sample_mask[: self.num_points]
+            sample_mask = sample_mask[: self.num_points_per_sample]
 
         points = points[sample_mask]
         labels = labels[sample_mask]
@@ -182,9 +182,9 @@ class FileData:
 
 
 class SemanticDataset:
-    def __init__(self, num_points, split, use_color, box_size, path):
+    def __init__(self, num_points_per_sample, split, use_color, box_size, path):
         """Create a dataset holder
-        num_points (int): Defaults to 8192. The number of point per sample
+        num_points_per_sample (int): Defaults to 8192. The number of point per sample
         split (str): Defaults to 'train'. The selected part of the data (train, test,
                      reduced...)
         color (bool): Defaults to True. Whether to use colors or not
@@ -192,7 +192,7 @@ class SemanticDataset:
         path (float): Defaults to 'dataset/semantic_data/'.
         """
         # Dataset parameters
-        self.num_points = num_points
+        self.num_points_per_sample = num_points_per_sample
         self.split = split
         self.use_color = use_color
         self.box_size = box_size
@@ -220,7 +220,7 @@ class SemanticDataset:
         for file_prefix in file_prefixes:
             file_path_without_ext = os.path.join(self.path, file_prefix)
             file_data = FileData(
-                self.num_points,
+                self.num_points_per_sample,
                 self.split,
                 self.use_color,
                 self.box_size,
@@ -301,7 +301,7 @@ class SemanticDataset:
         return np.sum(list_num_points)
 
     def get_num_batches(self, batch_size):
-        return int(self.get_total_num_points() / (batch_size * self.num_points))
+        return int(self.get_total_num_points() / (batch_size * self.num_points_per_sample))
 
     def get_file_paths_without_ext(self):
         return [file_data.file_path_without_ext for file_data in self.list_file_data]

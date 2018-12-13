@@ -13,7 +13,7 @@ if __name__ == "__main__":
         checkpoint_path=checkpoint, num_classes=9, hyper_params=hyper_params
     )
 
-    for batch_size in range(1, 100):
+    for batch_size in [2 ** n for n in range(8)]:
         # Init data
         points_with_colors = np.random.randn(batch_size, hyper_params["num_point"], 6)
 

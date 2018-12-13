@@ -45,7 +45,7 @@ class Predictor:
         saver.restore(self.sess, checkpoint_path)
         print("Model restored")
 
-    def predict(self, batch_data):
+    def predict(self, batch_data, run_metadata=None, run_options=None):
         """
         Args:
             batch_data: batch_size * num_point * 6(3)
@@ -58,7 +58,17 @@ class Predictor:
             self.ops["pl_points"]: batch_data,
             self.ops["pl_is_training"]: is_training,
         }
-        pred_val = self.sess.run([self.ops["pred"]], feed_dict=feed_dict)
+        if run_metadata is None:
+            run_metadata = tf.RunMetadata()
+        if run_options is None:
+            run_options = tf.RunOptions()
+
+        pred_val = self.sess.run(
+            [self.ops["pred"]],
+            options=run_options,
+            run_metadata=run_metadata,
+            feed_dict=feed_dict,
+        )
         pred_val = pred_val[0]  # batch_size * num_point * 1
         pred_labels = np.argmax(pred_val, 2)  # batch_size * num_point * 1
         return pred_labels

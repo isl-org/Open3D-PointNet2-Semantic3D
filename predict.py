@@ -4,6 +4,7 @@ import json
 import numpy as np
 import tensorflow as tf
 import open3d
+import time
 
 import model
 from dataset.semantic_dataset import SemanticDataset
@@ -93,7 +94,7 @@ if __name__ == "__main__":
     )
 
     # Model
-    batch_size = 4
+    batch_size = 64
     predictor = Predictor(checkpoint_path=flags.ckpt, hyper_params=hyper_params)
 
     # Process each file
@@ -107,17 +108,26 @@ if __name__ == "__main__":
         pd_labels_collector = []
 
         # If flags.num_samples < batch_size, will predict one batch
-        for _ in range(int(np.ceil(flags.num_samples / batch_size))):
+        for batch_index in range(int(np.ceil(flags.num_samples / batch_size))):
+            current_batch_size = min(
+                batch_size, flags.num_samples - batch_index * batch_size
+            )
+
             # Get data
             points, points_raw, gt_labels, colors = semantic_file_data.sample_batch(
-                batch_size=batch_size, num_points_per_sample=hyper_params["num_point"]
+                batch_size=current_batch_size,
+                num_points_per_sample=hyper_params["num_point"],
             )
 
             # (bs, 8192, 3) concat (bs, 8192, 3) -> (bs, 8192, 6)
             points_with_colors = np.concatenate((points, colors), axis=-1)
 
             # Predict
+            s = time.time()
             pd_labels = predictor.predict(points_with_colors)
+            print(
+                "Batch size: {}, time: {}".format(current_batch_size, time.time() - s)
+            )
 
             # Save to collector for file output
             points_raw_collector.extend(points_raw)

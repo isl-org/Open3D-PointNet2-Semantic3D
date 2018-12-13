@@ -335,7 +335,7 @@ def train():
 
         with tf.device("/gpu:" + str(PARAMS["gpu"])):
             pointclouds_pl, labels_pl, smpws_pl = model.get_placeholders(
-                PARAMS["batch_size"], PARAMS["num_point"], hyperparams=PARAMS
+                PARAMS["num_point"], hyperparams=PARAMS
             )
             is_training_pl = tf.placeholder(tf.bool, shape=())
 

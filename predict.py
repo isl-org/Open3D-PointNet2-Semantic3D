@@ -11,12 +11,12 @@ from util.metric import ConfusionMatrix
 
 
 class Predictor:
-    def __init__(self, checkpoint_path, hyper_params, batch_size):
+    def __init__(self, checkpoint_path, hyper_params):
         # Get ops from graph
         with tf.device("/gpu:0"):
             # Placeholder
             pl_points, _, _ = model.get_placeholders(
-                batch_size, hyper_params["num_point"], hyperparams=hyper_params
+                hyper_params["num_point"], hyperparams=hyper_params
             )
             pl_is_training = tf.placeholder(tf.bool, shape=())
             print("pl_points shape", tf.shape(pl_points))
@@ -94,9 +94,7 @@ if __name__ == "__main__":
 
     # Model
     batch_size = 4
-    predictor = Predictor(
-        checkpoint_path=flags.ckpt, hyper_params=hyper_params, batch_size=batch_size
-    )
+    predictor = Predictor(checkpoint_path=flags.ckpt, hyper_params=hyper_params)
 
     # Process each file
     cm = ConfusionMatrix(9)

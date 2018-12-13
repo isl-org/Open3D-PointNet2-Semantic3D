@@ -9,13 +9,13 @@ import util.tf_util as tf_util
 from util.pointnet_util import pointnet_sa_module, pointnet_fp_module
 
 
-def get_placeholders(batch_size, num_point, hyperparams):
+def get_placeholders(num_point, hyperparams):
     feature_size = 3 * int(hyperparams["use_color"])
     pointclouds_pl = tf.placeholder(
-        tf.float32, shape=(batch_size, num_point, 3 + feature_size)
+        tf.float32, shape=(None, num_point, 3 + feature_size)
     )
-    labels_pl = tf.placeholder(tf.int32, shape=(batch_size, num_point))
-    smpws_pl = tf.placeholder(tf.float32, shape=(batch_size, num_point))
+    labels_pl = tf.placeholder(tf.int32, shape=(None, num_point))
+    smpws_pl = tf.placeholder(tf.float32, shape=(None, num_point))
     return pointclouds_pl, labels_pl, smpws_pl
 
 

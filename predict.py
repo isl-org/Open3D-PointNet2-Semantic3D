@@ -96,68 +96,45 @@ if __name__ == "__main__":
     # Model
     predictor = Predictor(checkpoint_path=flags.ckpt, hyper_params=hyper_params)
 
-    num_scenes = dataset.num_scenes
-    p = 6 if hyper_params["use_color"] else 3
-    scene_points = [np.array([]).reshape((0, p)) for i in range(num_scenes)]
-    ground_truth = [np.array([]) for i in range(num_scenes)]
-    predicted_labels = [np.array([]) for i in range(num_scenes)]
-
-    for batch_index in range(flags.num_samples * num_scenes):
-        scene_index, data, raw_data, true_labels, colors = dataset.next_sample(
-            is_training=False
-        )
-        if p == 6:
-            raw_data = np.hstack((raw_data, colors))
-            data = np.hstack((data, colors))
-        pred_labels = predictor.predict(data)
-        pred_labels = np.squeeze(pred_labels)
-        scene_points[scene_index] = np.vstack((scene_points[scene_index], raw_data))
-        ground_truth[scene_index] = np.hstack((ground_truth[scene_index], true_labels))
-        predicted_labels[scene_index] = np.hstack(
-            (predicted_labels[scene_index], pred_labels)
-        )
-
-        if batch_index % 100 == 0:
-            print(
-                "Batch {} predicted, num points in scenes {}".format(
-                    batch_index, [len(labels) for labels in predicted_labels]
-                )
-            )
-
-    file_paths_without_ext = dataset.get_file_paths_without_ext()
-    print("{} point clouds to export".format(len(file_paths_without_ext)))
-    cm = ConfusionMatrix(9)
-
-    for scene_index in range(num_scenes):
-        file_prefix = os.path.basename(file_paths_without_ext[scene_index])
-
-        # Save sparse point cloud
-        pcd = open3d.PointCloud()
-        pcd.points = open3d.Vector3dVector(scene_points[scene_index][:, 0:3])
-        open3d.write_point_cloud(os.path.join(output_dir, file_prefix + ".pcd"), pcd)
-
-        # Save predicted labels of the sparse point cloud
-        pd_labels = predicted_labels[scene_index].astype(int)
-        gt_labels = ground_truth[scene_index].astype(int)
-        pd_labels_path = os.path.join(output_dir, file_prefix + ".labels")
-        np.savetxt(pd_labels_path, pd_labels, fmt="%d")
-
-        # Increment confusion matrix
-        cm.increment_from_list(gt_labels, pd_labels)
-
-        # Print
-        print("Exported: {} with {} points".format(file_prefix, len(pd_labels)))
-
-    cm.print_metrics()
-
     # Process each file
-    semantic_file_data = dataset.list_file_data[0]
-    points, points_raw, gt_labels, colors = semantic_file_data.next_sample(
-        hyper_params["num_point"]
-    )
-    points_with_colors = np.hstack((points, colors))
-    pd_labels = predictor.predict(points_with_colors)[0]
     cm = ConfusionMatrix(9)
-    import ipdb; ipdb.set_trace()
-    cm.increment_from_list(gt_labels, pd_labels)
+
+    for semantic_file_data in dataset.list_file_data:
+        print("Processing {}".format(semantic_file_data))
+
+        # Predict for num_samples times
+        points_raw_collector = []
+        pd_labels_collector = []
+        for _ in range(flags.num_samples):
+            # Get data
+            points, points_raw, gt_labels, colors = semantic_file_data.next_sample(
+                hyper_params["num_point"]
+            )
+            points_with_colors = np.hstack((points, colors))
+
+            # Predict
+            pd_labels = predictor.predict(points_with_colors)[0]
+
+            # Save to collector for file output
+            points_raw_collector.extend(points_raw)
+            pd_labels_collector.extend(pd_labels)
+
+            # Increment confusion matrix
+            cm.increment_from_list(gt_labels, pd_labels)
+
+        # Save sparse point cloud and predicted labels
+        file_prefix = os.path.basename(semantic_file_data.file_path_without_ext)
+
+        points_raw_collector = np.array(points_raw_collector)
+        pcd = open3d.PointCloud()
+        pcd.points = open3d.Vector3dVector(points_raw_collector)
+        pcd_path = os.path.join(output_dir, file_prefix + ".pcd")
+        open3d.write_point_cloud(pcd_path, pcd)
+        print("Exported pcd to {}".format(pcd_path))
+
+        pd_labels_collector = np.array(pd_labels_collector).astype(int)
+        pd_labels_path = os.path.join(output_dir, file_prefix + ".labels")
+        np.savetxt(pd_labels_path, pd_labels_collector, fmt="%d")
+        print("Exported labels to {}".format(pd_labels_path))
+
     cm.print_metrics()

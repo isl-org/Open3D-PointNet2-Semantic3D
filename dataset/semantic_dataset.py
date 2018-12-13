@@ -54,7 +54,7 @@ map_name_to_file_prefixes = {
 }
 
 
-class FileData:
+class SemanticFileData:
     def __init__(self, file_path_without_ext, has_label, use_color, box_size):
         """
         Loads file data
@@ -93,7 +93,7 @@ class FileData:
         self.labels = self.labels[sort_idx]
         self.colors = self.colors[sort_idx]
 
-    def next_sample(self, num_points_per_sample):
+    def sample(self, num_points_per_sample):
         points = self.points
 
         # Pick a point, and crop a z-box around
@@ -125,6 +125,29 @@ class FileData:
         points_centered = self.center_box(points)
 
         return points_centered, points + self.points_min_raw, labels, colors
+
+    def sample_batch(self, batch_size, num_points_per_sample):
+        """
+        TODO: change this to stack instead of extend
+        """
+        batch_points_centered = []
+        batch_points_raw = []
+        batch_labels = []
+        batch_colors = []
+
+        for _ in range(batch_size):
+            points, points_raw, gt_labels, colors = self.sample(num_points_per_sample)
+            batch_points_centered.append(points)
+            batch_points_raw.append(points_raw)
+            batch_labels.append(gt_labels)
+            batch_colors.append(colors)
+
+        return (
+            np.array(batch_points_centered),
+            np.array(batch_points_raw),
+            np.array(batch_labels),
+            np.array(batch_colors),
+        )
 
     def center_box(self, points):
         # Shift the box so that z = 0 is the min and x = 0 and y = 0 is the box center
@@ -213,7 +236,7 @@ class SemanticDataset:
         self.list_file_data = []
         for file_prefix in file_prefixes:
             file_path_without_ext = os.path.join(self.path, file_prefix)
-            file_data = FileData(
+            file_data = SemanticFileData(
                 file_path_without_ext=file_path_without_ext,
                 has_label=self.split != "test",
                 use_color=self.use_color,
@@ -243,13 +266,13 @@ class SemanticDataset:
         else:
             self.label_weights = np.zeros(9)
 
-    def next_batch(self, batch_size, augment=True):
+    def sample_batch_in_all_files(self, batch_size, augment=True):
         batch_data = []
         batch_label = []
         batch_weights = []
 
         for _ in range(batch_size):
-            points, labels, colors, weights = self.next_sample(is_training=True)
+            points, labels, colors, weights = self.sample_in_all_files(is_training=True)
             if self.use_color:
                 batch_data.append(np.hstack((points, colors)))
             else:
@@ -269,7 +292,7 @@ class SemanticDataset:
 
         return batch_data, batch_label, batch_weights
 
-    def next_sample(self, is_training):
+    def sample_in_all_files(self, is_training):
         """
         Returns points and other info within a z - cropped box.
         """
@@ -281,7 +304,7 @@ class SemanticDataset:
         # Sample from the selected scene
         points_centered, points_raw, labels, colors = self.list_file_data[
             scene_index
-        ].next_sample(num_points_per_sample=self.num_points_per_sample)
+        ].sample(num_points_per_sample=self.num_points_per_sample)
 
         if is_training:
             weights = self.label_weights[labels]

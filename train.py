@@ -119,9 +119,13 @@ def get_bn_decay(batch):
 def get_batch(split):
     np.random.seed()
     if split == "train":
-        return TRAIN_DATASET.next_batch(PARAMS["batch_size"], augment=True)
+        return TRAIN_DATASET.sample_batch_in_all_files(
+            PARAMS["batch_size"], augment=True
+        )
     else:
-        return VALIDATION_DATASET.next_batch(PARAMS["batch_size"], augment=False)
+        return VALIDATION_DATASET.sample_batch_in_all_files(
+            PARAMS["batch_size"], augment=False
+        )
 
 
 def fill_queues(
@@ -331,7 +335,7 @@ def train():
 
         with tf.device("/gpu:" + str(PARAMS["gpu"])):
             pointclouds_pl, labels_pl, smpws_pl = model.get_placeholders(
-                PARAMS["batch_size"], PARAMS["num_point"], hyperparams=PARAMS
+                PARAMS["num_point"], hyperparams=PARAMS
             )
             is_training_pl = tf.placeholder(tf.bool, shape=())
 
@@ -417,7 +421,7 @@ def train():
             "update_iou": update_iou_op,
         }
 
-        # Train for PARAMS["max_epoch"] epochs
+        # Train for hyper_params["max_epoch"] epochs
         best_acc = 0
         for epoch in range(PARAMS["max_epoch"]):
             print("in epoch", epoch)

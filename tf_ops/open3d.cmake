@@ -3,6 +3,10 @@ include(ExternalProject)
 set(open3d_prefix "open3d")
 set(open3d_install_prefix ${CMAKE_BINARY_DIR}/${open3d_prefix}/install)
 
+# How to run find_package after ExternalProject_Add
+# https://github.com/opencv/opencv/issues/7616
+# https://stackoverflow.com/q/17446981
+
 ExternalProject_Add(
     external_open3d
     GIT_REPOSITORY https://github.com/IntelVCL/Open3D.git

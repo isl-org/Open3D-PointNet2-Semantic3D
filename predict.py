@@ -106,8 +106,8 @@ if __name__ == "__main__":
         points_raw_collector = []
         pd_labels_collector = []
 
-        # TODO: check "flags.num_samples / batch_size"
-        for _ in range(int(flags.num_samples / batch_size)):
+        # If flags.num_samples < batch_size, will predict one batch
+        for _ in range(int(np.ceil(flags.num_samples / batch_size))):
             # Get data
             points, points_raw, gt_labels, colors = semantic_file_data.sample_batch(
                 batch_size=batch_size, num_points_per_sample=hyper_params["num_point"]

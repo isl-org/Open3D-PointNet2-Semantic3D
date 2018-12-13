@@ -6,6 +6,9 @@ project(tf_ops LANGUAGES CXX CUDA)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+# Open3D cmake
+include(open3d.cmake)
+
 # Custom finders path
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR})
 
@@ -40,6 +43,7 @@ set_target_properties(tf_grouping PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 add_library(tf_interpolate SHARED
     tf_interpolate.cpp
 )
+add_dependencies(tf_interpolate external_open3d)
 target_compile_features(tf_interpolate PUBLIC cxx_std_11)
 target_link_libraries(tf_interpolate tensorflow_framework)
 

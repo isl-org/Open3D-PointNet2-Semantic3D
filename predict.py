@@ -99,7 +99,7 @@ if __name__ == "__main__":
     # Process each file
     cm = ConfusionMatrix(9)
 
-    for semantic_file_data in dataset.list_file_data:
+    for semantic_file_data in dataset.list_file_data[:1]:
         print("Processing {}".format(semantic_file_data))
 
         # Predict for num_samples times

@@ -12,7 +12,7 @@ from util.metric import ConfusionMatrix
 
 
 class Predictor:
-    def __init__(self, checkpoint_path, hyper_params):
+    def __init__(self, checkpoint_path, num_classes, hyper_params):
         # Get ops from graph
         with tf.device("/gpu:0"):
             # Placeholder
@@ -24,7 +24,7 @@ class Predictor:
 
             # Prediction
             pred, _ = model.get_model(
-                pl_points, pl_is_training, dataset.num_classes, hyperparams=hyper_params
+                pl_points, pl_is_training, num_classes, hyperparams=hyper_params
             )
 
             # Saver
@@ -95,7 +95,11 @@ if __name__ == "__main__":
 
     # Model
     batch_size = 64
-    predictor = Predictor(checkpoint_path=flags.ckpt, hyper_params=hyper_params)
+    predictor = Predictor(
+        checkpoint_path=flags.ckpt,
+        num_classes=dataset.num_classes,
+        hyper_params=hyper_params,
+    )
 
     # Process each file
     cm = ConfusionMatrix(9)

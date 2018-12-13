@@ -107,7 +107,7 @@ if __name__ == "__main__":
         pd_labels_collector = []
         for _ in range(flags.num_samples):
             # Get data
-            points, points_raw, gt_labels, colors = semantic_file_data.next_sample(
+            points, points_raw, gt_labels, colors = semantic_file_data.sample(
                 hyper_params["num_point"]
             )
             points_with_colors = np.hstack((points, colors))

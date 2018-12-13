@@ -119,9 +119,13 @@ def get_bn_decay(batch):
 def get_batch(split):
     np.random.seed()
     if split == "train":
-        return TRAIN_DATASET.next_batch(PARAMS["batch_size"], augment=True)
+        return TRAIN_DATASET.sample_batch_in_all_files(
+            PARAMS["batch_size"], augment=True
+        )
     else:
-        return VALIDATION_DATASET.next_batch(PARAMS["batch_size"], augment=False)
+        return VALIDATION_DATASET.sample_batch_in_all_files(
+            PARAMS["batch_size"], augment=False
+        )
 
 
 def fill_queues(

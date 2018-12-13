@@ -126,6 +126,29 @@ class SemanticFileData:
 
         return points_centered, points + self.points_min_raw, labels, colors
 
+    def sample_batch(self, batch_size, num_points_per_sample):
+        """
+        TODO: change this to stack instead of extend
+        """
+        batch_points_centered = []
+        batch_points_raw = []
+        batch_labels = []
+        batch_colors = []
+
+        for _ in range(batch_size):
+            points, points_raw, gt_labels, colors = self.sample(num_points_per_sample)
+            batch_points_centered.append(points)
+            batch_points_raw.append(points_raw)
+            batch_labels.append(gt_labels)
+            batch_colors.append(colors)
+
+        return (
+            np.array(batch_points_centered),
+            np.array(batch_points_raw),
+            np.array(batch_labels),
+            np.array(batch_colors),
+        )
+
     def center_box(self, points):
         # Shift the box so that z = 0 is the min and x = 0 and y = 0 is the box center
         # E.g. if box_size == 10, then the new mins are (-5, -5, 0)

@@ -43,7 +43,6 @@ set_target_properties(tf_grouping PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 add_library(tf_interpolate SHARED
     tf_interpolate.cpp
 )
-add_dependencies(tf_interpolate external_open3d)
 target_compile_features(tf_interpolate PUBLIC cxx_std_11)
 target_link_libraries(tf_interpolate tensorflow_framework)
 

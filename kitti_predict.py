@@ -117,7 +117,7 @@ if __name__ == "__main__":
         print("Exported labels to {}".format(pd_labels_path))
 
         # Now interpolate to original point cloud
-        dense_points = kitti_file_data.points
+        dense_points = kitti_file_data.points + kitti_file_data.points_min_raw
         dense_labels = interpolate_dense_labels(
             sparse_points=points_raw_collector.reshape((-1, 3)),
             sparse_labels=pd_labels_collector.flatten(),

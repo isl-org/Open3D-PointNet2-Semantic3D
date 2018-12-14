@@ -63,6 +63,15 @@ class KittiDataset(SemanticDataset):
             for drive in drives:
                 print("Loading date: {}, drive: {}".format(date, drive))
                 pykitti_data = pykitti.raw(base_dir, date, drive)
+                frame_idx = 0
                 for points_with_intensity in pykitti_data.velo:
+                    # Get points
                     points = points_with_intensity[:, :3]
-                    self.list_file_data.append(KittiFileData(points))
+                    # Init file data
+                    file_data = KittiFileData(points)
+                    # TODO: just for compatibility reason to include the name
+                    file_data.file_path_without_ext = os.path.join(
+                        date, drive, "{:04d}".format(frame_idx)
+                    )
+                    frame_idx += 1
+                    self.list_file_data.append(file_data)

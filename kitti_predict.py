@@ -32,26 +32,23 @@ if __name__ == "__main__":
 
     # Dataset
     dataset = KittiDataset(
-        num_points_per_sample=hyper_params['num_point'],
+        num_points_per_sample=hyper_params["num_point"],
         base_dir="/home/ylao/data/kitti",
-        dates = ["2011_09_26"],
-        drives = ["0001", "0095"]
+        dates=["2011_09_26"],
+        drives=["0001", "0095"],
     )
 
-    # # Model
-    # batch_size = 64
-    # predictor = Predictor(
-    #     checkpoint_path=flags.ckpt,
-    #     num_classes=dataset.num_classes,
-    #     hyper_params=hyper_params,
-    # )
-    #
-    # # Process each file
-    # cm = ConfusionMatrix(9)
-    #
-    # for semantic_file_data in dataset.list_file_data[:1]:
-    #     print("Processing {}".format(semantic_file_data))
-    #
+    # Model
+    batch_size = 64
+    predictor = Predictor(
+        checkpoint_path=flags.ckpt,
+        num_classes=dataset.num_classes,
+        hyper_params=hyper_params,
+    )
+
+    for kitti_file_data in dataset.list_file_data:
+        print("Processing {}".format(kitti_file_data.file_path_without_ext))
+
     #     # Predict for num_samples times
     #     points_raw_collector = []
     #     pd_labels_collector = []

@@ -76,14 +76,14 @@ std::vector<Eigen::Vector3d> buffer_to_eigen_vector(const float *buffer,
 // - indices (b, n, 3): (64, 8192, 3), for each input point in target_points,
 //   find 3 nearest neighbors in base_points and return the indexes in
 //   base_points, the "3" means "3" nearest neighbors
-void threenn_cpu(int batch_size, int n, int m, const float *xyz1,
-                 const float *xyz2, float *dists, int *indices) {
+void threenn_cpu(int b, int n, int m, const float *xyz1, const float *xyz2,
+                 float *dists, int *indices) {
     std::vector<int> three_indices;
     std::vector<double> three_dists;
     open3d::PointCloud target_pcd;
     open3d::PointCloud reference_pcd;
 
-    for (int batch_index = 0; batch_index < batch_size; ++batch_index) {
+    for (int batch_index = 0; batch_index < b; ++batch_index) {
         target_pcd.points_ = buffer_to_eigen_vector(xyz1, n * 3);
         reference_pcd.points_ = buffer_to_eigen_vector(xyz2, m * 3);
         open3d::KDTreeFlann reference_kd_tree(reference_pcd);

@@ -78,9 +78,10 @@ std::vector<Eigen::Vector3d> buffer_to_eigen_vector(const float *buffer,
 //   base_points, the "3" means "3" nearest neighbors
 void threenn_cpu(int b, int n, int m, const float *xyz1, const float *xyz2,
                  float *dists, int *indices) {
-#ifdef _OPENMP
-#pragma omp parallel for schedule(static)
-#endif
+    // OPENMP only sees benefits if b is large, e.g. b == 64
+    // #ifdef _OPENMP
+    // #pragma omp parallel for schedule(static)
+    // #endif
     for (int batch_index = 0; batch_index < b; ++batch_index) {
         std::vector<int> three_indices;
         std::vector<double> three_dists;

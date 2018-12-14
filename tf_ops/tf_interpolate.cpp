@@ -1,8 +1,9 @@
 #include <cstdio>
 #include <ctime>
-#include <cstring>  // memset
-#include <cstdlib>  // rand, RAND_MAX
-#include <cmath>    // sqrtf
+#include <cstring>      // memset
+#include <cstdlib>      // rand, RAND_MAX
+#include <cmath>        // sqrtf
+#include <Core/Core.h>  // open3d
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/framework/shape_inference.h"
@@ -53,58 +54,57 @@ static double get_time() {
     return tp.tv_sec + tp.tv_nsec * 1e-9;
 }
 
-// Find three nearest neigbors with square distance
+std::vector<Eigen::Vector3d> buffer_to_eigen_vector(const float *buffer,
+                                                    size_t num_elements) {
+    std::vector<Eigen::Vector3d> eigen_vectors;
+    size_t vector_size = num_elements / 3;
+    for (size_t i = 0; i < num_elements; i += 3) {
+        eigen_vectors.emplace_back(buffer[i], buffer[i + 1], buffer[i + 2]);
+    }
+    return eigen_vectors;
+}
+
+// Find three nearest neighbors with square distance
 // input: xyz1 (b,n,3), xyz2(b,m,3)
-// output: dist (b,n,3), idx (b,n,3)
+// output: dists (b,n,3), indices (b,n,3)
+// E.g.
+// - target_points (b, n, 3): e.g. (64, 8192, 3), the "3" here is x, y, z
+// - reference_points (b, m, 3): e.g. (64, 1024, 3), the "3" here is x, y, z
+// - dists (b, n, 3): (64, 8192, 3), for each input point in target_points, find
+//   3 nearest neighbors in base_points and return the distances squared, the
+//   "3" means "3" nearest neighbors
+// - indices (b, n, 3): (64, 8192, 3), for each input point in target_points,
+//   find 3 nearest neighbors in base_points and return the indexes in
+//   base_points, the "3" means "3" nearest neighbors
 void threenn_cpu(int b, int n, int m, const float *xyz1, const float *xyz2,
-                 float *dist, int *idx) {
-    for (int i = 0; i < b; ++i) {
-        for (int j = 0; j < n; ++j) {
-            float x1 = xyz1[j * 3 + 0];
-            float y1 = xyz1[j * 3 + 1];
-            float z1 = xyz1[j * 3 + 2];
-            double best1 = 1e40;
-            double best2 = 1e40;
-            double best3 = 1e40;
-            int besti1 = 0;
-            int besti2 = 0;
-            int besti3 = 0;
-            for (int k = 0; k < m; ++k) {
-                float x2 = xyz2[k * 3 + 0];
-                float y2 = xyz2[k * 3 + 1];
-                float z2 = xyz2[k * 3 + 2];
-                // float
-                // d=max(sqrtf((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1)+(z2-z1)*(z2-z1)),1e-20f);
-                double d = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1) +
-                           (z2 - z1) * (z2 - z1);
-                if (d < best1) {
-                    best3 = best2;
-                    besti3 = besti2;
-                    best2 = best1;
-                    besti2 = besti1;
-                    best1 = d;
-                    besti1 = k;
-                } else if (d < best2) {
-                    best3 = best2;
-                    besti3 = besti2;
-                    best2 = d;
-                    besti2 = k;
-                } else if (d < best3) {
-                    best3 = d;
-                    besti3 = k;
-                }
-            }
-            dist[j * 3] = best1;
-            idx[j * 3] = besti1;
-            dist[j * 3 + 1] = best2;
-            idx[j * 3 + 1] = besti2;
-            dist[j * 3 + 2] = best3;
-            idx[j * 3 + 2] = besti3;
+                 float *dists, int *indices) {
+    // OPENMP only sees benefits if b is large, e.g. b == 64
+    // #ifdef _OPENMP
+    // #pragma omp parallel for schedule(static)
+    // #endif
+    for (int batch_index = 0; batch_index < b; ++batch_index) {
+        std::vector<int> three_indices;
+        std::vector<double> three_dists;
+        open3d::PointCloud target_pcd;
+        open3d::PointCloud reference_pcd;
+
+        target_pcd.points_ =
+            buffer_to_eigen_vector(xyz1 + batch_index * n * 3, n * 3);
+        reference_pcd.points_ =
+            buffer_to_eigen_vector(xyz2 + batch_index * m * 3, m * 3);
+        open3d::KDTreeFlann reference_kd_tree(reference_pcd);
+
+        for (size_t j = 0; j < n; ++j) {
+            reference_kd_tree.SearchKNN(target_pcd.points_[j], 3, three_indices,
+                                        three_dists);
+            size_t start_idx = batch_index * n * 3 + j * 3;
+            indices[start_idx + 0] = three_indices[0];
+            indices[start_idx + 1] = three_indices[1];
+            indices[start_idx + 2] = three_indices[2];
+            dists[start_idx + 0] = three_dists[0];
+            dists[start_idx + 1] = three_dists[1];
+            dists[start_idx + 2] = three_dists[2];
         }
-        xyz1 += n * 3;
-        xyz2 += m * 3;
-        dist += n * 3;
-        idx += n * 3;
     }
 }
 

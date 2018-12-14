@@ -6,6 +6,13 @@ project(tf_ops LANGUAGES CXX CUDA)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+# Open3D cmake
+include(open3d.cmake)
+message(STATUS "Open3D installed to: ${Open3D_LIBRARY_DIRS}")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${Open3D_C_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${Open3D_CXX_FLAGS}")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${Open3D_EXE_LINKER_FLAGS}")
+
 # Custom finders path
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR})
 
@@ -37,11 +44,13 @@ target_link_libraries(tf_grouping cudart tensorflow_framework)
 set_target_properties(tf_grouping PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 
 # Interpolate
+link_directories(${Open3D_LIBRARY_DIRS})
 add_library(tf_interpolate SHARED
     tf_interpolate.cpp
 )
 target_compile_features(tf_interpolate PUBLIC cxx_std_11)
-target_link_libraries(tf_interpolate tensorflow_framework)
+target_include_directories(tf_interpolate PUBLIC ${Open3D_INCLUDE_DIRS})
+target_link_libraries(tf_interpolate tensorflow_framework ${Open3D_LIBRARIES})
 
 # Grouping
 add_library(tf_sampling SHARED

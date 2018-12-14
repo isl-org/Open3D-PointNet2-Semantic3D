@@ -66,19 +66,23 @@ std::vector<Eigen::Vector3d> buffer_to_eigen_vector(const float *buffer,
 
 // Find three nearest neighbors with square distance
 // input: xyz1 (b,n,3), xyz2(b,m,3)
-// output: dist (b,n,3), idx (b,n,3)
+// output: dists (b,n,3), indices (b,n,3)
 // E.g.
 // - target_points (b, n, 3): e.g. (64, 8192, 3), the "3" here is x, y, z
 // - reference_points (b, m, 3): e.g. (64, 1024, 3), the "3" here is x, y, z
-// - dist (b, n, 3): (64, 8192, 3), for each input point in target_points, find
+// - dists (b, n, 3): (64, 8192, 3), for each input point in target_points, find
 //                   3 nearest neighbors in base_points and return the
 //                   distances squared, the "3" means "3" nearest neighbors
-// - idx (b, n, 3): (64, 8192, 3), for each input point in target_points, find 3
+// - indices (b, n, 3): (64, 8192, 3), for each input point in target_points,
+// find 3
 //                   nearest neighbors in base_points and return the indexes in
 //                   base_points, the "3" means "3" nearest neighbors
-void threenn_cpu(int b, int n, int m, const float *xyz1, const float *xyz2,
-                 float *dist, int *idx) {
-    for (int i = 0; i < b; ++i) {
+void threenn_cpu(int batch_size, int n, int m, const float *xyz1,
+                 const float *xyz2, float *dists, int *indices) {
+    std::vector<int> three_indices;
+    std::vector<double> three_dists;
+
+    for (int batch_index = 0; batch_index < batch_size; ++batch_index) {
         open3d::PointCloud target_pcd;
         target_pcd.points_ = buffer_to_eigen_vector(xyz1, n * 3);
 
@@ -86,23 +90,22 @@ void threenn_cpu(int b, int n, int m, const float *xyz1, const float *xyz2,
         reference_pcd.points_ = buffer_to_eigen_vector(xyz2, m * 3);
 
         open3d::KDTreeFlann reference_kd_tree(reference_pcd);
+
         for (size_t j = 0; j < n; ++j) {
-            std::vector<int> indices;
-            std::vector<double> distance2;
-            reference_kd_tree.SearchKNN(target_pcd.points_[j], 3, indices,
-                                        distance2);
-            idx[j * 3 + 0] = indices[0];
-            idx[j * 3 + 1] = indices[1];
-            idx[j * 3 + 2] = indices[2];
-            dist[j * 3 + 0] = distance2[0];
-            dist[j * 3 + 1] = distance2[1];
-            dist[j * 3 + 2] = distance2[2];
+            reference_kd_tree.SearchKNN(target_pcd.points_[j], 3, three_indices,
+                                        three_dists);
+            indices[j * 3 + 0] = three_indices[0];
+            indices[j * 3 + 1] = three_indices[1];
+            indices[j * 3 + 2] = three_indices[2];
+            dists[j * 3 + 0] = three_dists[0];
+            dists[j * 3 + 1] = three_dists[1];
+            dists[j * 3 + 2] = three_dists[2];
         }
 
         xyz1 += n * 3;
         xyz2 += m * 3;
-        dist += n * 3;
-        idx += n * 3;
+        dists += n * 3;
+        indices += n * 3;
     }
 }
 

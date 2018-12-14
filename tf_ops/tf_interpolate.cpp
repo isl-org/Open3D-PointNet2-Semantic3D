@@ -1,8 +1,9 @@
 #include <cstdio>
 #include <ctime>
-#include <cstring>  // memset
-#include <cstdlib>  // rand, RAND_MAX
-#include <cmath>    // sqrtf
+#include <cstring>      // memset
+#include <cstdlib>      // rand, RAND_MAX
+#include <cmath>        // sqrtf
+#include <Core/Core.h>  // open3d
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/framework/shape_inference.h"
@@ -67,6 +68,8 @@ static double get_time() {
 //                   base_points, the "3" means "3" nearest neighbors
 void threenn_cpu(int b, int n, int m, const float *xyz1, const float *xyz2,
                  float *dist, int *idx) {
+    auto target_pcd = std::make_shared<open3d::PointCloud>();
+
     for (int i = 0; i < b; ++i) {
         for (int j = 0; j < n; ++j) {
             float x1 = xyz1[j * 3 + 0];

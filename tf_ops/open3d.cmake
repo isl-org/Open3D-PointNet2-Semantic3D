@@ -6,22 +6,22 @@ set(open3d_install_prefix ${open3d_root}/open3d_install)
 
 
 function(build_open3d)
-    configure_file(${CMAKE_SOURCE_DIR}/open3d_builder.cmake.in
+    configure_file(${CMAKE_SOURCE_DIR}/open3d_builder.cmake
                 ${open3d_root}/CMakeLists.txt
                 COPYONLY)
 
     execute_process(
         COMMAND ${CMAKE_COMMAND} -G ${CMAKE_GENERATOR} .
-                                -DCMAKE_INSTALL_PREFIX=${open3d_install_prefix}
-                                -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-                                -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
-                                -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+                                 -DCMAKE_INSTALL_PREFIX=${open3d_install_prefix}
+                                 -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+                                 -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+                                 -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
         WORKING_DIRECTORY ${open3d_root}
     )
 
     execute_process(
         COMMAND ${CMAKE_COMMAND} --build .
-                                -- -j ${num_cores}
+                                 -- -j ${num_cores}
         WORKING_DIRECTORY ${open3d_root}
     )
 

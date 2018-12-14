@@ -41,11 +41,13 @@ target_link_libraries(tf_grouping cudart tensorflow_framework)
 set_target_properties(tf_grouping PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 
 # Interpolate
+link_directories(${Open3D_LIBRARY_DIRS})
 add_library(tf_interpolate SHARED
     tf_interpolate.cpp
 )
 target_compile_features(tf_interpolate PUBLIC cxx_std_11)
-target_link_libraries(tf_interpolate tensorflow_framework)
+target_include_directories(tf_interpolate PUBLIC ${Open3D_INCLUDE_DIRS})
+target_link_libraries(tf_interpolate tensorflow_framework ${Open3D_LIBRARIES})
 
 # Grouping
 add_library(tf_sampling SHARED

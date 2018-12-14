@@ -1,14 +1,27 @@
 import open3d
-import time
 import sys
+import argparse
+import os
+from util.point_cloud_util import load_labels, colorize_point_cloud
 
 
 if __name__ == "__main__":
-    if len(sys.argv) <= 1:
-        raise ValueError("Usage: python visualize.py point_cloud_path.pcd")
+    # Parser
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--pcd_path", default="", type=str)
+    parser.add_argument("--labels_path", default="", type=str)
+    flags = parser.parse_args()
 
-    pcd_path = sys.argv[1]
-    s = time.time()
-    pcd = open3d.read_point_cloud(pcd_path)
-    print("time read_point_cloud", time.time() - s, flush=True)
+    # Load point cloud
+    if not os.path.isfile(flags.pcd_path):
+        raise ValueError("pcd path not found at {}".format(flags.pcd_path))
+    pcd = open3d.read_point_cloud(flags.pcd_path)
+
+    # Load labels and colorize pcd, if labels available
+    if flags.labels_path != "":
+        if not os.path.isfile(flags.pcd_path):
+            raise ValueError("labels path not found at {}".format(flags.labels_path))
+        labels = load_labels(flags.labels_path)
+        colorize_point_cloud(pcd, labels)
+
     open3d.draw_geometries([pcd])

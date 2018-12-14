@@ -56,28 +56,10 @@ static double get_time() {
 
 std::vector<Eigen::Vector3d> buffer_to_eigen_vector(const float *buffer,
                                                     size_t num_elements) {
-    // Naive: 0.7
-    // std::vector<Eigen::Vector3d> eigen_vectors;
-    // size_t vector_size = num_elements / 3;
-    // for (size_t i = 0; i < vector_size; ++i) {
-    //     double x = buffer[i * 3 + 0];
-    //     double y = buffer[i * 3 + 1];
-    //     double z = buffer[i * 3 + 2];
-    //     Eigen::Vector3d v;
-    //     v << x, y, z;
-    //     eigen_vectors.push_back(v);
-    // }
-    // return eigen_vectors;
-
-    // With map: 0.9
+    std::vector<Eigen::Vector3d> eigen_vectors;
     size_t vector_size = num_elements / 3;
-    std::vector<Eigen::Vector3d> eigen_vectors(vector_size);
-    Eigen::Vector3f temp_vector3f;
-    Eigen::Vector3d temp_vector3d;
-    for (size_t i = 0; i < vector_size; ++i) {
-        temp_vector3f = Eigen::Map<const Eigen::Vector3f>(buffer + i * 3);
-        temp_vector3d = temp_vector3f.cast<double>();
-        eigen_vectors[i] = temp_vector3d;
+    for (size_t i = 0; i < num_elements; i += 3) {
+        eigen_vectors.emplace_back(buffer[i], buffer[i + 1], buffer[i + 2]);
     }
     return eigen_vectors;
 }

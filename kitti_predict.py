@@ -44,7 +44,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--ckpt", default="", help="Checkpoint file")
     flags = parser.parse_args()
-    hyper_params = json.loads(open("semantic.json").read())
+    hyper_params = json.loads(open("semantic_no_color.json").read())
 
     # Create output dir
     sparse_output_dir = os.path.join("result", "sparse")

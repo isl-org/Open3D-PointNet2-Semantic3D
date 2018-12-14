@@ -3,16 +3,13 @@ project(open3d_builder NONE)
 
 include(ExternalProject)
 
-set(open3d_prefix "open3d")
-set(open3d_install_prefix ${CMAKE_BINARY_DIR}/${open3d_prefix}/install)
-
 ExternalProject_Add(
-    external_open3d
+    open3d
     GIT_REPOSITORY https://github.com/IntelVCL/Open3D.git
     GIT_TAG 33e46f7 # Thu Nov 29 21:19:44
-    PREFIX ${open3d_prefix}
+    PREFIX open3d
     UPDATE_COMMAND ""
-    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${open3d_install_prefix}
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
                -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
                -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
                -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}

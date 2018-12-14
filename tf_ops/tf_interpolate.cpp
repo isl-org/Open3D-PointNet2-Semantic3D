@@ -60,8 +60,8 @@ static double get_time() {
 // - target_points (b, n, 3): (64, 8192, 3), the "3" here is x, y, z
 // - base_points (b, m, 3): (64, 256, 3), the "3" here is x, y, z
 // - dist (b, n, 3): (64, 8192, 3), for each input point in target_points, find
-//                   3 nearest neighbors in base_points and return the distances,
-//                   the "3" means "3" nearest neighbors
+//                   3 nearest neighbors in base_points and return the
+//                   distances, the "3" means "3" nearest neighbors
 // - idx (b, n, 3): (64, 8192, 3), for each input point in target_points, find 3
 //                   nearest neighbors in base_points and return the indexes in
 //                   base_points, the "3" means "3" nearest neighbors

@@ -54,6 +54,21 @@ static double get_time() {
     return tp.tv_sec + tp.tv_nsec * 1e-9;
 }
 
+std::vector<Eigen::Vector3d> buffer_to_eigen_vector(const float *buffer,
+                                                    size_t num_elements) {
+    std::vector<Eigen::Vector3d> eigen_vectors;
+    size_t vector_size = num_elements / 3;
+    for (size_t i = 0; i < vector_size; ++i) {
+        double x = buffer[i * 3 + 0];
+        double y = buffer[i * 3 + 1];
+        double z = buffer[i * 3 + 1];
+        Eigen::Vector3d v;
+        v << x, y, z;
+        eigen_vectors.push_back(v);
+    }
+    return eigen_vectors;
+}
+
 // Find three nearest neighbors with square distance
 // input: xyz1 (b,n,3), xyz2(b,m,3)
 // output: dist (b,n,3), idx (b,n,3)
@@ -68,9 +83,13 @@ static double get_time() {
 //                   base_points, the "3" means "3" nearest neighbors
 void threenn_cpu(int b, int n, int m, const float *xyz1, const float *xyz2,
                  float *dist, int *idx) {
-    auto target_pcd = std::make_shared<open3d::PointCloud>();
-
     for (int i = 0; i < b; ++i) {
+        auto target_pcd = std::make_shared<open3d::PointCloud>();
+        target_pcd->points_ = buffer_to_eigen_vector(xyz1, n * 3);
+
+        auto base_pcd = std::make_shared<open3d::PointCloud>();
+        base_pcd->points_ = buffer_to_eigen_vector(xyz2, m * 3);
+
         for (int j = 0; j < n; ++j) {
             float x1 = xyz1[j * 3 + 0];
             float y1 = xyz1[j * 3 + 1];

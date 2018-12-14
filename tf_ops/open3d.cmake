@@ -4,11 +4,13 @@ ProcessorCount(num_cores)
 set(open3d_root ${CMAKE_BINARY_DIR}/open3d_root)
 set(open3d_install_prefix ${open3d_root}/open3d_install)
 
-
+# Ref: How to find_package after ExternalProject_Add
+# https://stackoverflow.com/q/17446981
+# https://git.io/fpFTE
 function(build_open3d)
     configure_file(${CMAKE_SOURCE_DIR}/open3d_builder.cmake
-                ${open3d_root}/CMakeLists.txt
-                COPYONLY)
+                   ${open3d_root}/CMakeLists.txt
+                   COPYONLY)
 
     execute_process(
         COMMAND ${CMAKE_COMMAND} -G ${CMAKE_GENERATOR} .

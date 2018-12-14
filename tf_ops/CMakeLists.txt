@@ -8,6 +8,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Open3D cmake
 include(open3d.cmake)
+message(STATUS "Open3D installed to: ${Open3D_LIBRARY_DIRS}")
 
 # Custom finders path
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR})

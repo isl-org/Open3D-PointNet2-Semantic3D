@@ -7,8 +7,9 @@ import pykitti
 
 
 class KittiFileData(SemanticFileData):
-    def __init__(self, points):
+    def __init__(self, points, box_size):
         self.points = points
+        self.box_size = box_size
 
         # Shift points to min (0, 0, 0), per-image
         # Training: use the normalized points for training
@@ -33,7 +34,7 @@ class KittiFileData(SemanticFileData):
 
 
 class KittiDataset(SemanticDataset):
-    def __init__(self, num_points_per_sample, base_dir, dates, drives):
+    def __init__(self, num_points_per_sample, base_dir, dates, drives, box_size):
         """Create a dataset holder
         num_points_per_sample (int): Defaults to 8192. The number of point per sample
         split (str): Defaults to 'train'. The selected part of the data (train, test,
@@ -56,6 +57,7 @@ class KittiDataset(SemanticDataset):
             "scanning artifact",
             "cars",
         ]
+        self.box_size = box_size
 
         # Load files
         self.list_file_data = []
@@ -68,7 +70,7 @@ class KittiDataset(SemanticDataset):
                     # Get points
                     points = points_with_intensity[:, :3]
                     # Init file data
-                    file_data = KittiFileData(points)
+                    file_data = KittiFileData(points=points, box_size=box_size)
                     # TODO: just for compatibility reason to include the name
                     file_data.file_path_without_ext = os.path.join(
                         date, drive, "{:04d}".format(frame_idx)

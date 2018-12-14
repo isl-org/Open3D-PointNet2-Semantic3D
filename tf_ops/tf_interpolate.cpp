@@ -61,7 +61,7 @@ std::vector<Eigen::Vector3d> buffer_to_eigen_vector(const float *buffer,
     for (size_t i = 0; i < vector_size; ++i) {
         double x = buffer[i * 3 + 0];
         double y = buffer[i * 3 + 1];
-        double z = buffer[i * 3 + 1];
+        double z = buffer[i * 3 + 2];
         Eigen::Vector3d v;
         v << x, y, z;
         eigen_vectors.push_back(v);
@@ -74,7 +74,7 @@ std::vector<Eigen::Vector3d> buffer_to_eigen_vector(const float *buffer,
 // output: dist (b,n,3), idx (b,n,3)
 // E.g.
 // - target_points (b, n, 3): e.g. (64, 8192, 3), the "3" here is x, y, z
-// - base_points (b, m, 3): e.g. (64, 1024, 3), the "3" here is x, y, z
+// - reference_points (b, m, 3): e.g. (64, 1024, 3), the "3" here is x, y, z
 // - dist (b, n, 3): (64, 8192, 3), for each input point in target_points, find
 //                   3 nearest neighbors in base_points and return the
 //                   distances, the "3" means "3" nearest neighbors
@@ -84,54 +84,70 @@ std::vector<Eigen::Vector3d> buffer_to_eigen_vector(const float *buffer,
 void threenn_cpu(int b, int n, int m, const float *xyz1, const float *xyz2,
                  float *dist, int *idx) {
     for (int i = 0; i < b; ++i) {
-        auto target_pcd = std::make_shared<open3d::PointCloud>();
-        target_pcd->points_ = buffer_to_eigen_vector(xyz1, n * 3);
+        open3d::PointCloud target_pcd;
+        target_pcd.points_ = buffer_to_eigen_vector(xyz1, n * 3);
 
-        auto base_pcd = std::make_shared<open3d::PointCloud>();
-        base_pcd->points_ = buffer_to_eigen_vector(xyz2, m * 3);
+        open3d::PointCloud reference_pcd;
+        reference_pcd.points_ = buffer_to_eigen_vector(xyz2, m * 3);
 
-        for (int j = 0; j < n; ++j) {
-            float x1 = xyz1[j * 3 + 0];
-            float y1 = xyz1[j * 3 + 1];
-            float z1 = xyz1[j * 3 + 2];
-            double best1 = 1e40;
-            double best2 = 1e40;
-            double best3 = 1e40;
-            int besti1 = 0;
-            int besti2 = 0;
-            int besti3 = 0;
-            for (int k = 0; k < m; ++k) {
-                float x2 = xyz2[k * 3 + 0];
-                float y2 = xyz2[k * 3 + 1];
-                float z2 = xyz2[k * 3 + 2];
-                // float
-                // d=max(sqrtf((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1)+(z2-z1)*(z2-z1)),1e-20f);
-                double d = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1) +
-                           (z2 - z1) * (z2 - z1);
-                if (d < best1) {
-                    best3 = best2;
-                    besti3 = besti2;
-                    best2 = best1;
-                    besti2 = besti1;
-                    best1 = d;
-                    besti1 = k;
-                } else if (d < best2) {
-                    best3 = best2;
-                    besti3 = besti2;
-                    best2 = d;
-                    besti2 = k;
-                } else if (d < best3) {
-                    best3 = d;
-                    besti3 = k;
-                }
-            }
-            dist[j * 3] = best1;
-            idx[j * 3] = besti1;
-            dist[j * 3 + 1] = best2;
-            idx[j * 3 + 1] = besti2;
-            dist[j * 3 + 2] = best3;
-            idx[j * 3 + 2] = besti3;
+        open3d::KDTreeFlann reference_kd_tree(reference_pcd);
+        // for (const Eigen::Vector3d &target_point : target_pcd.points_) {
+        for (size_t j = 0; j < n; ++j) {
+            std::vector<int> indices;
+            std::vector<double> distance2;
+            reference_kd_tree.SearchKNN(target_pcd.points_[j], 3, indices,
+                                        distance2);
+            idx[j * 3 + 0] = indices[0];
+            idx[j * 3 + 1] = indices[1];
+            idx[j * 3 + 2] = indices[2];
+            dist[j * 3 + 0] = distance2[0];
+            dist[j * 3 + 1] = distance2[1];
+            dist[j * 3 + 2] = distance2[2];
         }
+
+        // for (int j = 0; j < n; ++j) {
+        //     float x1 = xyz1[j * 3 + 0];
+        //     float y1 = xyz1[j * 3 + 1];
+        //     float z1 = xyz1[j * 3 + 2];
+        //     double best1 = 1e40;
+        //     double best2 = 1e40;
+        //     double best3 = 1e40;
+        //     int besti1 = 0;
+        //     int besti2 = 0;
+        //     int besti3 = 0;
+        //     for (int k = 0; k < m; ++k) {
+        //         float x2 = xyz2[k * 3 + 0];
+        //         float y2 = xyz2[k * 3 + 1];
+        //         float z2 = xyz2[k * 3 + 2];
+        //         // float
+        //         //
+        //         d=max(sqrtf((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1)+(z2-z1)*(z2-z1)),1e-20f);
+        //         double d = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1) +
+        //                    (z2 - z1) * (z2 - z1);
+        //         if (d < best1) {
+        //             best3 = best2;
+        //             besti3 = besti2;
+        //             best2 = best1;
+        //             besti2 = besti1;
+        //             best1 = d;
+        //             besti1 = k;
+        //         } else if (d < best2) {
+        //             best3 = best2;
+        //             besti3 = besti2;
+        //             best2 = d;
+        //             besti2 = k;
+        //         } else if (d < best3) {
+        //             best3 = d;
+        //             besti3 = k;
+        //         }
+        //     }
+        //     dist[j * 3] = best1;
+        //     idx[j * 3] = besti1;
+        //     dist[j * 3 + 1] = best2;
+        //     idx[j * 3 + 1] = besti2;
+        //     dist[j * 3 + 2] = best3;
+        //     idx[j * 3 + 2] = besti3;
+        // }
         xyz1 += n * 3;
         xyz2 += m * 3;
         dist += n * 3;

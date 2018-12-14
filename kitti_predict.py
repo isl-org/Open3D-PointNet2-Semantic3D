@@ -70,7 +70,7 @@ if __name__ == "__main__":
         hyper_params=hyper_params,
     )
 
-    for kitti_file_data in dataset.list_file_data:
+    for kitti_file_data in dataset.list_file_data[:5]:
         # Predict for num_samples times
         points_raw_collector = []
         pd_labels_collector = []

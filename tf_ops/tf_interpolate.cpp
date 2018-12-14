@@ -78,31 +78,32 @@ std::vector<Eigen::Vector3d> buffer_to_eigen_vector(const float *buffer,
 //   base_points, the "3" means "3" nearest neighbors
 void threenn_cpu(int b, int n, int m, const float *xyz1, const float *xyz2,
                  float *dists, int *indices) {
-    std::vector<int> three_indices;
-    std::vector<double> three_dists;
-    open3d::PointCloud target_pcd;
-    open3d::PointCloud reference_pcd;
-
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static)
+#endif
     for (int batch_index = 0; batch_index < b; ++batch_index) {
-        target_pcd.points_ = buffer_to_eigen_vector(xyz1, n * 3);
-        reference_pcd.points_ = buffer_to_eigen_vector(xyz2, m * 3);
+        std::vector<int> three_indices;
+        std::vector<double> three_dists;
+        open3d::PointCloud target_pcd;
+        open3d::PointCloud reference_pcd;
+
+        target_pcd.points_ =
+            buffer_to_eigen_vector(xyz1 + batch_index * n * 3, n * 3);
+        reference_pcd.points_ =
+            buffer_to_eigen_vector(xyz2 + batch_index * m * 3, m * 3);
         open3d::KDTreeFlann reference_kd_tree(reference_pcd);
 
         for (size_t j = 0; j < n; ++j) {
             reference_kd_tree.SearchKNN(target_pcd.points_[j], 3, three_indices,
                                         three_dists);
-            indices[j * 3 + 0] = three_indices[0];
-            indices[j * 3 + 1] = three_indices[1];
-            indices[j * 3 + 2] = three_indices[2];
-            dists[j * 3 + 0] = three_dists[0];
-            dists[j * 3 + 1] = three_dists[1];
-            dists[j * 3 + 2] = three_dists[2];
+            size_t start_idx = batch_index * n * 3 + j * 3;
+            indices[start_idx + 0] = three_indices[0];
+            indices[start_idx + 1] = three_indices[1];
+            indices[start_idx + 2] = three_indices[2];
+            dists[start_idx + 0] = three_dists[0];
+            dists[start_idx + 1] = three_dists[1];
+            dists[start_idx + 2] = three_dists[2];
         }
-
-        xyz1 += n * 3;
-        xyz2 += m * 3;
-        dists += n * 3;
-        indices += n * 3;
     }
 }
 

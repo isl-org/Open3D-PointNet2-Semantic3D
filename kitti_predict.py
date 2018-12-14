@@ -2,14 +2,34 @@ import argparse
 import os
 import json
 import numpy as np
-import tensorflow as tf
 import open3d
 import time
 
-import model
 from dataset.kitti_dataset import KittiDataset
-from util.metric import ConfusionMatrix
 from predict import Predictor
+
+
+def interpolate_dense_labels(
+    sparse_points, sparse_labels, dense_points, radius=0.2, k=20
+):
+    sparse_pcd = open3d.PointCloud()
+    sparse_pcd.points = open3d.Vector3dVector(sparse_points)
+    sparse_pcd_tree = open3d.KDTreeFlann(sparse_pcd)
+
+    dense_labels = []
+    for dense_point in dense_points:
+        result_k, sparse_indexes, _ = sparse_pcd_tree.search_hybrid_vector_3d(
+            dense_point, radius, k
+        )
+        if result_k == 0:
+            result_k, sparse_indexes, _ = sparse_pcd_tree.search_knn_vector_3d(
+                dense_point, k
+            )
+        knn_sparse_labels = sparse_labels[sparse_indexes]
+        dense_label = np.bincount(knn_sparse_labels).argmax()
+        dense_labels.append(dense_label)
+    return dense_labels
+
 
 if __name__ == "__main__":
     np.random.seed(0)
@@ -27,15 +47,18 @@ if __name__ == "__main__":
     hyper_params = json.loads(open("semantic.json").read())
 
     # Create output dir
-    output_dir = os.path.join("result", "sparse")
-    os.makedirs(output_dir, exist_ok=True)
+    sparse_output_dir = os.path.join("result", "sparse")
+    dense_output_dir = os.path.join("result", "dense")
+    os.makedirs(sparse_output_dir, exist_ok=True)
+    os.makedirs(dense_output_dir, exist_ok=True)
 
     # Dataset
     dataset = KittiDataset(
         num_points_per_sample=hyper_params["num_point"],
         base_dir="/home/ylao/data/kitti",
         dates=["2011_09_26"],
-        drives=["0001", "0095"],
+        # drives=["0095", "0001"],
+        drives=["0095"],
         box_size=hyper_params["box_size"],
     )
 
@@ -84,11 +107,29 @@ if __name__ == "__main__":
         points_raw_collector = np.array(points_raw_collector)
         pcd = open3d.PointCloud()
         pcd.points = open3d.Vector3dVector(points_raw_collector.reshape((-1, 3)))
-        pcd_path = os.path.join(output_dir, file_prefix + ".pcd")
+        pcd_path = os.path.join(sparse_output_dir, file_prefix + ".pcd")
         open3d.write_point_cloud(pcd_path, pcd)
         print("Exported pcd to {}".format(pcd_path))
 
         pd_labels_collector = np.array(pd_labels_collector).astype(int)
-        pd_labels_path = os.path.join(output_dir, file_prefix + ".labels")
+        pd_labels_path = os.path.join(sparse_output_dir, file_prefix + ".labels")
         np.savetxt(pd_labels_path, pd_labels_collector.flatten(), fmt="%d")
         print("Exported labels to {}".format(pd_labels_path))
+
+        # Now interpolate to original point cloud
+        dense_points = kitti_file_data.points
+        dense_labels = interpolate_dense_labels(
+            sparse_points=points_raw_collector.reshape((-1, 3)),
+            sparse_labels=pd_labels_collector.flatten(),
+            dense_points=dense_points.reshape((-1, 3)),
+        )
+
+        dense_pcd = open3d.PointCloud()
+        dense_pcd.points = open3d.Vector3dVector(dense_points.reshape((-1, 3)))
+        dense_pcd_path = os.path.join(dense_output_dir, file_prefix + ".pcd")
+        open3d.write_point_cloud(dense_pcd_path, dense_pcd)
+        print("Exported dense_pcd to {}".format(dense_pcd_path))
+
+        dense_labels_path = os.path.join(dense_output_dir, file_prefix + ".labels")
+        np.savetxt(dense_labels_path, dense_labels, fmt="%d")
+        print("Exported dense_labels to {}".format(dense_labels_path))

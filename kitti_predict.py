@@ -63,7 +63,7 @@ if __name__ == "__main__":
     )
 
     # Model
-    batch_size = 64
+    batch_size = 128  # The more the better, limited by memory size
     predictor = Predictor(
         checkpoint_path=flags.ckpt,
         num_classes=dataset.num_classes,

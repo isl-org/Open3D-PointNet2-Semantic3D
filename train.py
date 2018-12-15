@@ -13,12 +13,13 @@ import util.metric as metric
 import model
 from dataset.semantic_dataset import SemanticDataset
 
+# Two global arg collections
 parser = argparse.ArgumentParser()
 parser.add_argument("--train_set", default="train", help="train, train_full")
+parser.add_argument("--config_file", default="semantic.json", help="config file path")
 
-# Two global arg collections
 FLAGS = parser.parse_args()
-PARAMS = json.loads(open("semantic.json").read())
+PARAMS = json.loads(open(FLAGS.config_file).read())
 os.makedirs(PARAMS["logdir"], exist_ok=True)
 
 # Import dataset

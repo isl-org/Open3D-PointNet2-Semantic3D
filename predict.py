@@ -134,7 +134,10 @@ if __name__ == "__main__":
             )
 
             # (bs, 8192, 3) concat (bs, 8192, 3) -> (bs, 8192, 6)
-            points_with_colors = np.concatenate((points, colors), axis=-1)
+            if hyper_params["use_color"]:
+                points_with_colors = np.concatenate((points, colors), axis=-1)
+            else:
+                points_with_colors = points
 
             # Predict
             s = time.time()

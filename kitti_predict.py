@@ -71,6 +71,13 @@ if __name__ == "__main__":
     )
 
     for kitti_file_data in dataset.list_file_data[:5]:
+        timer = {
+            "load_data": 0,
+            "predict": 0,
+            "interpolate": 0,
+            "write_data": 0
+        }
+
         # Predict for num_samples times
         points_raw_collector = []
         pd_labels_collector = []
@@ -82,48 +89,53 @@ if __name__ == "__main__":
             )
 
             # Get data
+            start_time = time.time()
             points, points_raw, gt_labels, colors = kitti_file_data.sample_batch(
                 batch_size=current_batch_size,
                 num_points_per_sample=hyper_params["num_point"],
             )
-
             # (bs, 8192, 3) concat (bs, 8192, 3) -> (bs, 8192, 6)
             if hyper_params["use_color"]:
                 points_with_colors = np.concatenate((points, colors), axis=-1)
             else:
                 points_with_colors = points
+            timer['load_data'] += time.time() - start_time
 
             # Predict
-            s = time.time()
+            start_time = time.time()
             pd_labels = predictor.predict(points_with_colors)
-
-            # Save to collector for file output
             points_raw_collector.extend(points_raw)
             pd_labels_collector.extend(pd_labels)
-
-        # Save sparse point cloud and predicted labels
-        file_prefix = os.path.basename(kitti_file_data.file_path_without_ext)
+            timer['predict'] += time.time() - start_time
 
         points_raw_collector = np.array(points_raw_collector)
-        pcd = open3d.PointCloud()
-        pcd.points = open3d.Vector3dVector(points_raw_collector.reshape((-1, 3)))
-        pcd_path = os.path.join(sparse_output_dir, file_prefix + ".pcd")
-        open3d.write_point_cloud(pcd_path, pcd)
-        print("Exported pcd to {}".format(pcd_path))
-
         pd_labels_collector = np.array(pd_labels_collector).astype(int)
-        pd_labels_path = os.path.join(sparse_output_dir, file_prefix + ".labels")
-        np.savetxt(pd_labels_path, pd_labels_collector.flatten(), fmt="%d")
-        print("Exported labels to {}".format(pd_labels_path))
 
-        # Now interpolate to original point cloud
+        # Interpolate to original point cloud
+        start_time = time.time()
         dense_points = kitti_file_data.points + kitti_file_data.points_min_raw
         dense_labels = interpolate_dense_labels(
             sparse_points=points_raw_collector.reshape((-1, 3)),
             sparse_labels=pd_labels_collector.flatten(),
             dense_points=dense_points.reshape((-1, 3)),
         )
+        timer['interpolate'] += time.time() - start_time
 
+        start_time = time.time()
+        # Save sparse point cloud with predicted labels
+        file_prefix = os.path.basename(kitti_file_data.file_path_without_ext)
+
+        pcd = open3d.PointCloud()
+        pcd.points = open3d.Vector3dVector(points_raw_collector.reshape((-1, 3)))
+        pcd_path = os.path.join(sparse_output_dir, file_prefix + ".pcd")
+        open3d.write_point_cloud(pcd_path, pcd)
+        print("Exported pcd to {}".format(pcd_path))
+
+        pd_labels_path = os.path.join(sparse_output_dir, file_prefix + ".labels")
+        np.savetxt(pd_labels_path, pd_labels_collector.flatten(), fmt="%d")
+        print("Exported labels to {}".format(pd_labels_path))
+
+        # Save dense point cloud with predicted labels
         dense_pcd = open3d.PointCloud()
         dense_pcd.points = open3d.Vector3dVector(dense_points.reshape((-1, 3)))
         dense_pcd_path = os.path.join(dense_output_dir, file_prefix + ".pcd")
@@ -133,3 +145,6 @@ if __name__ == "__main__":
         dense_labels_path = os.path.join(dense_output_dir, file_prefix + ".labels")
         np.savetxt(dense_labels_path, dense_labels, fmt="%d")
         print("Exported dense_labels to {}".format(dense_labels_path))
+        timer['write_data'] += time.time() - start_time
+
+        print(timer)

@@ -16,7 +16,7 @@ if __name__ == "__main__":
     if not os.path.isfile(flags.pcd_path):
         raise ValueError("pcd path not found at {}".format(flags.pcd_path))
     pcd = open3d.read_point_cloud(flags.pcd_path)
-    pcd = open3d.crop_point_cloud(pcd, [-30, -10, -50], [30, 10, 50])
+    # pcd = open3d.crop_point_cloud(pcd, [-30, -10, -50], [30, 10, 50])
 
     # Load labels and colorize pcd, if labels available
     if flags.labels_path != "":

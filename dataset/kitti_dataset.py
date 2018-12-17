@@ -8,13 +8,13 @@ import pykitti
 
 class KittiFileData(SemanticFileData):
     def __init__(self, points, box_size):
-        self.points = points
         self.box_size = box_size
 
         # Shift points to min (0, 0, 0), per-image
         # Training: use the normalized points for training
         # Testing: use the normalized points for testing. However, when writing back
         #          point clouds, the shift should be added back.
+        self.points = points
         self.points_min_raw = np.min(self.points, axis=0)
         self.points = self.points - self.points_min_raw
         self.points_min = np.min(self.points, axis=0)
@@ -31,6 +31,19 @@ class KittiFileData(SemanticFileData):
         self.points = self.points[sort_idx]
         self.labels = self.labels[sort_idx]
         self.colors = self.colors[sort_idx]
+
+    def get_batch_z_boxes_from_origin(self, min_x, max_x, min_y, max_y):
+        """
+        min_x: lower bound of box index of the x-axis
+        max_x: upper bound of box index of the x-axis
+        min_y: lower bound of box index of the y-axis
+        max_y: upper bound of box index of the y-axis
+
+        E.g. box_size = 10, min_x = -3, max_x = 3, min_y = -1, max_y = 1, then
+        get_batch_z_boxes_from_origin will return 12 samples, with total coverage
+        x: -30 to 30; y: -10 to 10; z: -inf to +inf.
+        """
+        pass
 
 
 class KittiDataset(SemanticDataset):

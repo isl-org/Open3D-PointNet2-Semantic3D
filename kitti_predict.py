@@ -8,6 +8,18 @@ import time
 from dataset.kitti_dataset import KittiDataset
 from predict import Predictor
 
+class LableInterpolator():
+
+    def __init__(self, sparse_points, sparse_labels):
+        self.sparse_points = sparse_points
+        self.sparse_labels = sparse_labels
+        sparse_pcd = open3d.PointCloud()
+        sparse_pcd.points = open3d.Vector3dVector(sparse_points)
+        self.sparse_pcd_tree = open3d.KDTreeFlann(sparse_pcd)
+
+    def interpolate(self, dense_points):
+        return None
+
 
 def interpolate_dense_labels(sparse_points, sparse_labels, dense_points, k=20):
     sparse_pcd = open3d.PointCloud()

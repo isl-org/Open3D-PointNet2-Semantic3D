@@ -4,7 +4,8 @@ import json
 import numpy as np
 import open3d
 import time
-from multiprocessing import Pool, freeze_support
+from multiprocessing import Pool, freeze_support, cpu_count
+import itertools
 
 from dataset.kitti_dataset import KittiDataset
 from predict import Predictor
@@ -21,25 +22,40 @@ def match_knn_label(dense_point):
     return dense_label
 
 
+def match_knn_label_segment(dense_points_segment):
+    dense_labels = []
+    for dense_point in dense_points_segment:
+        result_k, sparse_indexes, _ = global_dict[
+            "sparse_pcd_tree"
+        ].search_knn_vector_3d(dense_point, global_dict["k"])
+        knn_sparse_labels = global_dict["sparse_labels"][sparse_indexes]
+        dense_label = np.bincount(knn_sparse_labels).argmax()
+        dense_labels.append(dense_label)
+    return dense_labels
+
+
 def interpolate_dense_labels(sparse_points, sparse_labels, dense_points, k=20):
     sparse_pcd = open3d.PointCloud()
     sparse_pcd.points = open3d.Vector3dVector(sparse_points)
     sparse_pcd_tree = open3d.KDTreeFlann(sparse_pcd)
+
+    num_segments = cpu_count()
+    segment_size = int(np.ceil(len(dense_points) / num_segments))
+    dense_points_segments = [
+        dense_points[i * segment_size : min((i + 1) * segment_size, len(dense_points))]
+        for i in range(num_segments)
+    ]
 
     global_dict["sparse_pcd_tree"] = sparse_pcd_tree
     global_dict["sparse_labels"] = sparse_labels
     global_dict["k"] = k
 
     with Pool() as pool:
-        dense_labels = pool.map(match_knn_label, dense_points)
-    # dense_labels = []
-    # for dense_point in dense_points:
-    #     result_k, sparse_indexes, _ = sparse_pcd_tree.search_knn_vector_3d(
-    #         dense_point, k
-    #     )
-    #     knn_sparse_labels = sparse_labels[sparse_indexes]
-    #     dense_label = np.bincount(knn_sparse_labels).argmax()
-    #     dense_labels.append(dense_label)
+        dense_labels_segments = pool.map(match_knn_label_segment, dense_points_segments)
+    dense_labels = np.array(
+        list(itertools.chain.from_iterable(dense_labels_segments))
+    ).flatten()
+
     return dense_labels
 
 

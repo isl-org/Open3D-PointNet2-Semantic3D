@@ -9,9 +9,7 @@ from dataset.kitti_dataset import KittiDataset
 from predict import Predictor
 
 
-def interpolate_dense_labels(
-    sparse_points, sparse_labels, dense_points, k=20
-):
+def interpolate_dense_labels(sparse_points, sparse_labels, dense_points, k=20):
     sparse_pcd = open3d.PointCloud()
     sparse_pcd.points = open3d.Vector3dVector(sparse_points)
     sparse_pcd_tree = open3d.KDTreeFlann(sparse_pcd)
@@ -67,12 +65,7 @@ if __name__ == "__main__":
     )
 
     for kitti_file_data in dataset.list_file_data[:5]:
-        timer = {
-            "load_data": 0,
-            "predict": 0,
-            "interpolate": 0,
-            "write_data": 0
-        }
+        timer = {"load_data": 0, "predict": 0, "interpolate": 0, "write_data": 0}
 
         # Predict for num_samples times
         points_raw_collector = []
@@ -95,14 +88,14 @@ if __name__ == "__main__":
                 points_with_colors = np.concatenate((points, colors), axis=-1)
             else:
                 points_with_colors = points
-            timer['load_data'] += time.time() - start_time
+            timer["load_data"] += time.time() - start_time
 
             # Predict
             start_time = time.time()
             pd_labels = predictor.predict(points_with_colors)
             points_raw_collector.extend(points_raw)
             pd_labels_collector.extend(pd_labels)
-            timer['predict'] += time.time() - start_time
+            timer["predict"] += time.time() - start_time
 
         points_raw_collector = np.array(points_raw_collector)
         pd_labels_collector = np.array(pd_labels_collector).astype(int)
@@ -115,7 +108,7 @@ if __name__ == "__main__":
             sparse_labels=pd_labels_collector.flatten(),
             dense_points=dense_points.reshape((-1, 3)),
         )
-        timer['interpolate'] += time.time() - start_time
+        timer["interpolate"] += time.time() - start_time
 
         start_time = time.time()
         # Save sparse point cloud with predicted labels
@@ -141,6 +134,6 @@ if __name__ == "__main__":
         dense_labels_path = os.path.join(dense_output_dir, file_prefix + ".labels")
         np.savetxt(dense_labels_path, dense_labels, fmt="%d")
         print("Exported dense_labels to {}".format(dense_labels_path))
-        timer['write_data'] += time.time() - start_time
+        timer["write_data"] += time.time() - start_time
 
         print(timer)

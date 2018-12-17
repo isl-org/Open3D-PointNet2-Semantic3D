@@ -22,9 +22,10 @@ def match_knn_label(dense_point):
     return dense_label
 
 
-def match_knn_label_segment(dense_points_segment):
+def match_knn_label_segment(start_end_index):
+    start, end = start_end_index
     dense_labels = []
-    for dense_point in dense_points_segment:
+    for dense_point in global_dict["dense_points"][start:end]:
         result_k, sparse_indexes, _ = global_dict[
             "sparse_pcd_tree"
         ].search_knn_vector_3d(dense_point, global_dict["k"])
@@ -41,17 +42,20 @@ def interpolate_dense_labels(sparse_points, sparse_labels, dense_points, k=20):
 
     num_segments = cpu_count()
     segment_size = int(np.ceil(len(dense_points) / num_segments))
-    dense_points_segments = [
-        dense_points[i * segment_size : min((i + 1) * segment_size, len(dense_points))]
+    start_end_indices = [
+        (i * segment_size, min((i + 1) * segment_size, len(dense_points)))
         for i in range(num_segments)
     ]
 
+    global_dict["dense_points"] = dense_points
     global_dict["sparse_pcd_tree"] = sparse_pcd_tree
     global_dict["sparse_labels"] = sparse_labels
     global_dict["k"] = k
 
+    s = time.time()
     with Pool() as pool:
-        dense_labels_segments = pool.map(match_knn_label_segment, dense_points_segments)
+        dense_labels_segments = pool.map(match_knn_label_segment, start_end_indices)
+    print("time for pool.map:", time.time() - s)
     dense_labels = np.array(
         list(itertools.chain.from_iterable(dense_labels_segments))
     ).flatten()

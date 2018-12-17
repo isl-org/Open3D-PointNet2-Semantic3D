@@ -134,8 +134,10 @@ class SemanticFileData:
         batch_colors = []
 
         for _ in range(batch_size):
-            points, points_raw, gt_labels, colors = self.sample(num_points_per_sample)
-            batch_points_centered.append(points)
+            points_centered, points_raw, gt_labels, colors = self.sample(
+                num_points_per_sample
+            )
+            batch_points_centered.append(points_centered)
             batch_points_raw.append(points_raw)
             batch_labels.append(gt_labels)
             batch_colors.append(colors)

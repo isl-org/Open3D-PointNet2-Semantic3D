@@ -10,7 +10,7 @@ from predict import Predictor
 
 
 def interpolate_dense_labels(
-    sparse_points, sparse_labels, dense_points, radius=0.2, k=20
+    sparse_points, sparse_labels, dense_points, k=20
 ):
     sparse_pcd = open3d.PointCloud()
     sparse_pcd.points = open3d.Vector3dVector(sparse_points)

@@ -4,7 +4,6 @@ import json
 import numpy as np
 import open3d
 import time
-from functools import partial
 from multiprocessing import Pool, freeze_support
 
 from dataset.kitti_dataset import KittiDataset
@@ -31,9 +30,9 @@ def interpolate_dense_labels(sparse_points, sparse_labels, dense_points, k=20):
     global_dict["sparse_labels"] = sparse_labels
     global_dict["k"] = k
 
-    # dense_labels = []
     with Pool() as pool:
         dense_labels = pool.map(match_knn_label, dense_points)
+    # dense_labels = []
     # for dense_point in dense_points:
     #     result_k, sparse_indexes, _ = sparse_pcd_tree.search_knn_vector_3d(
     #         dense_point, k

@@ -10,6 +10,8 @@ class KittiFileData(SemanticFileData):
     def __init__(self, points, box_size):
         self.box_size = box_size
         self.points = points
+        self.pcd = open3d.PointCloud()
+        self.pcd.points = open3d.Vector3dVector(self.pcd)
 
         # Load label. In pure test set, fill with zeros.
         self.labels = np.zeros(len(self.points)).astype(bool)
@@ -23,17 +25,41 @@ class KittiFileData(SemanticFileData):
         self.labels = self.labels[sort_idx]
         self.colors = self.colors[sort_idx]
 
-    def get_batch_z_boxes_from_origin(self, min_x, max_x, min_y, max_y):
+    def get_batch_of_z_boxes_from_origin(
+        self, min_x_box, max_x_box, min_y_box, max_y_box, min_z, max_z
+    ):
         """
-        min_x: lower bound of box index of the x-axis
-        max_x: upper bound of box index of the x-axis
-        min_y: lower bound of box index of the y-axis
-        max_y: upper bound of box index of the y-axis
+        Returns a batch of (max_x_box - min_x_box) * (max_y_box - min_y_box) samples,
+        where each sample contains num_points_per_sample points.
+
+        min_x_box: lower bound of box index of the x-axis
+        max_x_box: upper bound of box index of the x-axis
+        min_y_box: lower bound of box index of the y-axis
+        max_y_box: upper bound of box index of the y-axis
+        min_z: lower bound of z-axis value
+        max_z: upper bound of z-axis value
 
         E.g. box_size = 10, min_x = -3, max_x = 3, min_y = -1, max_y = 1, then
         get_batch_z_boxes_from_origin will return 12 samples, with total coverage
         x: -30 to 30; y: -10 to 10; z: -inf to +inf.
         """
+        if (
+            not isinstance(min_x_box, int)
+            or not isinstance(max_x_box, int)
+            or not isinstance(min_y_box, int)
+            or not isinstance(max_y_box, int)
+        ):
+            raise ValueError("Box index bounds must be integers")
+
+        min_x = min_x_box * self.box_size
+        max_x = max_x_box * self.box_size
+        min_y = min_y_box * self.box_size
+        max_y = max_y_box * self.box_size
+
+        region_pcd = open3d.crop_point_cloud(
+            self.pcd, [min_x, min_y, min_z], [max_x, max_y, max_z]
+        )
+
         pass
 
 

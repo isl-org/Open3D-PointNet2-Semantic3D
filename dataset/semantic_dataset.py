@@ -94,6 +94,21 @@ class SemanticFileData:
         labels = self.labels[scene_extract_mask]
         colors = self.colors[scene_extract_mask]
 
+        sample_mask = self._get_fix_sized_sample_mask(points, num_points_per_sample)
+        points = points[sample_mask]
+        labels = labels[sample_mask]
+        colors = colors[sample_mask]
+
+        # Shift the points, such that min(z) == 0, and x = 0 and y = 0 is the center
+        # This canonical column is used for both training and inference
+        points_centered = self.center_box(points)
+
+        return points_centered, points, labels, colors
+
+    def _get_fix_sized_sample_mask(self, points, num_points_per_sample):
+        """
+        Get down-sample or up-sample mask to sample points to num_points_per_sample
+        """
         # TODO: change this to numpy's build-in functions
         # Shuffling or up-sampling if needed
         if len(points) - num_points_per_sample > 0:
@@ -107,15 +122,7 @@ class SemanticFileData:
             while len(sample_mask) < num_points_per_sample:
                 sample_mask = np.concatenate((sample_mask, sample_mask), axis=0)
             sample_mask = sample_mask[:num_points_per_sample]
-        points = points[sample_mask]
-        labels = labels[sample_mask]
-        colors = colors[sample_mask]
-
-        # Shift the points, such that min(z) == 0, and x = 0 and y = 0 is the center
-        # This canonical column is used for both training and inference
-        points_centered = self.center_box(points)
-
-        return points_centered, points, labels, colors
+        return sample_mask
 
     def sample_batch(self, batch_size, num_points_per_sample):
         """

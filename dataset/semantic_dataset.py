@@ -72,8 +72,6 @@ class SemanticFileData:
         #          point clouds, the shift should be added back.
         self.points_min_raw = np.min(self.points, axis=0)
         self.points = self.points - self.points_min_raw
-        self.points_min = np.min(self.points, axis=0)
-        self.points_max = np.max(self.points, axis=0)
 
         # Load label. In pure test set, fill with zeros.
         if has_label:
@@ -169,9 +167,7 @@ class SemanticFileData:
             scene_idx: scene index to get the min and max of the whole scene
         """
         # TODO TAKES LOT OF TIME !! THINK OF AN ALTERNATIVE !
-        scene_max = self.points_max
-        scene_min = self.points_min
-        scene_z_size = scene_max[2] - scene_min[2]
+        scene_z_size = np.max(self.points, axis=0)[2] - np.min(self.points, axis=0)[2]
         box_min = center_point - [self.box_size / 2, self.box_size / 2, scene_z_size]
         box_max = center_point + [self.box_size / 2, self.box_size / 2, scene_z_size]
 

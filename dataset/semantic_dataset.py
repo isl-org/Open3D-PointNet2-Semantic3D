@@ -84,27 +84,6 @@ class SemanticFileData:
         self.labels = self.labels[sort_idx]
         self.colors = self.colors[sort_idx]
 
-    def sample(self, num_points_per_sample):
-        points = self.points
-
-        # Pick a point, and crop a z-box around
-        center_point = points[np.random.randint(0, len(points))]
-        scene_extract_mask = self.extract_z_box(center_point)
-        points = points[scene_extract_mask]
-        labels = self.labels[scene_extract_mask]
-        colors = self.colors[scene_extract_mask]
-
-        sample_mask = self._get_fix_sized_sample_mask(points, num_points_per_sample)
-        points = points[sample_mask]
-        labels = labels[sample_mask]
-        colors = colors[sample_mask]
-
-        # Shift the points, such that min(z) == 0, and x = 0 and y = 0 is the center
-        # This canonical column is used for both training and inference
-        points_centered = self.center_box(points)
-
-        return points_centered, points, labels, colors
-
     def _get_fix_sized_sample_mask(self, points, num_points_per_sample):
         """
         Get down-sample or up-sample mask to sample points to num_points_per_sample
@@ -124,32 +103,7 @@ class SemanticFileData:
             sample_mask = sample_mask[:num_points_per_sample]
         return sample_mask
 
-    def sample_batch(self, batch_size, num_points_per_sample):
-        """
-        TODO: change this to stack instead of extend
-        """
-        batch_points_centered = []
-        batch_points_raw = []
-        batch_labels = []
-        batch_colors = []
-
-        for _ in range(batch_size):
-            points_centered, points_raw, gt_labels, colors = self.sample(
-                num_points_per_sample
-            )
-            batch_points_centered.append(points_centered)
-            batch_points_raw.append(points_raw)
-            batch_labels.append(gt_labels)
-            batch_colors.append(colors)
-
-        return (
-            np.array(batch_points_centered),
-            np.array(batch_points_raw),
-            np.array(batch_labels),
-            np.array(batch_colors),
-        )
-
-    def center_box(self, points):
+    def _center_box(self, points):
         # Shift the box so that z = 0 is the min and x = 0 and y = 0 is the box center
         # E.g. if box_size == 10, then the new mins are (-5, -5, 0)
         box_min = np.min(points, axis=0)
@@ -159,7 +113,7 @@ class SemanticFileData:
         points_centered = points - shift
         return points_centered
 
-    def extract_z_box(self, center_point):
+    def _extract_z_box(self, center_point):
         """
         Crop along z axis (vertical) from the center_point.
 
@@ -194,6 +148,52 @@ class SemanticFileData:
         # mask = np.sum((points>=box_min)*(points<=box_max),axis=1) == 3
         assert np.sum(mask) != 0
         return mask
+
+    def sample(self, num_points_per_sample):
+        points = self.points
+
+        # Pick a point, and crop a z-box around
+        center_point = points[np.random.randint(0, len(points))]
+        scene_extract_mask = self._extract_z_box(center_point)
+        points = points[scene_extract_mask]
+        labels = self.labels[scene_extract_mask]
+        colors = self.colors[scene_extract_mask]
+
+        sample_mask = self._get_fix_sized_sample_mask(points, num_points_per_sample)
+        points = points[sample_mask]
+        labels = labels[sample_mask]
+        colors = colors[sample_mask]
+
+        # Shift the points, such that min(z) == 0, and x = 0 and y = 0 is the center
+        # This canonical column is used for both training and inference
+        points_centered = self._center_box(points)
+
+        return points_centered, points, labels, colors
+
+    def sample_batch(self, batch_size, num_points_per_sample):
+        """
+        TODO: change this to stack instead of extend
+        """
+        batch_points_centered = []
+        batch_points_raw = []
+        batch_labels = []
+        batch_colors = []
+
+        for _ in range(batch_size):
+            points_centered, points_raw, gt_labels, colors = self.sample(
+                num_points_per_sample
+            )
+            batch_points_centered.append(points_centered)
+            batch_points_raw.append(points_raw)
+            batch_labels.append(gt_labels)
+            batch_colors.append(colors)
+
+        return (
+            np.array(batch_points_centered),
+            np.array(batch_points_raw),
+            np.array(batch_labels),
+            np.array(batch_colors),
+        )
 
 
 class SemanticDataset:

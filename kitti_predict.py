@@ -4,21 +4,22 @@ import json
 import numpy as np
 import open3d
 import time
+from functools import partial
+from multiprocessing import Pool, freeze_support
 
 from dataset.kitti_dataset import KittiDataset
 from predict import Predictor
 
-class LableInterpolator():
+global_dict = dict()
 
-    def __init__(self, sparse_points, sparse_labels):
-        self.sparse_points = sparse_points
-        self.sparse_labels = sparse_labels
-        sparse_pcd = open3d.PointCloud()
-        sparse_pcd.points = open3d.Vector3dVector(sparse_points)
-        self.sparse_pcd_tree = open3d.KDTreeFlann(sparse_pcd)
 
-    def interpolate(self, dense_points):
-        return None
+def match_knn_label(dense_point):
+    result_k, sparse_indexes, _ = global_dict["sparse_pcd_tree"].search_knn_vector_3d(
+        dense_point, global_dict["k"]
+    )
+    knn_sparse_labels = global_dict["sparse_labels"][sparse_indexes]
+    dense_label = np.bincount(knn_sparse_labels).argmax()
+    return dense_label
 
 
 def interpolate_dense_labels(sparse_points, sparse_labels, dense_points, k=20):
@@ -26,19 +27,26 @@ def interpolate_dense_labels(sparse_points, sparse_labels, dense_points, k=20):
     sparse_pcd.points = open3d.Vector3dVector(sparse_points)
     sparse_pcd_tree = open3d.KDTreeFlann(sparse_pcd)
 
-    dense_labels = []
-    for dense_point in dense_points:
-        result_k, sparse_indexes, _ = sparse_pcd_tree.search_knn_vector_3d(
-            dense_point, k
-        )
-        knn_sparse_labels = sparse_labels[sparse_indexes]
-        dense_label = np.bincount(knn_sparse_labels).argmax()
-        dense_labels.append(dense_label)
+    global_dict["sparse_pcd_tree"] = sparse_pcd_tree
+    global_dict["sparse_labels"] = sparse_labels
+    global_dict["k"] = k
+
+    # dense_labels = []
+    with Pool() as pool:
+        dense_labels = pool.map(match_knn_label, dense_points)
+    # for dense_point in dense_points:
+    #     result_k, sparse_indexes, _ = sparse_pcd_tree.search_knn_vector_3d(
+    #         dense_point, k
+    #     )
+    #     knn_sparse_labels = sparse_labels[sparse_indexes]
+    #     dense_label = np.bincount(knn_sparse_labels).argmax()
+    #     dense_labels.append(dense_label)
     return dense_labels
 
 
 if __name__ == "__main__":
     np.random.seed(0)
+    freeze_support()
 
     # Parser
     parser = argparse.ArgumentParser()

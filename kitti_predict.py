@@ -18,13 +18,9 @@ def interpolate_dense_labels(
 
     dense_labels = []
     for dense_point in dense_points:
-        result_k, sparse_indexes, _ = sparse_pcd_tree.search_hybrid_vector_3d(
-            dense_point, radius, k
+        result_k, sparse_indexes, _ = sparse_pcd_tree.search_knn_vector_3d(
+            dense_point, k
         )
-        if result_k == 0:
-            result_k, sparse_indexes, _ = sparse_pcd_tree.search_knn_vector_3d(
-                dense_point, k
-            )
         knn_sparse_labels = sparse_labels[sparse_indexes]
         dense_label = np.bincount(knn_sparse_labels).argmax()
         dense_labels.append(dense_label)

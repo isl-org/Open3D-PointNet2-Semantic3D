@@ -9,16 +9,7 @@ import pykitti
 class KittiFileData(SemanticFileData):
     def __init__(self, points, box_size):
         self.box_size = box_size
-
-        # Shift points to min (0, 0, 0), per-image
-        # Training: use the normalized points for training
-        # Testing: use the normalized points for testing. However, when writing back
-        #          point clouds, the shift should be added back.
         self.points = points
-        self.points_min_raw = np.min(self.points, axis=0)
-        self.points = self.points - self.points_min_raw
-        self.points_min = np.min(self.points, axis=0)
-        self.points_max = np.max(self.points, axis=0)
 
         # Load label. In pure test set, fill with zeros.
         self.labels = np.zeros(len(self.points)).astype(bool)

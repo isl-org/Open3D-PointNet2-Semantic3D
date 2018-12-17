@@ -66,13 +66,6 @@ class SemanticFileData:
         pcd = open3d.read_point_cloud(file_path_without_ext + ".pcd")
         self.points = np.asarray(pcd.points)
 
-        # Shift points to min (0, 0, 0), per-image
-        # Training: use the normalized points for training
-        # Testing: use the normalized points for testing. However, when writing back
-        #          point clouds, the shift should be added back.
-        self.points_min_raw = np.min(self.points, axis=0)
-        self.points = self.points - self.points_min_raw
-
         # Load label. In pure test set, fill with zeros.
         if has_label:
             self.labels = load_labels(file_path_without_ext + ".labels")
@@ -122,7 +115,7 @@ class SemanticFileData:
         # This canonical column is used for both training and inference
         points_centered = self.center_box(points)
 
-        return points_centered, points + self.points_min_raw, labels, colors
+        return points_centered, points, labels, colors
 
     def sample_batch(self, batch_size, num_points_per_sample):
         """

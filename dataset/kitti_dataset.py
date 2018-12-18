@@ -74,7 +74,7 @@ class KittiFileData(SemanticFileData):
         batch_points = []
         centered_batch_points = []
         # TODO: compare speed with numpy
-        for x_box_idx in range(max_x_box - min_y_box):
+        for x_box_idx in range(max_x_box - min_x_box):
             for y_box_idx in range(max_y_box - min_y_box):
                 box_pcd = open3d.crop_point_cloud(
                     region_pcd,

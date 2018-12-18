@@ -2,6 +2,7 @@ import os
 import open3d
 import numpy as np
 import util.provider as provider
+import time
 from dataset.semantic_dataset import SemanticFileData, SemanticDataset
 import pykitti
 
@@ -9,9 +10,9 @@ import pykitti
 class KittiFileData(SemanticFileData):
     def __init__(self, points, box_size):
         self.box_size = box_size
-        self.points = points
         self.pcd = open3d.PointCloud()
-        self.pcd.points = open3d.Vector3dVector(self.pcd)
+        self.pcd.points = open3d.Vector3dVector(points)
+        self.points = points
 
         # Load label. In pure test set, fill with zeros.
         self.labels = np.zeros(len(self.points)).astype(bool)
@@ -26,7 +27,14 @@ class KittiFileData(SemanticFileData):
         self.colors = self.colors[sort_idx]
 
     def get_batch_of_z_boxes_from_origin(
-        self, min_x_box, max_x_box, min_y_box, max_y_box, min_z, max_z
+        self,
+        min_x_box,
+        max_x_box,
+        min_y_box,
+        max_y_box,
+        min_z,
+        max_z,
+        num_points_per_sample,
     ):
         """
         Returns a batch of (max_x_box - min_x_box) * (max_y_box - min_y_box) samples,
@@ -56,11 +64,39 @@ class KittiFileData(SemanticFileData):
         min_y = min_y_box * self.box_size
         max_y = max_y_box * self.box_size
 
+        s = time.time()
         region_pcd = open3d.crop_point_cloud(
             self.pcd, [min_x, min_y, min_z], [max_x, max_y, max_z]
         )
+        print([min_x, min_y, min_z], [max_x, max_y, max_z])
+        print("open3d.crop_point_cloud time:", time.time() - s)
 
-        pass
+        batch_points = []
+        centered_batch_points = []
+        # TODO: compare speed with numpy
+        for x_box_idx in range(max_x_box - min_y_box):
+            for y_box_idx in range(max_y_box - min_y_box):
+                box_pcd = open3d.crop_point_cloud(
+                    region_pcd,
+                    [
+                        min_x + x_box_idx * self.box_size,
+                        min_y + y_box_idx * self.box_size,
+                        min_z,
+                    ],
+                    [
+                        min_x + (x_box_idx + 1) * self.box_size,
+                        min_y + (y_box_idx + 1) * self.box_size,
+                        max_z,
+                    ],
+                )
+                box_points = np.asarray(box_pcd.points)
+                sample_mask = self._get_fix_sized_sample_mask(
+                    box_points, num_points_per_sample
+                )
+                box_points = box_points[sample_mask]
+                batch_points.append(box_points)
+                centered_batch_points.append(self._center_box(box_points))
+        return np.array(centered_batch_points), np.array(batch_points)
 
 
 class KittiDataset(SemanticDataset):

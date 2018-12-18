@@ -11,7 +11,7 @@ class KittiFileData(SemanticFileData):
         self.box_size = box_size
         self.points = points
         self.pcd = open3d.PointCloud()
-        self.pcd.points = open3d.Vector3dVector(self.pcd)
+        self.pcd.points = open3d.Vector3dVector(self.points)
 
         # Load label. In pure test set, fill with zeros.
         self.labels = np.zeros(len(self.points)).astype(bool)

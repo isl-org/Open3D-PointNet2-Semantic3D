@@ -88,6 +88,9 @@ class SemanticFileData:
         """
         Get down-sample or up-sample mask to sample points to num_points_per_sample
         """
+        if (len(points) == 0):
+            raise ValueError("Empty points")
+
         # TODO: change this to numpy's build-in functions
         # Shuffling or up-sampling if needed
         if len(points) - num_points_per_sample > 0:

@@ -1,7 +1,6 @@
 import os
 import open3d
 import numpy as np
-import util.provider as provider
 from dataset.semantic_dataset import SemanticFileData, SemanticDataset
 import pykitti
 
@@ -9,9 +8,24 @@ import pykitti
 class KittiFileData(SemanticFileData):
     def __init__(self, points, box_size):
         self.box_size = box_size
-        self.points = points
-        self.pcd = open3d.PointCloud()
-        self.pcd.points = open3d.Vector3dVector(self.points)
+
+        # Crop a 12-box region of interest
+        # TODO: change this
+        min_x_box = -3
+        max_x_box = 3
+        min_y_box = -1
+        max_y_box = 1
+        min_z = -2
+        max_z = 5
+        min_x = min_x_box * self.box_size
+        max_x = max_x_box * self.box_size
+        min_y = min_y_box * self.box_size
+        max_y = max_y_box * self.box_size
+        pcd = open3d.PointCloud()
+        pcd.points = open3d.Vector3dVector(points)
+        region_pcd = open3d.crop_point_cloud(pcd, [min_x, min_y, min_z],
+                                                  [max_x, max_y, max_z])
+        self.points = np.asarray(region_pcd.points)
 
         # Load label. In pure test set, fill with zeros.
         self.labels = np.zeros(len(self.points)).astype(bool)

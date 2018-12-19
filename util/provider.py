@@ -32,7 +32,7 @@ def shuffle_points(batch_data):
     return batch_data[:, idx, :]
 
 
-def rotate_point_cloud(batch_data):
+def rotate_point_cloud(batch_data, rotation_axis="z"):
     """ Randomly rotate the point clouds to augument the dataset
         rotation is per shape based along up direction
         Input:
@@ -40,20 +40,36 @@ def rotate_point_cloud(batch_data):
         Return:
           BxNx3 array, rotated batch of point clouds
     """
+    if np.ndim(batch_data) != 3:
+        raise ValueError("np.ndim(batch_data) != 3, must be (b, n, 3)")
+    if batch_data.shape[2] != 3:
+        raise ValueError("batch_data.shape[2] != 3, must be (x, y, z)")
+
     rotated_data = np.zeros(batch_data.shape, dtype=np.float32)
     for k in range(batch_data.shape[0]):
         rotation_angle = np.random.uniform() * 2 * np.pi
         cosval = np.cos(rotation_angle)
         sinval = np.sin(rotation_angle)
-        rotation_matrix = np.array(
-            [[cosval, 0, sinval], [0, 1, 0], [-sinval, 0, cosval]]
-        )
+        if rotation_axis == "x":
+            rotation_matrix = np.array(
+                [[1, 0, 0], [0, cosval, sinval], [0, -sinval, cosval]]
+            )
+        elif rotation_axis == "y":
+            rotation_matrix = np.array(
+                [[cosval, 0, sinval], [0, 1, 0], [-sinval, 0, cosval]]
+            )
+        elif rotation_axis == "z":
+            rotation_matrix = np.array(
+                [[cosval, sinval, 0], [-sinval, cosval, 0], [0, 0, 1]]
+            )
+        else:
+            raise ValueError("Wrong rotation axis")
         shape_pc = batch_data[k, ...]
         rotated_data[k, ...] = np.dot(shape_pc.reshape((-1, 3)), rotation_matrix)
     return rotated_data
 
 
-def rotate_feature_point_cloud(batch_data, feature_size=3):
+def rotate_feature_point_cloud(batch_data, feature_size=3, rotation_axis="z"):
     """ Randomly rotate the point clouds to augument the dataset
         rotation is per shape based along up direction
         Input:
@@ -67,9 +83,20 @@ def rotate_feature_point_cloud(batch_data, feature_size=3):
         rotation_angle = np.random.uniform() * 2 * np.pi
         cosval = np.cos(rotation_angle)
         sinval = np.sin(rotation_angle)
-        rotation_matrix = np.array(
-            [[cosval, 0, sinval], [0, 1, 0], [-sinval, 0, cosval]]
-        )
+        if rotation_axis == "x":
+            rotation_matrix = np.array(
+                [[1, 0, 0], [0, cosval, sinval], [0, -sinval, cosval]]
+            )
+        elif rotation_axis == "y":
+            rotation_matrix = np.array(
+                [[cosval, 0, sinval], [0, 1, 0], [-sinval, 0, cosval]]
+            )
+        elif rotation_axis == "z":
+            rotation_matrix = np.array(
+                [[cosval, sinval, 0], [-sinval, cosval, 0], [0, 0, 1]]
+            )
+        else:
+            raise ValueError("Wrong rotation axis")
         shape_pc = batch_data[k, :, 0:3]
         rotated_data[k, :, 0:3] = np.dot(shape_pc.reshape((-1, 3)), rotation_matrix)
     return rotated_data

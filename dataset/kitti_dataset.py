@@ -23,8 +23,9 @@ class KittiFileData(SemanticFileData):
         max_y = max_y_box * self.box_size
         pcd = open3d.PointCloud()
         pcd.points = open3d.Vector3dVector(points)
-        region_pcd = open3d.crop_point_cloud(pcd, [min_x, min_y, min_z],
-                                                  [max_x, max_y, max_z])
+        region_pcd = open3d.crop_point_cloud(
+            pcd, [min_x, min_y, min_z], [max_x, max_y, max_z]
+        )
         self.points = np.asarray(region_pcd.points)
 
         # Load label. In pure test set, fill with zeros.

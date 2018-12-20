@@ -19,7 +19,7 @@ if __name__ == "__main__":
     pcd = open3d.read_point_cloud(flags.pcd_path)
 
     batched_points = np.expand_dims(np.asarray(pcd.points), axis=0)
-    batched_points = rotate_point_cloud(batched_points, rotation_axis='y')
+    batched_points = rotate_point_cloud(batched_points, rotation_axis="y")
     pcd.points = open3d.Vector3dVector(batched_points[0])
 
     # Load labels and colorize pcd, if labels available

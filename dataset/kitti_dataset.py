@@ -6,8 +6,9 @@ import pykitti
 
 
 class KittiFileData(SemanticFileData):
-    def __init__(self, points, box_size):
-        self.box_size = box_size
+    def __init__(self, points, box_size_x, box_size_y):
+        self.box_size_x = box_size_x
+        self.box_size_y = box_size_y
 
         # Crop a 12-box region of interest
         # TODO: change this
@@ -17,10 +18,10 @@ class KittiFileData(SemanticFileData):
         max_y_box = 1
         min_z = -2
         max_z = 5
-        min_x = min_x_box * self.box_size
-        max_x = max_x_box * self.box_size
-        min_y = min_y_box * self.box_size
-        max_y = max_y_box * self.box_size
+        min_x = min_x_box * self.box_size_x
+        max_x = max_x_box * self.box_size_x
+        min_y = min_y_box * self.box_size_y
+        max_y = max_y_box * self.box_size_y
         pcd = open3d.PointCloud()
         pcd.points = open3d.Vector3dVector(points)
         region_pcd = open3d.crop_point_cloud(
@@ -54,9 +55,9 @@ class KittiFileData(SemanticFileData):
         min_z: lower bound of z-axis value
         max_z: upper bound of z-axis value
 
-        E.g. box_size = 10, min_x = -3, max_x = 3, min_y = -1, max_y = 1, then
-        get_batch_z_boxes_from_origin will return 12 samples, with total coverage
-        x: -30 to 30; y: -10 to 10; z: -inf to +inf.
+        E.g. box_size_x = 10, box_size_y = 10, min_x = -3, max_x = 3, min_y = -1,
+        max_y = 1, then get_batch_z_boxes_from_origin will return 12 samples, with total
+        coverage x: -30 to 30; y: -10 to 10; z: -inf to +inf.
         """
         if (
             not isinstance(min_x_box, int)
@@ -66,10 +67,10 @@ class KittiFileData(SemanticFileData):
         ):
             raise ValueError("Box index bounds must be integers")
 
-        min_x = min_x_box * self.box_size
-        max_x = max_x_box * self.box_size
-        min_y = min_y_box * self.box_size
-        max_y = max_y_box * self.box_size
+        min_x = min_x_box * self.box_size_x
+        max_x = max_x_box * self.box_size_x
+        min_y = min_y_box * self.box_size_y
+        max_y = max_y_box * self.box_size_y
 
         region_pcd = open3d.crop_point_cloud(
             self.pcd, [min_x, min_y, min_z], [max_x, max_y, max_z]
@@ -79,13 +80,16 @@ class KittiFileData(SemanticFileData):
 
 
 class KittiDataset(SemanticDataset):
-    def __init__(self, num_points_per_sample, base_dir, dates, drives, box_size):
+    def __init__(
+        self, num_points_per_sample, base_dir, dates, drives, box_size_x, box_size_y
+    ):
         """Create a dataset holder
         num_points_per_sample (int): Defaults to 8192. The number of point per sample
         split (str): Defaults to 'train'. The selected part of the data (train, test,
                      reduced...)
         color (bool): Defaults to True. Whether to use colors or not
-        box_size (int): Defaults to 10. The size of the extracted cube.
+        box_size_x (int): Defaults to 10. The size of the extracted cube.
+        box_size_y (int): Defaults to 10. The size of the extracted cube.
         path (float): Defaults to 'dataset/semantic_data/'.
         """
         # Dataset parameters
@@ -102,7 +106,8 @@ class KittiDataset(SemanticDataset):
             "scanning artifact",
             "cars",
         ]
-        self.box_size = box_size
+        self.box_size_x = box_size_x
+        self.box_size_y = box_size_y
 
         # Load files
         self.list_file_data = []
@@ -115,7 +120,9 @@ class KittiDataset(SemanticDataset):
                     # Get points
                     points = points_with_intensity[:, :3]
                     # Init file data
-                    file_data = KittiFileData(points=points, box_size=box_size)
+                    file_data = KittiFileData(
+                        points=points, box_size_x=box_size_x, box_size_y=box_size_y
+                    )
                     # TODO: just for compatibility reason to include the name
                     file_data.file_path_without_ext = os.path.join(
                         date, drive, "{:04d}".format(frame_idx)

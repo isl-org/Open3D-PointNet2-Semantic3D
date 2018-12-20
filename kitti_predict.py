@@ -53,7 +53,8 @@ if __name__ == "__main__":
         dates=["2011_09_26"],
         # drives=["0095", "0001"],
         drives=["0095"],
-        box_size=hyper_params["box_size"],
+        box_size_x=hyper_params["box_size_x"],
+        box_size_y=hyper_params["box_size_y"],
     )
 
     # Model

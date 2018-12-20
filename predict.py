@@ -98,7 +98,8 @@ if __name__ == "__main__":
     dataset = SemanticDataset(
         num_points_per_sample=hyper_params["num_point"],
         split=flags.set,
-        box_size=hyper_params["box_size"],
+        box_size_x=hyper_params["box_size_x"],
+        box_size_y=hyper_params["box_size_y"],
         use_color=hyper_params["use_color"],
         path=hyper_params["data_path"],
     )

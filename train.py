@@ -26,14 +26,16 @@ os.makedirs(PARAMS["logdir"], exist_ok=True)
 TRAIN_DATASET = SemanticDataset(
     num_points_per_sample=PARAMS["num_point"],
     split=FLAGS.train_set,
-    box_size=PARAMS["box_size"],
+    box_size_x=PARAMS["box_size_x"],
+    box_size_y=PARAMS["box_size_y"],
     use_color=PARAMS["use_color"],
     path=PARAMS["data_path"],
 )
 VALIDATION_DATASET = SemanticDataset(
     num_points_per_sample=PARAMS["num_point"],
     split="validation",
-    box_size=PARAMS["box_size"],
+    box_size_x=PARAMS["box_size_x"],
+    box_size_y=PARAMS["box_size_y"],
     use_color=PARAMS["use_color"],
     path=PARAMS["data_path"],
 )

@@ -55,12 +55,15 @@ map_name_to_file_prefixes = {
 
 
 class SemanticFileData:
-    def __init__(self, file_path_without_ext, has_label, use_color, box_size):
+    def __init__(
+        self, file_path_without_ext, has_label, use_color, box_size_x, box_size_y
+    ):
         """
         Loads file data
         """
         self.file_path_without_ext = file_path_without_ext
-        self.box_size = box_size
+        self.box_size_x = box_size_x
+        self.box_size_y = box_size_y
 
         # Load points
         pcd = open3d.read_point_cloud(file_path_without_ext + ".pcd")
@@ -105,10 +108,14 @@ class SemanticFileData:
 
     def _center_box(self, points):
         # Shift the box so that z = 0 is the min and x = 0 and y = 0 is the box center
-        # E.g. if box_size == 10, then the new mins are (-5, -5, 0)
+        # E.g. if box_size_x == box_size_y == 10, then the new mins are (-5, -5, 0)
         box_min = np.min(points, axis=0)
         shift = np.array(
-            [box_min[0] + self.box_size / 2, box_min[1] + self.box_size / 2, box_min[2]]
+            [
+                box_min[0] + self.box_size_x / 2,
+                box_min[1] + self.box_size_y / 2,
+                box_min[2],
+            ]
         )
         points_centered = points - shift
         return points_centered
@@ -124,8 +131,16 @@ class SemanticFileData:
         """
         # TODO TAKES LOT OF TIME !! THINK OF AN ALTERNATIVE !
         scene_z_size = np.max(self.points, axis=0)[2] - np.min(self.points, axis=0)[2]
-        box_min = center_point - [self.box_size / 2, self.box_size / 2, scene_z_size]
-        box_max = center_point + [self.box_size / 2, self.box_size / 2, scene_z_size]
+        box_min = center_point - [
+            self.box_size_x / 2,
+            self.box_size_y / 2,
+            scene_z_size,
+        ]
+        box_max = center_point + [
+            self.box_size_x / 2,
+            self.box_size_y / 2,
+            scene_z_size,
+        ]
 
         i_min = np.searchsorted(self.points[:, 0], box_min[0])
         i_max = np.searchsorted(self.points[:, 0], box_max[0])
@@ -197,20 +212,24 @@ class SemanticFileData:
 
 
 class SemanticDataset:
-    def __init__(self, num_points_per_sample, split, use_color, box_size, path):
+    def __init__(
+        self, num_points_per_sample, split, use_color, box_size_x, box_size_y, path
+    ):
         """Create a dataset holder
         num_points_per_sample (int): Defaults to 8192. The number of point per sample
         split (str): Defaults to 'train'. The selected part of the data (train, test,
                      reduced...)
         color (bool): Defaults to True. Whether to use colors or not
-        box_size (int): Defaults to 10. The size of the extracted cube.
+        box_size_x (int): Defaults to 10. The size of the extracted cube.
+        box_size_y (int): Defaults to 10. The size of the extracted cube.
         path (float): Defaults to 'dataset/semantic_data/'.
         """
         # Dataset parameters
         self.num_points_per_sample = num_points_per_sample
         self.split = split
         self.use_color = use_color
-        self.box_size = box_size
+        self.box_size_x = box_size_x
+        self.box_size_y = box_size_y
         self.num_classes = 9
         self.path = path
         self.labels_names = [
@@ -238,7 +257,8 @@ class SemanticDataset:
                 file_path_without_ext=file_path_without_ext,
                 has_label=self.split != "test",
                 use_color=self.use_color,
-                box_size=self.box_size,
+                box_size_x=self.box_size_x,
+                box_size_y=self.box_size_y,
             )
             self.list_file_data.append(file_data)
 

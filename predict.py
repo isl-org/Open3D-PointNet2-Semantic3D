@@ -52,7 +52,7 @@ class Predictor:
             pl_sparse_points = tf.placeholder(tf.float32, (None, 3))
             pl_sparse_labels = tf.placeholder(tf.int32, (None,))
             pl_dense_points = tf.placeholder(tf.float32, (None, 3))
-            _, sparse_indices = interpolate_label(
+            sparse_indices = interpolate_label(
                 pl_sparse_points, pl_sparse_labels, pl_dense_points
             )
 

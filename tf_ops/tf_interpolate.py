@@ -35,7 +35,6 @@ def interpolate_label(sparse_points, sparse_labels, dense_points):
         dense_points: (num_dense_points, 3) float32 array, points
                       with unknown labels
     Output:
-        dist: (num_dense_points, 3) float32 array, distances
         idx:  (num_sparse_points, 3) int32 array, indices
     """
     return interpolate_module.interpolate_label(

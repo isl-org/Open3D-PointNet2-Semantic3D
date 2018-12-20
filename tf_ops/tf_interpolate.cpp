@@ -31,8 +31,8 @@ std::vector<Eigen::Vector3d> buffer_to_eigen_vector(const float *buffer,
 // InterpolateLabel
 ///////////////////////////////////////////////////////////////////////////////
 REGISTER_OP("InterpolateLabel")
-    .Input("xyz1: float32")
-    .Input("xyz2: float32")
+    .Input("dense_points: float32")
+    .Input("sparse_points: float32")
     .Output("dist: float32")
     .Output("idx: int32")
     .SetShapeFn([](::tensorflow::shape_inference::InferenceContext *c) {
@@ -41,14 +41,17 @@ REGISTER_OP("InterpolateLabel")
         return Status::OK();
     });
 
-void interpolate_label_cpu(int b, int n, int m, const float *xyz1,
-                           const float *xyz2, float *dists, int *indices) {
-    if (b != 1) {
+void interpolate_label_cpu(int batch_size, int num_dense_points,
+                           int num_sparse_points, const float *dense_points,
+                           const float *sparse_points, float *dists,
+                           int *indices) {
+    if (batch_size != 1) {
         throw std::runtime_error("Batch size must be 1");
     }
     open3d::PointCloud reference_pcd;
 
-    reference_pcd.points_ = buffer_to_eigen_vector(xyz2, m * 3);
+    reference_pcd.points_ =
+        buffer_to_eigen_vector(sparse_points, num_sparse_points * 3);
     open3d::KDTreeFlann reference_kd_tree(reference_pcd);
 
     // #ifdef _OPENMP
@@ -58,11 +61,11 @@ void interpolate_label_cpu(int b, int n, int m, const float *xyz1,
     std::vector<int> three_indices;
     std::vector<double> three_dists;
     Eigen::Vector3d target_point;
-    for (size_t j = 0; j < n; ++j) {
+    for (size_t j = 0; j < num_dense_points; ++j) {
         size_t target_point_idx = j * 3;
-        target_point(0) = xyz1[target_point_idx];
-        target_point(1) = xyz1[target_point_idx + 1];
-        target_point(2) = xyz1[target_point_idx + 2];
+        target_point(0) = dense_points[target_point_idx];
+        target_point(1) = dense_points[target_point_idx + 1];
+        target_point(2) = dense_points[target_point_idx + 2];
         reference_kd_tree.SearchKNN(target_point, 3, three_indices,
                                     three_dists);
         size_t start_idx = j * 3;
@@ -81,39 +84,46 @@ class InterpolateLabelOp : public OpKernel {
         : OpKernel(context) {}
 
     void Compute(OpKernelContext *context) override {
-        const Tensor &xyz1_tensor = context->input(0);
+        const Tensor &dense_points_tensor = context->input(0);
         OP_REQUIRES(
             context,
-            xyz1_tensor.dims() == 3 && xyz1_tensor.shape().dim_size(2) == 3,
+            dense_points_tensor.dims() == 3 &&
+                dense_points_tensor.shape().dim_size(2) == 3,
             errors::InvalidArgument(
-                "InterpolateLabelOp expects (b,n,3) xyz1 shape."));
-        int b = xyz1_tensor.shape().dim_size(0);
-        int n = xyz1_tensor.shape().dim_size(1);
+                "dense_points must be: (batch_size, num_dense_points, 3)"));
+        int batch_size = dense_points_tensor.shape().dim_size(0);
+        int num_dense_points = dense_points_tensor.shape().dim_size(1);
 
-        const Tensor &xyz2_tensor = context->input(1);
+        const Tensor &sparse_points_tensor = context->input(1);
         OP_REQUIRES(
             context,
-            xyz2_tensor.dims() == 3 && xyz2_tensor.shape().dim_size(2) == 3,
+            sparse_points_tensor.dims() == 3 &&
+                sparse_points_tensor.shape().dim_size(2) == 3,
             errors::InvalidArgument(
-                "InterpolateLabelOp expects (b,m,3) xyz2 shape."));
-        int m = xyz2_tensor.shape().dim_size(1);
+                "sparse_points must be: (batch_size, num_sparse_points, 3)"));
+        int num_sparse_points = sparse_points_tensor.shape().dim_size(1);
 
         Tensor *dist_tensor = nullptr;
-        OP_REQUIRES_OK(context, context->allocate_output(
-                                    0, TensorShape{b, n, 3}, &dist_tensor));
+        OP_REQUIRES_OK(
+            context,
+            context->allocate_output(
+                0, TensorShape{batch_size, num_dense_points, 3}, &dist_tensor));
         Tensor *idx_tensor = nullptr;
-        OP_REQUIRES_OK(context, context->allocate_output(
-                                    1, TensorShape{b, n, 3}, &idx_tensor));
+        OP_REQUIRES_OK(
+            context,
+            context->allocate_output(
+                1, TensorShape{batch_size, num_dense_points, 3}, &idx_tensor));
 
-        auto xyz1_flat = xyz1_tensor.flat<float>();
-        const float *xyz1 = &(xyz1_flat(0));
-        auto xyz2_flat = xyz2_tensor.flat<float>();
-        const float *xyz2 = &(xyz2_flat(0));
+        auto dense_points_flat = dense_points_tensor.flat<float>();
+        const float *dense_points = &(dense_points_flat(0));
+        auto sparse_points_flat = sparse_points_tensor.flat<float>();
+        const float *sparse_points = &(sparse_points_flat(0));
         auto dist_flat = dist_tensor->flat<float>();
         float *dist = &(dist_flat(0));
         auto idx_flat = idx_tensor->flat<int>();
         int *idx = &(idx_flat(0));
-        interpolate_label_cpu(b, n, m, xyz1, xyz2, dist, idx);
+        interpolate_label_cpu(batch_size, num_dense_points, num_sparse_points,
+                              dense_points, sparse_points, dist, idx);
     }
 };
 REGISTER_KERNEL_BUILDER(Name("InterpolateLabel").Device(DEVICE_CPU),

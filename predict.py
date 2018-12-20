@@ -87,6 +87,9 @@ class Predictor:
         # sparse_points: m * 3
         # dense_points: n * 3
         # indices_list: 1 * n * 3
+        # print(sparse_points.shape)
+        # print(dense_points.shape)
+        s = time.time()
         indices_list = self.sess.run(
             self.ops["sparse_indices"],
             feed_dict={
@@ -94,7 +97,9 @@ class Predictor:
                 self.ops["pl_dense_points"]: np.expand_dims(dense_points, axis=0),
             },
         )
+        print("sess.run interpolate_labels time", time.time() - s)
         indices_list = indices_list[0]  # 1 * n * 3 ->  n * 3
+        # todo: put this in TF
         dense_labels = [
             np.bincount(sparse_labels[indices]).argmax() for indices in indices_list
         ]

@@ -25,6 +25,21 @@ def three_nn(xyz1, xyz2):
 ops.NoGradient("ThreeNN")
 
 
+def interpolate_label(xyz1, xyz2):
+    """
+    Input:
+        xyz1: (b,n,3) float32 array, unknown points
+        xyz2: (b,m,3) float32 array, known points
+    Output:
+        dist: (b,n,3) float32 array, distances to known points
+        idx: (b,n,3) int32 array, indices to known points
+    """
+    return interpolate_module.interpolate_label(xyz1, xyz2)
+
+
+ops.NoGradient("InterpolateLabel")
+
+
 def three_interpolate(points, idx, weight):
     """
     Input:

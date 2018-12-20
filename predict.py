@@ -9,7 +9,7 @@ import time
 import model
 from dataset.semantic_dataset import SemanticDataset
 from util.metric import ConfusionMatrix
-from tf_ops.tf_interpolate import three_nn
+from tf_ops.tf_interpolate import three_nn, interpolate_label
 
 
 class Predictor:
@@ -35,7 +35,7 @@ class Predictor:
             # Assuming batch_size == 1 for simplicity
             pl_sparse_points = tf.placeholder(tf.float32, (1, None, 3))
             pl_dense_points = tf.placeholder(tf.float32, (1, None, 3))
-            _, sparse_indices = three_nn(pl_dense_points, pl_sparse_points)
+            _, sparse_indices = interpolate_label(pl_dense_points, pl_sparse_points)
 
         self.ops = {
             "pl_points": pl_points,

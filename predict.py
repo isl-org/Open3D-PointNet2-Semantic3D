@@ -9,6 +9,7 @@ import time
 import model
 from dataset.semantic_dataset import SemanticDataset
 from util.metric import ConfusionMatrix
+from tf_ops.tf_interpolate import three_nn
 
 
 class Predictor:
@@ -30,10 +31,20 @@ class Predictor:
             # Saver
             saver = tf.train.Saver()
 
+            # Graph for interpolating labels
+            # Assuming batch_size == 1 for simplicity
+            pl_sparse_points = tf.placeholder(tf.float32, (1, None, 3))
+            pl_dense_points = tf.placeholder(tf.float32, (1, None, 3))
+            _, sparse_indices = three_nn(pl_dense_points, pl_sparse_points)
+
+
         self.ops = {
             "pl_points": pl_points,
             "pl_is_training": pl_is_training,
             "pred": pred,
+            "pl_sparse_points": pl_sparse_points,
+            "pl_dense_points": pl_dense_points,
+            "sparse_indices": sparse_indices,
         }
 
         # Restore checkpoint to session
@@ -72,6 +83,18 @@ class Predictor:
         pred_val = pred_val[0]  # batch_size * num_point * 1
         pred_labels = np.argmax(pred_val, 2)  # batch_size * num_point * 1
         return pred_labels
+
+    def interpolate_labels(self, sparse_points, sparse_labels, dense_points):
+        # sparse_points: m * 3
+        # dense_points: n * 3
+        # indices_list: 1 * n * 3
+        indices_list = self.sess.run(self.ops["sparse_indices"], feed_dict={
+            self.ops["pl_sparse_points"]: np.expand_dims(sparse_points, axis=0),
+            self.ops["pl_dense_points"]: np.expand_dims(dense_points, axis=0),
+        })
+        indices_list = indices_list[0] # 1 * n * 3 ->  n * 3
+        dense_labels = [np.bincount(sparse_labels[indices]).argmax() for indices in indices_list]
+        return dense_labels
 
 
 if __name__ == "__main__":

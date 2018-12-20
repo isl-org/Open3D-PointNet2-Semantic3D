@@ -100,6 +100,11 @@ if __name__ == "__main__":
             dense_points=dense_points.reshape((-1, 3)),
         )
         timer["interpolate"] += time.time() - start_time
+        dense_labels_2 = predictor.interpolate_labels(
+            sparse_points=points_collector.reshape((-1, 3)),
+            sparse_labels=pd_labels_collector.flatten(),
+            dense_points=dense_points.reshape((-1, 3)))
+        np.testing.assert_allclose(dense_labels, dense_labels_2)
 
         start_time = time.time()
         # Save sparse point cloud with predicted labels

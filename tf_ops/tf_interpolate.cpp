@@ -79,10 +79,8 @@ std::vector<Eigen::Vector3d> buffer_to_eigen_vector(const float *buffer,
 void threenn_cpu(int b, int n, int m, const float *xyz1, const float *xyz2,
                  float *dists, int *indices) {
     if (b == 1) {
-        open3d::PointCloud target_pcd;
         open3d::PointCloud reference_pcd;
 
-        target_pcd.points_ = buffer_to_eigen_vector(xyz1, n * 3);
         reference_pcd.points_ = buffer_to_eigen_vector(xyz2, m * 3);
         open3d::KDTreeFlann reference_kd_tree(reference_pcd);
 
@@ -93,7 +91,11 @@ void threenn_cpu(int b, int n, int m, const float *xyz1, const float *xyz2,
         std::vector<int> three_indices;
         std::vector<double> three_dists;
         for (size_t j = 0; j < n; ++j) {
-            reference_kd_tree.SearchKNN(target_pcd.points_[j], 3, three_indices,
+            const float *target_point_ptr = xyz1 + j * 3;
+            Eigen::Vector3d target_point(*target_point_ptr,
+                                         *(target_point_ptr + 1),
+                                         *(target_point_ptr + 2));
+            reference_kd_tree.SearchKNN(target_point, 3, three_indices,
                                         three_dists);
             size_t start_idx = j * 3;
             indices[start_idx + 0] = three_indices[0];
@@ -103,7 +105,6 @@ void threenn_cpu(int b, int n, int m, const float *xyz1, const float *xyz2,
             dists[start_idx + 1] = three_dists[1];
             dists[start_idx + 2] = three_dists[2];
         }
-
     } else {
         // OPENMP only sees benefits if b is large, e.g. b == 64
         // #ifdef _OPENMP

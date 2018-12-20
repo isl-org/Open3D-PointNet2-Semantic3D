@@ -18,9 +18,10 @@ if __name__ == "__main__":
         raise ValueError("pcd path not found at {}".format(flags.pcd_path))
     pcd = open3d.read_point_cloud(flags.pcd_path)
 
-    batched_points = np.expand_dims(np.asarray(pcd.points), axis=0)
-    batched_points = rotate_point_cloud(batched_points, rotation_axis="y")
-    pcd.points = open3d.Vector3dVector(batched_points[0])
+    # pcd = open3d.crop_point_cloud(pcd, [-30, -10, -2], [30, 10, 100])
+    # batched_points = np.expand_dims(np.asarray(pcd.points), axis=0)
+    # batched_points = rotate_point_cloud(batched_points, rotation_axis="y")
+    # pcd.points = open3d.Vector3dVector(batched_points[0])
 
     # Load labels and colorize pcd, if labels available
     if flags.labels_path != "":

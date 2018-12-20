@@ -87,7 +87,7 @@ void threenn_cpu(int b, int n, int m, const float *xyz1, const float *xyz2,
         // #ifdef _OPENMP
         // #pragma omp parallel for schedule(static)
         // #endif
-        // Move vectors inside if using omp
+        // Move vectors inside if using omp, outside if omp disabled
         std::vector<int> three_indices;
         std::vector<double> three_dists;
         Eigen::Vector3d target_point;

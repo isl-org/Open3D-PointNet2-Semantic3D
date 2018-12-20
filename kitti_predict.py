@@ -9,7 +9,7 @@ from dataset.kitti_dataset import KittiDataset
 from predict import Predictor
 
 
-def interpolate_dense_labels(sparse_points, sparse_labels, dense_points, k=20):
+def interpolate_dense_labels(sparse_points, sparse_labels, dense_points, k=3):
     sparse_pcd = open3d.PointCloud()
     sparse_pcd.points = open3d.Vector3dVector(sparse_points)
     sparse_pcd_tree = open3d.KDTreeFlann(sparse_pcd)

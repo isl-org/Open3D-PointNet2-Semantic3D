@@ -74,7 +74,7 @@ if __name__ == "__main__":
 
         # Get data
         start_time = time.time()
-        points_centered, points = kitti_file_data.get_batch_of_z_boxes_from_origin(
+        points_centered, points = kitti_file_data.get_batch_of_one_z_box_from_origin(
             num_points_per_sample=hyper_params["num_point"],
         )
         if len(points_centered) > max_batch_size:

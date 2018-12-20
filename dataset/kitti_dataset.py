@@ -10,18 +10,14 @@ class KittiFileData(SemanticFileData):
         self.box_size_x = box_size_x
         self.box_size_y = box_size_y
 
-        # Crop a 12-box region of interest
-        # TODO: change this
-        min_x_box = -3
-        max_x_box = 3
-        min_y_box = -1
-        max_y_box = 1
+        # Crop the region of interest centered at origin
+        # TODO: This is a special treatment, since we only care about the origin now
         min_z = -2
         max_z = 5
-        min_x = min_x_box * self.box_size_x
-        max_x = max_x_box * self.box_size_x
-        min_y = min_y_box * self.box_size_y
-        max_y = max_y_box * self.box_size_y
+        min_x = - self.box_size_x / 2.0
+        max_x = - min_x
+        min_y = - self.box_size_y / 2.0
+        max_y = - min_y
         pcd = open3d.PointCloud()
         pcd.points = open3d.Vector3dVector(points)
         region_pcd = open3d.crop_point_cloud(
@@ -41,7 +37,7 @@ class KittiFileData(SemanticFileData):
         self.labels = self.labels[sort_idx]
         self.colors = self.colors[sort_idx]
 
-    def get_batch_of_z_boxes_from_origin(
+    def get_batch_of_one_z_box_from_origin(
         self,
         num_points_per_sample,
     ):

@@ -90,11 +90,12 @@ void threenn_cpu(int b, int n, int m, const float *xyz1, const float *xyz2,
         // Move vectors inside if using omp
         std::vector<int> three_indices;
         std::vector<double> three_dists;
+        Eigen::Vector3d target_point;
         for (size_t j = 0; j < n; ++j) {
             size_t target_point_idx = j * 3;
-            Eigen::Vector3d target_point(xyz1[target_point_idx],
-                                         xyz1[target_point_idx + 1],
-                                         xyz1[target_point_idx + 2]);
+            target_point(0) = xyz1[target_point_idx];
+            target_point(1) = xyz1[target_point_idx + 1];
+            target_point(2) = xyz1[target_point_idx + 2];
             reference_kd_tree.SearchKNN(target_point, 3, three_indices,
                                         three_dists);
             size_t start_idx = j * 3;

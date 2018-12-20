@@ -42,41 +42,22 @@ class KittiFileData(SemanticFileData):
         self.colors = self.colors[sort_idx]
 
     def get_batch_of_z_boxes_from_origin(
-        self, min_x_box, max_x_box, min_y_box, max_y_box, min_z, max_z
+        self,
+        num_points_per_sample,
     ):
-        """
-        Returns a batch of (max_x_box - min_x_box) * (max_y_box - min_y_box) samples,
-        where each sample contains num_points_per_sample points.
+        extract_mask = self._extract_z_box(np.array([0, 0, 0]))
+        points = self.points[extract_mask]
 
-        min_x_box: lower bound of box index of the x-axis
-        max_x_box: upper bound of box index of the x-axis
-        min_y_box: lower bound of box index of the y-axis
-        max_y_box: upper bound of box index of the y-axis
-        min_z: lower bound of z-axis value
-        max_z: upper bound of z-axis value
+        sample_mask = self._get_fix_sized_sample_mask(points, num_points_per_sample)
+        points = points[sample_mask]
+        print("np.min(points, axis=0):", np.min(points, axis=0))
 
-        E.g. box_size_x = 10, box_size_y = 10, min_x = -3, max_x = 3, min_y = -1,
-        max_y = 1, then get_batch_z_boxes_from_origin will return 12 samples, with total
-        coverage x: -30 to 30; y: -10 to 10; z: -inf to +inf.
-        """
-        if (
-            not isinstance(min_x_box, int)
-            or not isinstance(max_x_box, int)
-            or not isinstance(min_y_box, int)
-            or not isinstance(max_y_box, int)
-        ):
-            raise ValueError("Box index bounds must be integers")
+        centered_points = self._center_box(points)
+        print("np.min(centered_points, axis=0):", np.min(centered_points, axis=0))
 
-        min_x = min_x_box * self.box_size_x
-        max_x = max_x_box * self.box_size_x
-        min_y = min_y_box * self.box_size_y
-        max_y = max_y_box * self.box_size_y
-
-        region_pcd = open3d.crop_point_cloud(
-            self.pcd, [min_x, min_y, min_z], [max_x, max_y, max_z]
-        )
-
-        pass
+        batch_points = np.expand_dims(points, 0)
+        centered_batch_points = np.expand_dims(centered_points, 0)
+        return centered_batch_points, batch_points
 
 
 class KittiDataset(SemanticDataset):

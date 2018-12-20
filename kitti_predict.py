@@ -58,7 +58,7 @@ if __name__ == "__main__":
     )
 
     # Model
-    batch_size = 128  # The more the better, limited by memory size
+    max_batch_size = 128  # The more the better, limited by memory size
     predictor = Predictor(
         checkpoint_path=flags.ckpt,
         num_classes=dataset.num_classes,
@@ -72,31 +72,21 @@ if __name__ == "__main__":
         points_collector = []
         pd_labels_collector = []
 
-        # If flags.num_samples < batch_size, will predict one batch
-        for batch_index in range(int(np.ceil(flags.num_samples / batch_size))):
-            current_batch_size = min(
-                batch_size, flags.num_samples - batch_index * batch_size
-            )
+        # Get data
+        start_time = time.time()
+        points_centered, points = kitti_file_data.get_batch_of_z_boxes_from_origin(
+            num_points_per_sample=hyper_params["num_point"],
+        )
+        if len(points_centered) > max_batch_size:
+            raise NotImplementedError("TODO: iterate batches if > max_batch_size")
+        timer["load_data"] += time.time() - start_time
 
-            # Get data
-            start_time = time.time()
-            points_centered, points, gt_labels, colors = kitti_file_data.sample_batch(
-                batch_size=current_batch_size,
-                num_points_per_sample=hyper_params["num_point"],
-            )
-            # (bs, 8192, 3) concat (bs, 8192, 3) -> (bs, 8192, 6)
-            if hyper_params["use_color"]:
-                points_with_colors = np.concatenate((points_centered, colors), axis=-1)
-            else:
-                points_with_colors = points_centered
-            timer["load_data"] += time.time() - start_time
-
-            # Predict
-            start_time = time.time()
-            pd_labels = predictor.predict(points_with_colors)
-            points_collector.extend(points)
-            pd_labels_collector.extend(pd_labels)
-            timer["predict"] += time.time() - start_time
+        # Predict
+        start_time = time.time()
+        pd_labels = predictor.predict(points_centered)
+        points_collector.extend(points)
+        pd_labels_collector.extend(pd_labels)
+        timer["predict"] += time.time() - start_time
 
         points_collector = np.array(points_collector)
         pd_labels_collector = np.array(pd_labels_collector).astype(int)

@@ -89,18 +89,15 @@ void threenn_cpu(int b, int n, int m, const float *xyz1, const float *xyz2,
             buffer_to_eigen_vector(xyz2 + batch_index * m * 3, m * 3);
         open3d::KDTreeFlann reference_kd_tree(reference_pcd);
 
-#ifdef _OPENMP
-#pragma omp parallel for schedule(static)
-#endif
+        // #ifdef _OPENMP
+        // #pragma omp parallel for schedule(static)
+        // #endif
+        // Move vectors inside if using omp
+        std::vector<int> three_indices;
+        std::vector<double> three_dists;
         for (size_t j = 0; j < n; ++j) {
-            std::vector<int> three_indices;
-            std::vector<double> three_dists;
-            int k = reference_kd_tree.SearchHybrid(
-                target_pcd.points_[j], 2.0, 3, three_indices, three_dists);
-            if (k < 3) {
-                reference_kd_tree.SearchKNN(target_pcd.points_[j], 3,
-                                            three_indices, three_dists);
-            }
+            reference_kd_tree.SearchKNN(target_pcd.points_[j], 3, three_indices,
+                                        three_dists);
             size_t start_idx = batch_index * n * 3 + j * 3;
             indices[start_idx + 0] = three_indices[0];
             indices[start_idx + 1] = three_indices[1];

@@ -50,14 +50,18 @@ class Predictor:
             # Graph for interpolating labels
             # Assuming batch_size == 1 for simplicity
             pl_sparse_points = tf.placeholder(tf.float32, (None, 3))
+            pl_sparse_labels = tf.placeholder(tf.float32, (None,))
             pl_dense_points = tf.placeholder(tf.float32, (None, 3))
-            _, sparse_indices = interpolate_label(pl_dense_points, pl_sparse_points)
+            _, sparse_indices = interpolate_label(
+                pl_sparse_points, pl_sparse_labels, pl_dense_points
+            )
 
         self.ops = {
             "pl_points": pl_points,
             "pl_is_training": pl_is_training,
             "pred": pred,
             "pl_sparse_points": pl_sparse_points,
+            "pl_sparse_labels": pl_sparse_labels,
             "pl_dense_points": pl_dense_points,
             "sparse_indices": sparse_indices,
         }
@@ -110,6 +114,7 @@ class Predictor:
             self.ops["sparse_indices"],
             feed_dict={
                 self.ops["pl_sparse_points"]: sparse_points,
+                self.ops["pl_sparse_labels"]: sparse_labels,
                 self.ops["pl_dense_points"]: dense_points,
             },
         )

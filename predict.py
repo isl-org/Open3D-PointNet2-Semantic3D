@@ -12,6 +12,22 @@ from util.metric import ConfusionMatrix
 from tf_ops.tf_interpolate import three_nn, interpolate_label
 
 
+def interpolate_dense_labels_simple(sparse_points, sparse_labels, dense_points, k=3):
+    sparse_pcd = open3d.PointCloud()
+    sparse_pcd.points = open3d.Vector3dVector(sparse_points)
+    sparse_pcd_tree = open3d.KDTreeFlann(sparse_pcd)
+
+    dense_labels = []
+    for dense_point in dense_points:
+        result_k, sparse_indexes, _ = sparse_pcd_tree.search_knn_vector_3d(
+            dense_point, k
+        )
+        knn_sparse_labels = sparse_labels[sparse_indexes]
+        dense_label = np.bincount(knn_sparse_labels).argmax()
+        dense_labels.append(dense_label)
+    return dense_labels
+
+
 class Predictor:
     def __init__(self, checkpoint_path, num_classes, hyper_params):
         # Get ops from graph
@@ -33,8 +49,8 @@ class Predictor:
 
             # Graph for interpolating labels
             # Assuming batch_size == 1 for simplicity
-            pl_sparse_points = tf.placeholder(tf.float32, (1, None, 3))
-            pl_dense_points = tf.placeholder(tf.float32, (1, None, 3))
+            pl_sparse_points = tf.placeholder(tf.float32, (None, 3))
+            pl_dense_points = tf.placeholder(tf.float32, (None, 3))
             _, sparse_indices = interpolate_label(pl_dense_points, pl_sparse_points)
 
         self.ops = {
@@ -93,16 +109,20 @@ class Predictor:
         indices_list = self.sess.run(
             self.ops["sparse_indices"],
             feed_dict={
-                self.ops["pl_sparse_points"]: np.expand_dims(sparse_points, axis=0),
-                self.ops["pl_dense_points"]: np.expand_dims(dense_points, axis=0),
+                self.ops["pl_sparse_points"]: sparse_points,
+                self.ops["pl_dense_points"]: dense_points,
             },
         )
         print("sess.run interpolate_labels time", time.time() - s)
-        indices_list = indices_list[0]  # 1 * n * 3 ->  n * 3
         # todo: put this in TF
         dense_labels = [
             np.bincount(sparse_labels[indices]).argmax() for indices in indices_list
         ]
+
+        dense_labels_2 = interpolate_dense_labels_simple(
+            sparse_points, sparse_labels, dense_points, k=3
+        )
+        np.testing.assert_array_equal(dense_labels, dense_labels_2)
         return dense_labels
 
 

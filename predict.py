@@ -110,7 +110,7 @@ class Predictor:
         # print(sparse_points.shape)
         # print(dense_points.shape)
         s = time.time()
-        indices_list = self.sess.run(
+        dense_labels = self.sess.run(
             self.ops["sparse_indices"],
             feed_dict={
                 self.ops["pl_sparse_points"]: sparse_points,
@@ -118,16 +118,16 @@ class Predictor:
                 self.ops["pl_dense_points"]: dense_points,
             },
         )
-        print("sess.run interpolate_labels time", time.time() - s)
-        # todo: put this in TF
-        dense_labels = [
-            np.bincount(sparse_labels[indices]).argmax() for indices in indices_list
-        ]
+        # print("sess.run interpolate_labels time", time.time() - s)
+        # # todo: put this in TF
+        # dense_labels = [
+        #     np.bincount(sparse_labels[indices]).argmax() for indices in indices_list
+        # ]
 
         dense_labels_2 = interpolate_dense_labels_simple(
             sparse_points, sparse_labels, dense_points, k=3
         )
-        np.testing.assert_array_equal(dense_labels, dense_labels_2)
+        # np.testing.assert_array_equal(dense_labels, dense_labels_2)
         return dense_labels
 
 

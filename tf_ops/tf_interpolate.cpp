@@ -78,23 +78,23 @@ std::vector<Eigen::Vector3d> buffer_to_eigen_vector(const float *buffer,
 //   base_points, the "3" means "3" nearest neighbors
 void threenn_cpu(int b, int n, int m, const float *xyz1, const float *xyz2,
                  float *dists, int *indices) {
-    // OPENMP only sees benefits if b is large, e.g. b == 64
-    // #ifdef _OPENMP
-    // #pragma omp parallel for schedule(static)
-    // #endif
-    for (int batch_index = 0; batch_index < b; ++batch_index) {
-        std::vector<int> three_indices;
-        std::vector<double> three_dists;
+    if (b == 1) {
         open3d::PointCloud target_pcd;
         open3d::PointCloud reference_pcd;
 
+        size_t batch_index = 0;
         target_pcd.points_ =
             buffer_to_eigen_vector(xyz1 + batch_index * n * 3, n * 3);
         reference_pcd.points_ =
             buffer_to_eigen_vector(xyz2 + batch_index * m * 3, m * 3);
         open3d::KDTreeFlann reference_kd_tree(reference_pcd);
 
+        // #ifdef _OPENMP
+        // #pragma omp parallel for
+        // #endif
         for (size_t j = 0; j < n; ++j) {
+            std::vector<int> three_indices;
+            std::vector<double> three_dists;
             reference_kd_tree.SearchKNN(target_pcd.points_[j], 3, three_indices,
                                         three_dists);
             size_t start_idx = batch_index * n * 3 + j * 3;
@@ -104,6 +104,36 @@ void threenn_cpu(int b, int n, int m, const float *xyz1, const float *xyz2,
             dists[start_idx + 0] = three_dists[0];
             dists[start_idx + 1] = three_dists[1];
             dists[start_idx + 2] = three_dists[2];
+        }
+
+    } else {
+        // OPENMP only sees benefits if b is large, e.g. b == 64
+        // #ifdef _OPENMP
+        // #pragma omp parallel for schedule(static)
+        // #endif
+        for (int batch_index = 0; batch_index < b; ++batch_index) {
+            std::vector<int> three_indices;
+            std::vector<double> three_dists;
+            open3d::PointCloud target_pcd;
+            open3d::PointCloud reference_pcd;
+
+            target_pcd.points_ =
+                buffer_to_eigen_vector(xyz1 + batch_index * n * 3, n * 3);
+            reference_pcd.points_ =
+                buffer_to_eigen_vector(xyz2 + batch_index * m * 3, m * 3);
+            open3d::KDTreeFlann reference_kd_tree(reference_pcd);
+
+            for (size_t j = 0; j < n; ++j) {
+                reference_kd_tree.SearchKNN(target_pcd.points_[j], 3,
+                                            three_indices, three_dists);
+                size_t start_idx = batch_index * n * 3 + j * 3;
+                indices[start_idx + 0] = three_indices[0];
+                indices[start_idx + 1] = three_indices[1];
+                indices[start_idx + 2] = three_indices[2];
+                dists[start_idx + 0] = three_dists[0];
+                dists[start_idx + 1] = three_dists[1];
+                dists[start_idx + 2] = three_dists[2];
+            }
         }
     }
 }

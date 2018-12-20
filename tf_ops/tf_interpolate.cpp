@@ -10,43 +10,6 @@
 #include "tensorflow/core/framework/common_shape_fns.h"
 using namespace tensorflow;
 
-REGISTER_OP("ThreeNN")
-    .Input("xyz1: float32")
-    .Input("xyz2: float32")
-    .Output("dist: float32")
-    .Output("idx: int32")
-    .SetShapeFn([](::tensorflow::shape_inference::InferenceContext *c) {
-        c->set_output(0, c->input(0));
-        c->set_output(1, c->input(0));
-        return Status::OK();
-    });
-REGISTER_OP("ThreeInterpolate")
-    .Input("points: float32")
-    .Input("idx: int32")
-    .Input("weight: float32")
-    .Output("out: float32")
-    .SetShapeFn([](::tensorflow::shape_inference::InferenceContext *c) {
-        ::tensorflow::shape_inference::ShapeHandle dims1;  // (b,m,c)
-        c->WithRank(c->input(0), 3, &dims1);
-        ::tensorflow::shape_inference::ShapeHandle dims2;  // (b,n,3)
-        c->WithRank(c->input(1), 3, &dims2);
-        // (b,n,c)
-        ::tensorflow::shape_inference::ShapeHandle output = c->MakeShape(
-            {c->Dim(dims1, 0), c->Dim(dims2, 1), c->Dim(dims1, 2)});
-        c->set_output(0, output);
-        return Status::OK();
-    });
-REGISTER_OP("ThreeInterpolateGrad")
-    .Input("points: float32")
-    .Input("idx: int32")
-    .Input("weight: float32")
-    .Input("grad_out: float32")
-    .Output("grad_points: float32")
-    .SetShapeFn([](::tensorflow::shape_inference::InferenceContext *c) {
-        c->set_output(0, c->input(0));
-        return Status::OK();
-    });
-
 float randomf() { return (rand() + 0.5) / (RAND_MAX + 1.0); }
 static double get_time() {
     timespec tp;
@@ -63,6 +26,20 @@ std::vector<Eigen::Vector3d> buffer_to_eigen_vector(const float *buffer,
     }
     return eigen_vectors;
 }
+
+///////////////////////////////////////////////////////////////////////////////
+// ThreeNN
+///////////////////////////////////////////////////////////////////////////////
+REGISTER_OP("ThreeNN")
+    .Input("xyz1: float32")
+    .Input("xyz2: float32")
+    .Output("dist: float32")
+    .Output("idx: int32")
+    .SetShapeFn([](::tensorflow::shape_inference::InferenceContext *c) {
+        c->set_output(0, c->input(0));
+        c->set_output(1, c->input(0));
+        return Status::OK();
+    });
 
 // Find three nearest neighbors with square distance
 // input: xyz1 (b,n,3), xyz2(b,m,3)
@@ -138,61 +115,6 @@ void threenn_cpu(int b, int n, int m, const float *xyz1, const float *xyz2,
     }
 }
 
-// input: points (b,m,c), idx (b,n,3), weight (b,n,3)
-// output: out (b,n,c)
-void threeinterpolate_cpu(int b, int m, int c, int n, const float *points,
-                          const int *idx, const float *weight, float *out) {
-    float w1, w2, w3;
-    int i1, i2, i3;
-    for (int i = 0; i < b; ++i) {
-        for (int j = 0; j < n; ++j) {
-            w1 = weight[j * 3];
-            w2 = weight[j * 3 + 1];
-            w3 = weight[j * 3 + 2];
-            i1 = idx[j * 3];
-            i2 = idx[j * 3 + 1];
-            i3 = idx[j * 3 + 2];
-            for (int l = 0; l < c; ++l) {
-                out[j * c + l] = points[i1 * c + l] * w1 +
-                                 points[i2 * c + l] * w2 +
-                                 points[i3 * c + l] * w3;
-            }
-        }
-        points += m * c;
-        idx += n * 3;
-        weight += n * 3;
-        out += n * c;
-    }
-}
-
-// input: grad_out (b,n,c), idx (b,n,3), weight (b,n,3)
-// output: grad_points (b,m,c)
-void threeinterpolate_grad_cpu(int b, int n, int c, int m,
-                               const float *grad_out, const int *idx,
-                               const float *weight, float *grad_points) {
-    float w1, w2, w3;
-    int i1, i2, i3;
-    for (int i = 0; i < b; ++i) {
-        for (int j = 0; j < n; ++j) {
-            w1 = weight[j * 3];
-            w2 = weight[j * 3 + 1];
-            w3 = weight[j * 3 + 2];
-            i1 = idx[j * 3];
-            i2 = idx[j * 3 + 1];
-            i3 = idx[j * 3 + 2];
-            for (int l = 0; l < c; ++l) {
-                grad_points[i1 * c + l] += grad_out[j * c + l] * w1;
-                grad_points[i2 * c + l] += grad_out[j * c + l] * w2;
-                grad_points[i3 * c + l] += grad_out[j * c + l] * w3;
-            }
-        }
-        grad_out += n * c;
-        idx += n * 3;
-        weight += n * 3;
-        grad_points += m * c;
-    }
-}
-
 class ThreeNNOp : public OpKernel {
    public:
     explicit ThreeNNOp(OpKernelConstruction *context) : OpKernel(context) {}
@@ -232,6 +154,53 @@ class ThreeNNOp : public OpKernel {
     }
 };
 REGISTER_KERNEL_BUILDER(Name("ThreeNN").Device(DEVICE_CPU), ThreeNNOp);
+
+///////////////////////////////////////////////////////////////////////////////
+// ThreeInterpolate
+///////////////////////////////////////////////////////////////////////////////
+REGISTER_OP("ThreeInterpolate")
+    .Input("points: float32")
+    .Input("idx: int32")
+    .Input("weight: float32")
+    .Output("out: float32")
+    .SetShapeFn([](::tensorflow::shape_inference::InferenceContext *c) {
+        ::tensorflow::shape_inference::ShapeHandle dims1;  // (b,m,c)
+        c->WithRank(c->input(0), 3, &dims1);
+        ::tensorflow::shape_inference::ShapeHandle dims2;  // (b,n,3)
+        c->WithRank(c->input(1), 3, &dims2);
+        // (b,n,c)
+        ::tensorflow::shape_inference::ShapeHandle output = c->MakeShape(
+            {c->Dim(dims1, 0), c->Dim(dims2, 1), c->Dim(dims1, 2)});
+        c->set_output(0, output);
+        return Status::OK();
+    });
+
+// input: points (b,m,c), idx (b,n,3), weight (b,n,3)
+// output: out (b,n,c)
+void threeinterpolate_cpu(int b, int m, int c, int n, const float *points,
+                          const int *idx, const float *weight, float *out) {
+    float w1, w2, w3;
+    int i1, i2, i3;
+    for (int i = 0; i < b; ++i) {
+        for (int j = 0; j < n; ++j) {
+            w1 = weight[j * 3];
+            w2 = weight[j * 3 + 1];
+            w3 = weight[j * 3 + 2];
+            i1 = idx[j * 3];
+            i2 = idx[j * 3 + 1];
+            i3 = idx[j * 3 + 2];
+            for (int l = 0; l < c; ++l) {
+                out[j * c + l] = points[i1 * c + l] * w1 +
+                                 points[i2 * c + l] * w2 +
+                                 points[i3 * c + l] * w3;
+            }
+        }
+        points += m * c;
+        idx += n * 3;
+        weight += n * 3;
+        out += n * c;
+    }
+}
 
 class ThreeInterpolateOp : public OpKernel {
    public:
@@ -281,6 +250,48 @@ class ThreeInterpolateOp : public OpKernel {
 };
 REGISTER_KERNEL_BUILDER(Name("ThreeInterpolate").Device(DEVICE_CPU),
                         ThreeInterpolateOp);
+
+///////////////////////////////////////////////////////////////////////////////
+// ThreeInterpolateGrad
+///////////////////////////////////////////////////////////////////////////////
+REGISTER_OP("ThreeInterpolateGrad")
+    .Input("points: float32")
+    .Input("idx: int32")
+    .Input("weight: float32")
+    .Input("grad_out: float32")
+    .Output("grad_points: float32")
+    .SetShapeFn([](::tensorflow::shape_inference::InferenceContext *c) {
+        c->set_output(0, c->input(0));
+        return Status::OK();
+    });
+
+// input: grad_out (b,n,c), idx (b,n,3), weight (b,n,3)
+// output: grad_points (b,m,c)
+void threeinterpolate_grad_cpu(int b, int n, int c, int m,
+                               const float *grad_out, const int *idx,
+                               const float *weight, float *grad_points) {
+    float w1, w2, w3;
+    int i1, i2, i3;
+    for (int i = 0; i < b; ++i) {
+        for (int j = 0; j < n; ++j) {
+            w1 = weight[j * 3];
+            w2 = weight[j * 3 + 1];
+            w3 = weight[j * 3 + 2];
+            i1 = idx[j * 3];
+            i2 = idx[j * 3 + 1];
+            i3 = idx[j * 3 + 2];
+            for (int l = 0; l < c; ++l) {
+                grad_points[i1 * c + l] += grad_out[j * c + l] * w1;
+                grad_points[i2 * c + l] += grad_out[j * c + l] * w2;
+                grad_points[i3 * c + l] += grad_out[j * c + l] * w3;
+            }
+        }
+        grad_out += n * c;
+        idx += n * 3;
+        weight += n * 3;
+        grad_points += m * c;
+    }
+}
 
 class ThreeInterpolateGradOp : public OpKernel {
    public:

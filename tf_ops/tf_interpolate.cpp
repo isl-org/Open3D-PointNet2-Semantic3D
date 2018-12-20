@@ -31,18 +31,20 @@ std::vector<Eigen::Vector3d> buffer_to_eigen_vector(const float *buffer,
 // InterpolateLabel
 ///////////////////////////////////////////////////////////////////////////////
 REGISTER_OP("InterpolateLabel")
-    .Input("dense_points: float32")
     .Input("sparse_points: float32")
+    .Input("sparse_labels: int32")
+    .Input("dense_points: float32")
     .Output("dist: float32")
     .Output("idx: int32")
     .SetShapeFn([](::tensorflow::shape_inference::InferenceContext *c) {
         c->set_output(0, c->input(0));
         c->set_output(1, c->input(0));
+        c->set_output(2, c->input(0));
         return Status::OK();
     });
 
 void interpolate_label_cpu(int num_sparse_points, int num_dense_points,
-                           const float *sparse_points,
+                           const float *sparse_points, const int *sparse_labels,
                            const float *dense_points, float *dists,
                            int *indices) {
     open3d::PointCloud reference_pcd;
@@ -81,7 +83,7 @@ class InterpolateLabelOp : public OpKernel {
         : OpKernel(context) {}
 
     void Compute(OpKernelContext *context) override {
-        // sparse_points
+        // sparse_points input
         const Tensor &sparse_points_tensor = context->input(0);
         OP_REQUIRES(context,
                     sparse_points_tensor.dims() == 2 &&
@@ -90,8 +92,17 @@ class InterpolateLabelOp : public OpKernel {
                         "sparse_points must be: (num_sparse_points, 3)"));
         int num_sparse_points = sparse_points_tensor.shape().dim_size(0);
 
-        // dense_points
-        const Tensor &dense_points_tensor = context->input(1);
+        // sparse_labels input
+        const Tensor &sparse_labels_tensor = context->input(1);
+        OP_REQUIRES(
+            context,
+            sparse_labels_tensor.dims() == 1 &&
+                sparse_labels_tensor.shape().dim_size(0) == num_sparse_points,
+            errors::InvalidArgument(
+                "sparse_labels must be: (num_sparse_points, 3)"));
+
+        // dense_points input
+        const Tensor &dense_points_tensor = context->input(2);
         OP_REQUIRES(context,
                     dense_points_tensor.dims() == 2 &&
                         dense_points_tensor.shape().dim_size(1) == 3,
@@ -99,29 +110,40 @@ class InterpolateLabelOp : public OpKernel {
                         "dense_points must be: (num_dense_points, 3)"));
         int num_dense_points = dense_points_tensor.shape().dim_size(0);
 
+        // dist output
         Tensor *dist_tensor = nullptr;
         OP_REQUIRES_OK(context,
                        context->allocate_output(
                            0, TensorShape{num_dense_points, 3}, &dist_tensor));
 
+        // idx output
         Tensor *idx_tensor = nullptr;
         OP_REQUIRES_OK(context,
                        context->allocate_output(
                            1, TensorShape{num_dense_points, 3}, &idx_tensor));
 
+        // sparse_points binding
         auto sparse_points_flat = sparse_points_tensor.flat<float>();
         const float *sparse_points = &(sparse_points_flat(0));
 
+        // sparse_labels binding
+        auto sparse_labels_flat = sparse_labels_tensor.flat<int>();
+        const int *sparse_labels = &(sparse_labels_flat(0));
+
+        // dense_points binding
         auto dense_points_flat = dense_points_tensor.flat<float>();
         const float *dense_points = &(dense_points_flat(0));
 
+        // dist binding
         auto dist_flat = dist_tensor->flat<float>();
         float *dist = &(dist_flat(0));
 
+        // idx binding
         auto idx_flat = idx_tensor->flat<int>();
         int *idx = &(idx_flat(0));
         interpolate_label_cpu(num_sparse_points, num_dense_points,
-                              sparse_points, dense_points, dist, idx);
+                              sparse_points, sparse_labels, dense_points, dist,
+                              idx);
     }
 };
 REGISTER_KERNEL_BUILDER(Name("InterpolateLabel").Device(DEVICE_CPU),

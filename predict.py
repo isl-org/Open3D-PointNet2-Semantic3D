@@ -37,7 +37,6 @@ class Predictor:
             pl_dense_points = tf.placeholder(tf.float32, (1, None, 3))
             _, sparse_indices = three_nn(pl_dense_points, pl_sparse_points)
 
-
         self.ops = {
             "pl_points": pl_points,
             "pl_is_training": pl_is_training,
@@ -88,12 +87,17 @@ class Predictor:
         # sparse_points: m * 3
         # dense_points: n * 3
         # indices_list: 1 * n * 3
-        indices_list = self.sess.run(self.ops["sparse_indices"], feed_dict={
-            self.ops["pl_sparse_points"]: np.expand_dims(sparse_points, axis=0),
-            self.ops["pl_dense_points"]: np.expand_dims(dense_points, axis=0),
-        })
-        indices_list = indices_list[0] # 1 * n * 3 ->  n * 3
-        dense_labels = [np.bincount(sparse_labels[indices]).argmax() for indices in indices_list]
+        indices_list = self.sess.run(
+            self.ops["sparse_indices"],
+            feed_dict={
+                self.ops["pl_sparse_points"]: np.expand_dims(sparse_points, axis=0),
+                self.ops["pl_dense_points"]: np.expand_dims(dense_points, axis=0),
+            },
+        )
+        indices_list = indices_list[0]  # 1 * n * 3 ->  n * 3
+        dense_labels = [
+            np.bincount(sparse_labels[indices]).argmax() for indices in indices_list
+        ]
         return dense_labels
 
 

@@ -75,7 +75,7 @@ if __name__ == "__main__":
         # Get data
         start_time = time.time()
         points_centered, points = kitti_file_data.get_batch_of_one_z_box_from_origin(
-            num_points_per_sample=hyper_params["num_point"],
+            num_points_per_sample=hyper_params["num_point"]
         )
         if len(points_centered) > max_batch_size:
             raise NotImplementedError("TODO: iterate batches if > max_batch_size")
@@ -103,7 +103,8 @@ if __name__ == "__main__":
         dense_labels_2 = predictor.interpolate_labels(
             sparse_points=points_collector.reshape((-1, 3)),
             sparse_labels=pd_labels_collector.flatten(),
-            dense_points=dense_points.reshape((-1, 3)))
+            dense_points=dense_points.reshape((-1, 3)),
+        )
         np.testing.assert_allclose(dense_labels, dense_labels_2)
 
         start_time = time.time()

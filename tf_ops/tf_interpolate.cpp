@@ -30,10 +30,10 @@ std::vector<Eigen::Vector3d> buffer_to_eigen_vector(const float *buffer,
 inline int get_most_frequent_element(const std::vector<int> &labels) {
     int max_count = 0;
     int most_frequent_label = -1;
-    std::unordered_map<int, int> map_num_to_count;
+    std::unordered_map<int, int> map_label_to_count;
     for (const int &label : labels) {
-        map_num_to_count[label]++;
-        int count = map_num_to_count[label];
+        map_label_to_count[label]++;
+        int count = map_label_to_count[label];
         if (count > max_count) {
             most_frequent_label = label;
             max_count = count;

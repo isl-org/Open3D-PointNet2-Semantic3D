@@ -43,10 +43,8 @@ class KittiFileData(SemanticFileData):
 
         sample_mask = self._get_fix_sized_sample_mask(points, num_points_per_sample)
         points = points[sample_mask]
-        print("np.min(points, axis=0):", np.min(points, axis=0))
 
         centered_points = self._center_box(points)
-        print("np.min(centered_points, axis=0):", np.min(centered_points, axis=0))
 
         batch_points = np.expand_dims(points, 0)
         centered_batch_points = np.expand_dims(centered_points, 0)

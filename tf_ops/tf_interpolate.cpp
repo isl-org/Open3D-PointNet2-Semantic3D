@@ -42,6 +42,10 @@ inline int get_most_frequent_element(const std::vector<int> &labels) {
     return most_frequent_label;
 }
 
+static const std::vector<std::vector<uint8_t>> map_label_to_color{
+    {255, 255, 255}, {0, 0, 255},   {128, 0, 0}, {255, 0, 255}, {0, 128, 0},
+    {255, 0, 0},     {128, 0, 128}, {0, 0, 128}, {128, 128, 0}};
+
 ///////////////////////////////////////////////////////////////////////////////
 // InterpolateLabel
 ///////////////////////////////////////////////////////////////////////////////
@@ -105,9 +109,9 @@ void interpolate_label_cpu(int num_sparse_points, int num_dense_points,
         dense_labels[j] = most_frequent_label;
 
         // Assign colors
-        dense_colors[j * 3] = 0;
-        dense_colors[j * 3 + 1] = 0;
-        dense_colors[j * 3 + 2] = 0;
+        dense_colors[j * 3] = map_label_to_color[most_frequent_label][0];
+        dense_colors[j * 3 + 1] = map_label_to_color[most_frequent_label][1];
+        dense_colors[j * 3 + 2] = map_label_to_color[most_frequent_label][2];
     }
 }
 

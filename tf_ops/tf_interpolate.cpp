@@ -72,9 +72,9 @@ void interpolate_label_cpu(int num_sparse_points, int num_dense_points,
         buffer_to_eigen_vector(sparse_points, num_sparse_points * 3);
     open3d::KDTreeFlann reference_kd_tree(reference_pcd);
 
-    // #ifdef _OPENMP
-    // #pragma omp parallel for schedule(static)
-    // #endif
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static)
+#endif
     for (size_t j = 0; j < num_dense_points; ++j) {
         // Move vectors inside if using omp, outside if omp disabled
         std::vector<int> candidate_indices(knn);
@@ -92,28 +92,16 @@ void interpolate_label_cpu(int num_sparse_points, int num_dense_points,
         int most_frequent_label = -1;
         std::unordered_map<int, int> map_label_to_count;
         int label;
-        // std::cout << "num_sparse_points: " << num_sparse_points << std::endl;
-        // std::cout << "index: " << j << "; ";
         for (size_t k = 0; k < knn_found; ++k) {
-            // std::cout << "k: " << k
-            //           << "; candidate_indices[k]: " << candidate_indices[k];
             label = sparse_labels[candidate_indices[k]];
-            // std::cout << "; label:" << label << " ";
             map_label_to_count[label]++;
             if (map_label_to_count[label] > max_count) {
                 most_frequent_label = label;
                 max_count = map_label_to_count[label];
             }
         }
-        if (knn_found != knn) {
-            std::cout << "knn_found: " << knn_found << std::endl;
-            std::cout << "most_frequent_label: " << most_frequent_label
-                      << std::endl;
-        }
-
         dense_labels[j] = most_frequent_label;
     }
-    std::cout << "interpolate_label_cpu done" << std::endl;
 }
 
 class InterpolateLabelOp : public OpKernel {

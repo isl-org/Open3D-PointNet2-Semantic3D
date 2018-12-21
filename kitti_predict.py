@@ -9,6 +9,7 @@ from dataset.kitti_dataset import KittiDataset
 from predict import PredictInterpolator
 from util.point_cloud_util import colorize_point_cloud
 
+
 def interpolate_dense_labels(sparse_points, sparse_labels, dense_points, k=3):
     sparse_pcd = open3d.PointCloud()
     sparse_pcd.points = open3d.Vector3dVector(sparse_points)
@@ -37,7 +38,7 @@ if __name__ == "__main__":
         help="# samples, each contains num_point points",
     )
     parser.add_argument("--ckpt", default="", help="Checkpoint file")
-    parser.add_argument('--save', action="store_true", default=False)
+    parser.add_argument("--save", action="store_true", default=False)
     flags = parser.parse_args()
     hyper_params = json.loads(open("semantic_no_color.json").read())
 
@@ -75,8 +76,16 @@ if __name__ == "__main__":
     render_option.point_size = 0.05
 
     to_reset_view_point = True
-    for kitti_file_data in dataset.list_file_data[:5]:
-        timer = {"load_data": 0, "predict_interpolate": 0, "write_data": 0}
+    for kitti_file_data in dataset.list_file_data:
+        timer = {
+            "load_data": 0,
+            "predict_interpolate": 0,
+            "visualize": 0,
+            "write_data": 0,
+            "total": 0,
+        }
+
+        global_start_time = time.time()
 
         # Predict for num_samples times
         points_collector = []
@@ -102,6 +111,7 @@ if __name__ == "__main__":
         timer["predict_interpolate"] += time.time() - start_time
 
         # Visualize
+        start_time = time.time()
         dense_pcd.points = open3d.Vector3dVector(dense_points.reshape((-1, 3)))
         colorize_point_cloud(dense_pcd, dense_labels)
         vis.update_geometry()
@@ -110,6 +120,7 @@ if __name__ == "__main__":
             to_reset_view_point = False
         vis.poll_events()
         vis.update_renderer()
+        timer["visualize"] += time.time() - start_time
 
         # Save dense point cloud with predicted labels
         if flags.save:
@@ -127,4 +138,5 @@ if __name__ == "__main__":
             print("Exported dense_labels to {}".format(dense_labels_path))
             timer["write_data"] += time.time() - start_time
 
+        timer["total"] += time.time() - global_start_time
         print(timer)

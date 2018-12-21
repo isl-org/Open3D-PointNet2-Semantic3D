@@ -36,7 +36,7 @@ inline int get_most_frequent_element(const std::vector<int> &nums) {
     int max_count = 0;
     int most_frequent_num = -1;
     for (auto it : map_num_to_count) {
-        if (max_count < it.second) {
+        if (it.second > max_count) {
             most_frequent_num = it.first;
             max_count = it.second;
         }
@@ -68,9 +68,9 @@ void interpolate_label_cpu(int num_sparse_points, int num_dense_points,
         buffer_to_eigen_vector(sparse_points, num_sparse_points * 3);
     open3d::KDTreeFlann reference_kd_tree(reference_pcd);
 
-#ifdef _OPENMP
-#pragma omp parallel for schedule(static)
-#endif
+    // #ifdef _OPENMP
+    // #pragma omp parallel for schedule(static)
+    // #endif
     for (size_t j = 0; j < num_dense_points; ++j) {
         // Move vectors inside if using omp, outside if omp disabled
         std::vector<int> three_indices(3);
@@ -89,6 +89,12 @@ void interpolate_label_cpu(int num_sparse_points, int num_dense_points,
         candidate_labels[1] = sparse_labels[three_indices[1]];
         candidate_labels[2] = sparse_labels[three_indices[2]];
         dense_labels[j] = get_most_frequent_element(candidate_labels);
+        if (j == 509) {
+            std::cout << j << " C++: " << candidate_labels[0] << " "
+                      << candidate_labels[1] << " " << candidate_labels[2]
+                      << " " << get_most_frequent_element(candidate_labels)
+                      << std::endl;
+        }
     }
 }
 

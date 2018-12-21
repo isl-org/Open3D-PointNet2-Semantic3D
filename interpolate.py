@@ -8,6 +8,7 @@ import multiprocessing
 from util.metric import ConfusionMatrix
 from util.point_cloud_util import load_labels, write_labels
 from dataset.semantic_dataset import map_name_to_file_prefixes
+from pprint import pprint
 
 
 if __name__ == "__main__":
@@ -102,5 +103,5 @@ if __name__ == "__main__":
             cm.print_metrics()
             cm_global.increment_from_list(dense_gt_labels, dense_labels)
 
-    print("Global results")
+    pprint("Global results")
     cm_global.print_metrics()

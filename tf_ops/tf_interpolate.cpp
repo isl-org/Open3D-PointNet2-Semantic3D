@@ -79,7 +79,6 @@ void interpolate_label_cpu(int num_sparse_points, int num_dense_points,
         // Move vectors inside if using omp, outside if omp disabled
         std::vector<int> candidate_indices(knn);
         std::vector<double> candidate_dists(knn);
-        std::vector<int> candidate_labels(knn);
         Eigen::Vector3d target_point;
         size_t target_point_idx = j * knn;
         target_point(0) = dense_points[target_point_idx];
@@ -88,11 +87,20 @@ void interpolate_label_cpu(int num_sparse_points, int num_dense_points,
         reference_kd_tree.SearchKNN(target_point, knn, candidate_indices,
                                     candidate_dists);
 
-        // Replace with argmax
+        // Find most frequent label
+        int max_count = 0;
+        int most_frequent_label = -1;
+        std::unordered_map<int, int> map_label_to_count;
+        int label;
         for (size_t k = 0; k < knn; ++k) {
-            candidate_labels[k] = sparse_labels[candidate_indices[k]];
+            label = sparse_labels[candidate_indices[k]];
+            map_label_to_count[label]++;
+            if (map_label_to_count[label] > max_count) {
+                most_frequent_label = label;
+                max_count = map_label_to_count[label];
+            }
         }
-        dense_labels[j] = get_most_frequent_element(candidate_labels);
+        dense_labels[j] = most_frequent_label;
     }
 }
 

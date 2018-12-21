@@ -77,21 +77,21 @@ void interpolate_label_cpu(int num_sparse_points, int num_dense_points,
 #endif
     for (size_t j = 0; j < num_dense_points; ++j) {
         // Move vectors inside if using omp, outside if omp disabled
-        std::vector<int> three_indices(3);
-        std::vector<double> three_dists(3);
-        std::vector<int> candidate_labels(3);
+        std::vector<int> candidate_indices(knn);
+        std::vector<double> candidate_dists(knn);
+        std::vector<int> candidate_labels(knn);
         Eigen::Vector3d target_point;
-        size_t target_point_idx = j * 3;
+        size_t target_point_idx = j * knn;
         target_point(0) = dense_points[target_point_idx];
         target_point(1) = dense_points[target_point_idx + 1];
         target_point(2) = dense_points[target_point_idx + 2];
-        reference_kd_tree.SearchKNN(target_point, 3, three_indices,
-                                    three_dists);
+        reference_kd_tree.SearchKNN(target_point, knn, candidate_indices,
+                                    candidate_dists);
 
         // Replace with argmax
-        candidate_labels[0] = sparse_labels[three_indices[0]];
-        candidate_labels[1] = sparse_labels[three_indices[1]];
-        candidate_labels[2] = sparse_labels[three_indices[2]];
+        for (size_t k = 0; k < knn; ++k) {
+            candidate_labels[k] = sparse_labels[candidate_indices[k]];
+        }
         dense_labels[j] = get_most_frequent_element(candidate_labels);
     }
 }
@@ -141,7 +141,6 @@ class InterpolateLabelOp : public OpKernel {
                     errors::InvalidArgument("knn must be an int scalar"));
         auto knn_flat = knn_tensor.flat<int>();
         const int knn = knn_flat(0);
-        std::cout << "knn in c++ " << knn << std::endl;
 
         // Output: dense_labels
         Tensor *dense_labels_tensor = nullptr;

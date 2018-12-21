@@ -87,33 +87,6 @@ class PredictInterpolator:
         saver.restore(self.sess, checkpoint_path)
         print("Model restored")
 
-    # def predict(self, batch_data, run_metadata=None, run_options=None):
-    #     """
-    #     Args:
-    #         batch_data: batch_size * num_point * 6(3)
-    #
-    #     Returns:
-    #         pred_labels: batch_size * num_point * 1
-    #     """
-    #     is_training = False
-    #     feed_dict = {
-    #         self.ops["pl_points"]: batch_data,
-    #         self.ops["pl_is_training"]: is_training,
-    #     }
-    #     if run_metadata is None:
-    #         run_metadata = tf.RunMetadata()
-    #     if run_options is None:
-    #         run_options = tf.RunOptions()
-    #
-    #     pred_val = self.sess.run(
-    #         self.ops["pred"],
-    #         options=run_options,
-    #         run_metadata=run_metadata,
-    #         feed_dict=feed_dict,
-    #     )
-    #     pred_labels = np.argmax(pred_val, 2)  # batch_size * num_point
-    #     return pred_labels
-
     def predict_and_interpolate(
         self,
         sparse_points_centered_batched,
@@ -234,11 +207,6 @@ class Predictor:
             },
         )
         print("sess.run interpolate_labels time", time.time() - s)
-        # dense_labels_2 = interpolate_dense_labels_simple(
-        #     sparse_points, sparse_labels, dense_points, k=3
-        # )
-        # print("num_equal:", np.sum(dense_labels == dense_labels_2))
-        # print("num_not_equal:", np.sum(dense_labels != dense_labels_2))
         return dense_labels
 
 

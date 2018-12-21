@@ -81,7 +81,7 @@ if __name__ == "__main__":
             raise NotImplementedError("TODO: iterate batches if > max_batch_size")
         timer["load_data"] += time.time() - start_time
 
-        # Predict
+        # Predict and interpolate
         start_time = time.time()
         dense_points = kitti_file_data.points
         dense_labels = predictor.predict_and_interpolate(
@@ -89,21 +89,6 @@ if __name__ == "__main__":
             sparse_points_batched=points,  # (batch_size, num_sparse_points, 3)
             dense_points=dense_points,  # (num_dense_points, 3)
         )
-
-        # pd_labels = predictor.predict(points_centered)
-        # points_collector.extend(points)
-        # pd_labels_collector.extend(pd_labels)
-        #
-        # points_collector = np.array(points_collector)
-        # pd_labels_collector = np.array(pd_labels_collector).astype(int)
-        #
-        # # Interpolate to original point cloud
-        # dense_points = kitti_file_data.points
-        # dense_labels = predictor.interpolate_labels(
-        #     sparse_points=points_collector.reshape((-1, 3)),
-        #     sparse_labels=pd_labels_collector.flatten(),
-        #     dense_points=dense_points.reshape((-1, 3)),
-        # )
         timer["predict_interpolate"] += time.time() - start_time
 
         # Save dense point cloud with predicted labels

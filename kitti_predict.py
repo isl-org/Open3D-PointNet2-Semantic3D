@@ -101,21 +101,10 @@ if __name__ == "__main__":
         )
         timer["interpolate"] += time.time() - start_time
 
+        # Save dense point cloud with predicted labels
         start_time = time.time()
-        # Save sparse point cloud with predicted labels
         file_prefix = os.path.basename(kitti_file_data.file_path_without_ext)
 
-        pcd = open3d.PointCloud()
-        pcd.points = open3d.Vector3dVector(points_collector.reshape((-1, 3)))
-        pcd_path = os.path.join(sparse_output_dir, file_prefix + ".pcd")
-        open3d.write_point_cloud(pcd_path, pcd)
-        print("Exported pcd to {}".format(pcd_path))
-
-        pd_labels_path = os.path.join(sparse_output_dir, file_prefix + ".labels")
-        np.savetxt(pd_labels_path, pd_labels_collector.flatten(), fmt="%d")
-        print("Exported labels to {}".format(pd_labels_path))
-
-        # Save dense point cloud with predicted labels
         dense_pcd = open3d.PointCloud()
         dense_pcd.points = open3d.Vector3dVector(dense_points.reshape((-1, 3)))
         dense_pcd_path = os.path.join(dense_output_dir, file_prefix + ".pcd")

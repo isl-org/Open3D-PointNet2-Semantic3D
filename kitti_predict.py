@@ -81,6 +81,7 @@ if __name__ == "__main__":
             "load_data": 0,
             "predict_interpolate": 0,
             "visualize": 0,
+            "colorize": 0,
             "write_data": 0,
             "total": 0,
         }
@@ -113,7 +114,9 @@ if __name__ == "__main__":
         # Visualize
         start_time = time.time()
         dense_pcd.points = open3d.Vector3dVector(dense_points.reshape((-1, 3)))
+        colorize_start = time.time()
         colorize_point_cloud(dense_pcd, dense_labels)
+        timer["colorize"] = time.time() - colorize_start
         vis.update_geometry()
         if to_reset_view_point:
             vis.reset_view_point(True)

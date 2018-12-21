@@ -89,11 +89,6 @@ class PredictInterpolator:
         run_metadata=None,
         run_options=None,
     ):
-        s = time.time()
-        if run_metadata is None:
-            run_metadata = tf.RunMetadata()
-        if run_options is None:
-            run_options = tf.RunOptions()
         dense_labels_val, dense_colors_val = self.sess.run(
             [self.ops["dense_labels"], self.ops["dense_colors"]],
             feed_dict={
@@ -105,10 +100,7 @@ class PredictInterpolator:
                 self.ops["pl_knn"]: 3,
                 self.ops["pl_is_training"]: False,
             },
-            options=run_options,
-            run_metadata=run_metadata,
         )
-        print("sess.run interpolate_labels time", time.time() - s)
         return dense_labels_val, dense_colors_val
 
 

@@ -55,25 +55,19 @@ map_name_to_file_prefixes = {
 
 
 class SemanticFileData:
-    def __init__(self, file_path_without_ext, has_label, use_color, box_size):
+    def __init__(
+        self, file_path_without_ext, has_label, use_color, box_size_x, box_size_y
+    ):
         """
         Loads file data
         """
         self.file_path_without_ext = file_path_without_ext
-        self.box_size = box_size
+        self.box_size_x = box_size_x
+        self.box_size_y = box_size_y
 
         # Load points
         pcd = open3d.read_point_cloud(file_path_without_ext + ".pcd")
         self.points = np.asarray(pcd.points)
-
-        # Shift points to min (0, 0, 0), per-image
-        # Training: use the normalized points for training
-        # Testing: use the normalized points for testing. However, when writing back
-        #          point clouds, the shift should be added back.
-        self.points_min_raw = np.min(self.points, axis=0)
-        self.points = self.points - self.points_min_raw
-        self.points_min = np.min(self.points, axis=0)
-        self.points_max = np.max(self.points, axis=0)
 
         # Load label. In pure test set, fill with zeros.
         if has_label:
@@ -93,16 +87,10 @@ class SemanticFileData:
         self.labels = self.labels[sort_idx]
         self.colors = self.colors[sort_idx]
 
-    def sample(self, num_points_per_sample):
-        points = self.points
-
-        # Pick a point, and crop a z-box around
-        center_point = points[np.random.randint(0, len(points))]
-        scene_extract_mask = self.extract_z_box(center_point)
-        points = points[scene_extract_mask]
-        labels = self.labels[scene_extract_mask]
-        colors = self.colors[scene_extract_mask]
-
+    def _get_fix_sized_sample_mask(self, points, num_points_per_sample):
+        """
+        Get down-sample or up-sample mask to sample points to num_points_per_sample
+        """
         # TODO: change this to numpy's build-in functions
         # Shuffling or up-sampling if needed
         if len(points) - num_points_per_sample > 0:
@@ -116,50 +104,23 @@ class SemanticFileData:
             while len(sample_mask) < num_points_per_sample:
                 sample_mask = np.concatenate((sample_mask, sample_mask), axis=0)
             sample_mask = sample_mask[:num_points_per_sample]
-        points = points[sample_mask]
-        labels = labels[sample_mask]
-        colors = colors[sample_mask]
+        return sample_mask
 
-        # Shift the points, such that min(z) == 0, and x = 0 and y = 0 is the center
-        # This canonical column is used for both training and inference
-        points_centered = self.center_box(points)
-
-        return points_centered, points + self.points_min_raw, labels, colors
-
-    def sample_batch(self, batch_size, num_points_per_sample):
-        """
-        TODO: change this to stack instead of extend
-        """
-        batch_points_centered = []
-        batch_points_raw = []
-        batch_labels = []
-        batch_colors = []
-
-        for _ in range(batch_size):
-            points, points_raw, gt_labels, colors = self.sample(num_points_per_sample)
-            batch_points_centered.append(points)
-            batch_points_raw.append(points_raw)
-            batch_labels.append(gt_labels)
-            batch_colors.append(colors)
-
-        return (
-            np.array(batch_points_centered),
-            np.array(batch_points_raw),
-            np.array(batch_labels),
-            np.array(batch_colors),
-        )
-
-    def center_box(self, points):
+    def _center_box(self, points):
         # Shift the box so that z = 0 is the min and x = 0 and y = 0 is the box center
-        # E.g. if box_size == 10, then the new mins are (-5, -5, 0)
+        # E.g. if box_size_x == box_size_y == 10, then the new mins are (-5, -5, 0)
         box_min = np.min(points, axis=0)
         shift = np.array(
-            [box_min[0] + self.box_size / 2, box_min[1] + self.box_size / 2, box_min[2]]
+            [
+                box_min[0] + self.box_size_x / 2,
+                box_min[1] + self.box_size_y / 2,
+                box_min[2],
+            ]
         )
         points_centered = points - shift
         return points_centered
 
-    def extract_z_box(self, center_point):
+    def _extract_z_box(self, center_point):
         """
         Crop along z axis (vertical) from the center_point.
 
@@ -169,11 +130,17 @@ class SemanticFileData:
             scene_idx: scene index to get the min and max of the whole scene
         """
         # TODO TAKES LOT OF TIME !! THINK OF AN ALTERNATIVE !
-        scene_max = self.points_max
-        scene_min = self.points_min
-        scene_z_size = scene_max[2] - scene_min[2]
-        box_min = center_point - [self.box_size / 2, self.box_size / 2, scene_z_size]
-        box_max = center_point + [self.box_size / 2, self.box_size / 2, scene_z_size]
+        scene_z_size = np.max(self.points, axis=0)[2] - np.min(self.points, axis=0)[2]
+        box_min = center_point - [
+            self.box_size_x / 2,
+            self.box_size_y / 2,
+            scene_z_size,
+        ]
+        box_max = center_point + [
+            self.box_size_x / 2,
+            self.box_size_y / 2,
+            scene_z_size,
+        ]
 
         i_min = np.searchsorted(self.points[:, 0], box_min[0])
         i_max = np.searchsorted(self.points[:, 0], box_max[0])
@@ -197,22 +164,72 @@ class SemanticFileData:
         assert np.sum(mask) != 0
         return mask
 
+    def sample(self, num_points_per_sample):
+        points = self.points
+
+        # Pick a point, and crop a z-box around
+        center_point = points[np.random.randint(0, len(points))]
+        scene_extract_mask = self._extract_z_box(center_point)
+        points = points[scene_extract_mask]
+        labels = self.labels[scene_extract_mask]
+        colors = self.colors[scene_extract_mask]
+
+        sample_mask = self._get_fix_sized_sample_mask(points, num_points_per_sample)
+        points = points[sample_mask]
+        labels = labels[sample_mask]
+        colors = colors[sample_mask]
+
+        # Shift the points, such that min(z) == 0, and x = 0 and y = 0 is the center
+        # This canonical column is used for both training and inference
+        points_centered = self._center_box(points)
+
+        return points_centered, points, labels, colors
+
+    def sample_batch(self, batch_size, num_points_per_sample):
+        """
+        TODO: change this to stack instead of extend
+        """
+        batch_points_centered = []
+        batch_points_raw = []
+        batch_labels = []
+        batch_colors = []
+
+        for _ in range(batch_size):
+            points_centered, points_raw, gt_labels, colors = self.sample(
+                num_points_per_sample
+            )
+            batch_points_centered.append(points_centered)
+            batch_points_raw.append(points_raw)
+            batch_labels.append(gt_labels)
+            batch_colors.append(colors)
+
+        return (
+            np.array(batch_points_centered),
+            np.array(batch_points_raw),
+            np.array(batch_labels),
+            np.array(batch_colors),
+        )
+
 
 class SemanticDataset:
-    def __init__(self, num_points_per_sample, split, use_color, box_size, path):
+    def __init__(
+        self, num_points_per_sample, split, use_color, box_size_x, box_size_y, path
+    ):
         """Create a dataset holder
         num_points_per_sample (int): Defaults to 8192. The number of point per sample
         split (str): Defaults to 'train'. The selected part of the data (train, test,
                      reduced...)
         color (bool): Defaults to True. Whether to use colors or not
-        box_size (int): Defaults to 10. The size of the extracted cube.
+        box_size_x (int): Defaults to 10. The size of the extracted cube.
+        box_size_y (int): Defaults to 10. The size of the extracted cube.
         path (float): Defaults to 'dataset/semantic_data/'.
         """
         # Dataset parameters
         self.num_points_per_sample = num_points_per_sample
         self.split = split
         self.use_color = use_color
-        self.box_size = box_size
+        self.box_size_x = box_size_x
+        self.box_size_y = box_size_y
         self.num_classes = 9
         self.path = path
         self.labels_names = [
@@ -240,7 +257,8 @@ class SemanticDataset:
                 file_path_without_ext=file_path_without_ext,
                 has_label=self.split != "test",
                 use_color=self.use_color,
-                box_size=self.box_size,
+                box_size_x=self.box_size_x,
+                box_size_y=self.box_size_y,
             )
             self.list_file_data.append(file_data)
 

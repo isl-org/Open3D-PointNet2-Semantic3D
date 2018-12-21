@@ -9,6 +9,29 @@ import time
 import model
 from dataset.semantic_dataset import SemanticDataset
 from util.metric import ConfusionMatrix
+from tf_ops.tf_interpolate import three_nn, interpolate_label
+
+
+def interpolate_dense_labels_simple(sparse_points, sparse_labels, dense_points, k=3):
+    sparse_pcd = open3d.PointCloud()
+    sparse_pcd.points = open3d.Vector3dVector(sparse_points)
+    sparse_pcd_tree = open3d.KDTreeFlann(sparse_pcd)
+
+    dense_labels = []
+    counter = 0
+    for dense_point in dense_points:
+        result_k, sparse_indexes, _ = sparse_pcd_tree.search_knn_vector_3d(
+            dense_point, k
+        )
+        knn_sparse_labels = sparse_labels[sparse_indexes]
+        if len(np.unique(knn_sparse_labels)) == len(knn_sparse_labels):
+            # Fix skew, since bincount+argmax output smallest value if all unique
+            dense_label = knn_sparse_labels[0]
+        else:
+            dense_label = np.bincount(knn_sparse_labels).argmax()
+        dense_labels.append(dense_label)
+        counter += 1
+    return dense_labels
 
 
 class Predictor:
@@ -30,10 +53,25 @@ class Predictor:
             # Saver
             saver = tf.train.Saver()
 
+            # Graph for interpolating labels
+            # Assuming batch_size == 1 for simplicity
+            pl_sparse_points = tf.placeholder(tf.float32, (None, 3))
+            pl_sparse_labels = tf.placeholder(tf.int32, (None,))
+            pl_dense_points = tf.placeholder(tf.float32, (None, 3))
+            pl_knn = tf.placeholder(tf.int32, ())
+            sparse_indices = interpolate_label(
+                pl_sparse_points, pl_sparse_labels, pl_dense_points, pl_knn
+            )
+
         self.ops = {
             "pl_points": pl_points,
             "pl_is_training": pl_is_training,
             "pred": pred,
+            "pl_sparse_points": pl_sparse_points,
+            "pl_sparse_labels": pl_sparse_labels,
+            "pl_dense_points": pl_dense_points,
+            "pl_knn": pl_knn,
+            "sparse_indices": sparse_indices,
         }
 
         # Restore checkpoint to session
@@ -73,6 +111,25 @@ class Predictor:
         pred_labels = np.argmax(pred_val, 2)  # batch_size * num_point * 1
         return pred_labels
 
+    def interpolate_labels(self, sparse_points, sparse_labels, dense_points):
+        s = time.time()
+        dense_labels = self.sess.run(
+            self.ops["sparse_indices"],
+            feed_dict={
+                self.ops["pl_sparse_points"]: sparse_points,
+                self.ops["pl_sparse_labels"]: sparse_labels,
+                self.ops["pl_dense_points"]: dense_points,
+                self.ops["pl_knn"]: 3,
+            },
+        )
+        print("sess.run interpolate_labels time", time.time() - s)
+        # dense_labels_2 = interpolate_dense_labels_simple(
+        #     sparse_points, sparse_labels, dense_points, k=3
+        # )
+        # print("num_equal:", np.sum(dense_labels == dense_labels_2))
+        # print("num_not_equal:", np.sum(dense_labels != dense_labels_2))
+        return dense_labels
+
 
 if __name__ == "__main__":
     np.random.seed(0)
@@ -98,7 +155,8 @@ if __name__ == "__main__":
     dataset = SemanticDataset(
         num_points_per_sample=hyper_params["num_point"],
         split=flags.set,
-        box_size=hyper_params["box_size"],
+        box_size_x=hyper_params["box_size_x"],
+        box_size_y=hyper_params["box_size_y"],
         use_color=hyper_params["use_color"],
         path=hyper_params["data_path"],
     )

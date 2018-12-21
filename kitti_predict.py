@@ -6,7 +6,7 @@ import open3d
 import time
 
 from dataset.kitti_dataset import KittiDataset
-from predict import Predictor
+from predict import PredictInterpolator
 
 
 def interpolate_dense_labels(sparse_points, sparse_labels, dense_points, k=3):
@@ -59,14 +59,14 @@ if __name__ == "__main__":
 
     # Model
     max_batch_size = 128  # The more the better, limited by memory size
-    predictor = Predictor(
+    predictor = PredictInterpolator(
         checkpoint_path=flags.ckpt,
         num_classes=dataset.num_classes,
         hyper_params=hyper_params,
     )
 
     for kitti_file_data in dataset.list_file_data[:5]:
-        timer = {"load_data": 0, "predict": 0, "interpolate": 0, "write_data": 0}
+        timer = {"load_data": 0, "predict_interpolate": 0, "write_data": 0}
 
         # Predict for num_samples times
         points_collector = []
@@ -83,23 +83,28 @@ if __name__ == "__main__":
 
         # Predict
         start_time = time.time()
-        pd_labels = predictor.predict(points_centered)
-        points_collector.extend(points)
-        pd_labels_collector.extend(pd_labels)
-        timer["predict"] += time.time() - start_time
-
-        points_collector = np.array(points_collector)
-        pd_labels_collector = np.array(pd_labels_collector).astype(int)
-
-        # Interpolate to original point cloud
-        start_time = time.time()
         dense_points = kitti_file_data.points
-        dense_labels = predictor.interpolate_labels(
-            sparse_points=points_collector.reshape((-1, 3)),
-            sparse_labels=pd_labels_collector.flatten(),
-            dense_points=dense_points.reshape((-1, 3)),
+        dense_labels = predictor.predict_and_interpolate(
+            sparse_points_centered_batched=points_centered,  # (batch_size, num_sparse_points, 3)
+            sparse_points_batched=points,  # (batch_size, num_sparse_points, 3)
+            dense_points=dense_points,  # (num_dense_points, 3)
         )
-        timer["interpolate"] += time.time() - start_time
+
+        # pd_labels = predictor.predict(points_centered)
+        # points_collector.extend(points)
+        # pd_labels_collector.extend(pd_labels)
+        #
+        # points_collector = np.array(points_collector)
+        # pd_labels_collector = np.array(pd_labels_collector).astype(int)
+        #
+        # # Interpolate to original point cloud
+        # dense_points = kitti_file_data.points
+        # dense_labels = predictor.interpolate_labels(
+        #     sparse_points=points_collector.reshape((-1, 3)),
+        #     sparse_labels=pd_labels_collector.flatten(),
+        #     dense_points=dense_points.reshape((-1, 3)),
+        # )
+        timer["predict_interpolate"] += time.time() - start_time
 
         # Save dense point cloud with predicted labels
         start_time = time.time()

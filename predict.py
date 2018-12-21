@@ -34,6 +34,90 @@ def interpolate_dense_labels_simple(sparse_points, sparse_labels, dense_points, 
     return dense_labels
 
 
+class PredictInterpolator:
+    def __init__(self, checkpoint_path, num_classes, hyper_params):
+        # Get ops from graph
+        with tf.device("/gpu:0"):
+            # Placeholders
+            pl_sparse_points_centered_batched, _, _ = model.get_placeholders(
+                hyper_params["num_point"], hyperparams=hyper_params
+            )
+            pl_is_training = tf.placeholder(tf.bool, shape=())
+
+            # Prediction
+            pred, _ = model.get_model(
+                pl_sparse_points_centered_batched,
+                pl_is_training,
+                num_classes,
+                hyperparams=hyper_params,
+            )
+            sparse_labels_batched = tf.argmax(pred, axis=2)
+            # (1, num_sparse_points) -> (num_sparse_points,)
+            sparse_labels = tf.reshape(sparse_labels_batched, [-1])
+            sparse_labels = tf.cast(sparse_labels, tf.int32)
+
+            # Saver
+            saver = tf.train.Saver()
+
+            # Graph for interpolating labels
+            # Assuming batch_size == 1 for simplicity
+            pl_sparse_points_batched = tf.placeholder(tf.float32, (None, None, 3))
+            sparse_points = tf.reshape(pl_sparse_points_batched, [-1, 3])
+            pl_dense_points = tf.placeholder(tf.float32, (None, 3))
+            pl_knn = tf.placeholder(tf.int32, ())
+            dense_labels = interpolate_label(
+                sparse_points, sparse_labels, pl_dense_points, pl_knn
+            )
+
+        self.ops = {
+            "pl_sparse_points_centered_batched": pl_sparse_points_centered_batched,
+            "pl_sparse_points_batched": pl_sparse_points_batched,
+            "pl_dense_points": pl_dense_points,
+            "pl_is_training": pl_is_training,
+            "pl_knn": pl_knn,
+            "dense_labels": dense_labels,
+        }
+
+        # Restore checkpoint to session
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+        config.allow_soft_placement = True
+        config.log_device_placement = False
+        self.sess = tf.Session(config=config)
+        saver.restore(self.sess, checkpoint_path)
+        print("Model restored")
+
+    def predict_and_interpolate(
+        self,
+        sparse_points_centered_batched,
+        sparse_points_batched,
+        dense_points,
+        run_metadata=None,
+        run_options=None,
+    ):
+        s = time.time()
+        if run_metadata is None:
+            run_metadata = tf.RunMetadata()
+        if run_options is None:
+            run_options = tf.RunOptions()
+        dense_labels_val = self.sess.run(
+            self.ops["dense_labels"],
+            feed_dict={
+                self.ops[
+                    "pl_sparse_points_centered_batched"
+                ]: sparse_points_centered_batched,
+                self.ops["pl_sparse_points_batched"]: sparse_points_batched,
+                self.ops["pl_dense_points"]: dense_points,
+                self.ops["pl_knn"]: 3,
+                self.ops["pl_is_training"]: False,
+            },
+            options=run_options,
+            run_metadata=run_metadata,
+        )
+        print("sess.run interpolate_labels time", time.time() - s)
+        return dense_labels_val
+
+
 class Predictor:
     def __init__(self, checkpoint_path, num_classes, hyper_params):
         # Get ops from graph
@@ -123,11 +207,6 @@ class Predictor:
             },
         )
         print("sess.run interpolate_labels time", time.time() - s)
-        # dense_labels_2 = interpolate_dense_labels_simple(
-        #     sparse_points, sparse_labels, dense_points, k=3
-        # )
-        # print("num_equal:", np.sum(dense_labels == dense_labels_2))
-        # print("num_not_equal:", np.sum(dense_labels != dense_labels_2))
         return dense_labels
 
 

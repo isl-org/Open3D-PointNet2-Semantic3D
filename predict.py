@@ -119,15 +119,20 @@ class Predictor:
             },
         )
         print("sess.run interpolate_labels time", time.time() - s)
+
         # # todo: put this in TF
         # dense_labels = [
         #     np.bincount(sparse_labels[indices]).argmax() for indices in indices_list
         # ]
 
-        # dense_labels_2 = interpolate_dense_labels_simple(
-        #     sparse_points, sparse_labels, dense_points, k=3
-        # )
-        # np.testing.assert_array_equal(dense_labels, dense_labels_2)
+        dense_labels_2 = interpolate_dense_labels_simple(
+            sparse_points, sparse_labels, dense_points, k=3
+        )
+
+        print("num_equal", np.sum(dense_labels == dense_labels_2))
+        print("num_not_equal", np.sum(dense_labels != dense_labels_2))
+
+        np.testing.assert_array_equal(dense_labels, dense_labels_2)
         return dense_labels
 
 

@@ -27,6 +27,23 @@ std::vector<Eigen::Vector3d> buffer_to_eigen_vector(const float *buffer,
     return eigen_vectors;
 }
 
+inline int get_most_frequent_element(const std::vector<int> &nums) {
+    std::unordered_map<int, int> map_num_to_count;
+    for (int num : nums) {
+        map_num_to_count[num]++;
+    }
+
+    int max_count = 0;
+    int most_frequent_num = -1;
+    for (auto it : map_num_to_count) {
+        if (max_count < it.second) {
+            most_frequent_num = it.first;
+            max_count = it.second;
+        }
+    }
+    return most_frequent_num;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // InterpolateLabel
 ///////////////////////////////////////////////////////////////////////////////
@@ -56,8 +73,9 @@ void interpolate_label_cpu(int num_sparse_points, int num_dense_points,
 #endif
     for (size_t j = 0; j < num_dense_points; ++j) {
         // Move vectors inside if using omp, outside if omp disabled
-        std::vector<int> three_indices;
-        std::vector<double> three_dists;
+        std::vector<int> three_indices(3);
+        std::vector<double> three_dists(3);
+        std::vector<int> candidate_labels(3);
         Eigen::Vector3d target_point;
         size_t target_point_idx = j * 3;
         target_point(0) = dense_points[target_point_idx];
@@ -67,7 +85,10 @@ void interpolate_label_cpu(int num_sparse_points, int num_dense_points,
                                     three_dists);
 
         // Replace with argmax
-        dense_labels[j] = sparse_labels[three_indices[0]];
+        candidate_labels[0] = sparse_labels[three_indices[0]];
+        candidate_labels[1] = sparse_labels[three_indices[1]];
+        candidate_labels[2] = sparse_labels[three_indices[2]];
+        dense_labels[j] = get_most_frequent_element(candidate_labels);
     }
 }
 

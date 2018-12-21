@@ -7,7 +7,7 @@ import time
 
 from dataset.kitti_dataset import KittiDataset
 from predict import PredictInterpolator
-
+from util.point_cloud_util import colorize_point_cloud
 
 def interpolate_dense_labels(sparse_points, sparse_labels, dense_points, k=3):
     sparse_pcd = open3d.PointCloud()
@@ -74,6 +74,7 @@ if __name__ == "__main__":
     render_option = vis.get_render_option()
     render_option.point_size = 0.05
 
+    to_reset_view_point = True
     for kitti_file_data in dataset.list_file_data[:5]:
         timer = {"load_data": 0, "predict_interpolate": 0, "write_data": 0}
 
@@ -99,6 +100,16 @@ if __name__ == "__main__":
             dense_points=dense_points,  # (num_dense_points, 3)
         )
         timer["predict_interpolate"] += time.time() - start_time
+
+        # Visualize
+        dense_pcd.points = open3d.Vector3dVector(dense_points.reshape((-1, 3)))
+        colorize_point_cloud(dense_pcd, dense_labels)
+        vis.update_geometry()
+        if to_reset_view_point:
+            vis.reset_view_point(True)
+            to_reset_view_point = False
+        vis.poll_events()
+        vis.update_renderer()
 
         # Save dense point cloud with predicted labels
         if flags.save:

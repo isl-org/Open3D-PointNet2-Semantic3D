@@ -149,7 +149,6 @@ class InterpolateLabelOp : public OpKernel {
                     errors::InvalidArgument("knn must be an int scalar"));
         auto knn_flat = knn_tensor.flat<int>();
         const int knn = knn_flat(0);
-        std::cout << "knn in C++: " << knn << std::endl;
 
         // Output: dense_labels
         Tensor *dense_labels_tensor = nullptr;

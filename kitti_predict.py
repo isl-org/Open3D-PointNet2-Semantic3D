@@ -198,8 +198,8 @@ if __name__ == "__main__":
 
         # Visualize
         start_time = time.time()
-        dense_pcd.points = open3d.Vector3dVector(dense_points.reshape((-1, 3)))
-        dense_pcd.colors = open3d.Vector3dVector(dense_colors.reshape((-1, 3)))
+        dense_pcd.points = open3d.Vector3dVector(dense_points)
+        dense_pcd.colors = open3d.Vector3dVector(dense_colors.astype(np.float64))
         vis.update_geometry()
         if to_reset_view_point:
             vis.reset_view_point(True)

@@ -51,14 +51,14 @@ void interpolate_label_cpu(int num_sparse_points, int num_dense_points,
         buffer_to_eigen_vector(sparse_points, num_sparse_points * 3);
     open3d::KDTreeFlann reference_kd_tree(reference_pcd);
 
-    // #ifdef _OPENMP
-    // #pragma omp parallel for schedule(static)
-    // #endif
-    // Move vectors inside if using omp, outside if omp disabled
-    std::vector<int> three_indices;
-    std::vector<double> three_dists;
-    Eigen::Vector3d target_point;
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static)
+#endif
     for (size_t j = 0; j < num_dense_points; ++j) {
+        // Move vectors inside if using omp, outside if omp disabled
+        std::vector<int> three_indices;
+        std::vector<double> three_dists;
+        Eigen::Vector3d target_point;
         size_t target_point_idx = j * 3;
         target_point(0) = dense_points[target_point_idx];
         target_point(1) = dense_points[target_point_idx + 1];

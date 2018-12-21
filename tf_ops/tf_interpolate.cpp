@@ -49,7 +49,7 @@ REGISTER_OP("InterpolateLabel")
     .Input("sparse_points: float32")  // (num_sparse_points, 3)
     .Input("sparse_labels: int32")    // (num_sparse_points, 3)
     .Input("dense_points: float32")   // (num_dense_points, 3)
-    .Input("k: int32")                // (num_dense_points, 3)
+    .Input("knn: int32")              // (num_dense_points, 3)
     .Output("dense_labels: int32")    // (num_dense_points,)
     .SetShapeFn([](::tensorflow::shape_inference::InferenceContext *c) {
         // (num_dense_points, 3)
@@ -65,7 +65,7 @@ REGISTER_OP("InterpolateLabel")
 void interpolate_label_cpu(int num_sparse_points, int num_dense_points,
                            const float *sparse_points, const int *sparse_labels,
                            const float *dense_points, int *dense_labels,
-                           int k) {
+                           int knn) {
     open3d::PointCloud reference_pcd;
 
     reference_pcd.points_ =
@@ -135,14 +135,13 @@ class InterpolateLabelOp : public OpKernel {
         auto dense_points_flat = dense_points_tensor.flat<float>();
         const float *dense_points = &(dense_points_flat(0));
 
-        // Input: k
-        const Tensor &k_tensor = context->input(3);
-        OP_REQUIRES(context, k_tensor.dims() == 0,
-                    errors::InvalidArgument("k must be a scalar"));
-        auto k_flat = k_tensor.flat<int>();
-        const int *k_ptr = &(k_flat(0));
-        const int k = k_ptr[0];
-        std::cout << "k in c++ " << k << std::endl;
+        // Input: knn
+        const Tensor &knn_tensor = context->input(3);
+        OP_REQUIRES(context, knn_tensor.dims() == 0,
+                    errors::InvalidArgument("knn must be an int scalar"));
+        auto knn_flat = knn_tensor.flat<int>();
+        const int knn = knn_flat(0);
+        std::cout << "knn in c++ " << knn << std::endl;
 
         // Output: dense_labels
         Tensor *dense_labels_tensor = nullptr;
@@ -154,7 +153,7 @@ class InterpolateLabelOp : public OpKernel {
 
         interpolate_label_cpu(num_sparse_points, num_dense_points,
                               sparse_points, sparse_labels, dense_points,
-                              dense_labels, k);
+                              dense_labels, knn);
     }
 };
 REGISTER_KERNEL_BUILDER(Name("InterpolateLabel").Device(DEVICE_CPU),

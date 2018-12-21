@@ -37,6 +37,7 @@ if __name__ == "__main__":
         help="# samples, each contains num_point points",
     )
     parser.add_argument("--ckpt", default="", help="Checkpoint file")
+    parser.add_argument('--save', action="store_true", default=False)
     flags = parser.parse_args()
     hyper_params = json.loads(open("semantic_no_color.json").read())
 
@@ -65,6 +66,14 @@ if __name__ == "__main__":
         hyper_params=hyper_params,
     )
 
+    # Init visualizer
+    dense_pcd = open3d.PointCloud()
+    vis = open3d.Visualizer()
+    vis.create_window()
+    vis.add_geometry(dense_pcd)
+    render_option = vis.get_render_option()
+    render_option.point_size = 0.05
+
     for kitti_file_data in dataset.list_file_data[:5]:
         timer = {"load_data": 0, "predict_interpolate": 0, "write_data": 0}
 
@@ -92,18 +101,19 @@ if __name__ == "__main__":
         timer["predict_interpolate"] += time.time() - start_time
 
         # Save dense point cloud with predicted labels
-        start_time = time.time()
-        file_prefix = os.path.basename(kitti_file_data.file_path_without_ext)
+        if flags.save:
+            start_time = time.time()
+            file_prefix = os.path.basename(kitti_file_data.file_path_without_ext)
 
-        dense_pcd = open3d.PointCloud()
-        dense_pcd.points = open3d.Vector3dVector(dense_points.reshape((-1, 3)))
-        dense_pcd_path = os.path.join(dense_output_dir, file_prefix + ".pcd")
-        open3d.write_point_cloud(dense_pcd_path, dense_pcd)
-        print("Exported dense_pcd to {}".format(dense_pcd_path))
+            dense_pcd = open3d.PointCloud()
+            dense_pcd.points = open3d.Vector3dVector(dense_points.reshape((-1, 3)))
+            dense_pcd_path = os.path.join(dense_output_dir, file_prefix + ".pcd")
+            open3d.write_point_cloud(dense_pcd_path, dense_pcd)
+            print("Exported dense_pcd to {}".format(dense_pcd_path))
 
-        dense_labels_path = os.path.join(dense_output_dir, file_prefix + ".labels")
-        np.savetxt(dense_labels_path, dense_labels, fmt="%d")
-        print("Exported dense_labels to {}".format(dense_labels_path))
-        timer["write_data"] += time.time() - start_time
+            dense_labels_path = os.path.join(dense_output_dir, file_prefix + ".labels")
+            np.savetxt(dense_labels_path, dense_labels, fmt="%d")
+            print("Exported dense_labels to {}".format(dense_labels_path))
+            timer["write_data"] += time.time() - start_time
 
         print(timer)

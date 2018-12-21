@@ -8,7 +8,6 @@ import time
 
 import model
 from dataset.kitti_dataset import KittiDataset
-from util.point_cloud_util import colorize_point_cloud
 from tf_ops.tf_interpolate import interpolate_label
 
 

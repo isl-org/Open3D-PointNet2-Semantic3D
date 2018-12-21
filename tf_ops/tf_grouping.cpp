@@ -20,7 +20,7 @@ REGISTER_OP("QueryBallPoint")
     .SetShapeFn([](::tensorflow::shape_inference::InferenceContext *c) {
         ::tensorflow::shape_inference::ShapeHandle
             dims2;  // batch_size * npoint * 3
-        c->WithRank(c->input(1), 3, &dims2);
+        TF_RETURN_IF_ERROR(c->WithRank(c->input(1), 3, &dims2));
         int nsample;
         TF_RETURN_IF_ERROR(c->GetAttr("nsample", &nsample));
         ::tensorflow::shape_inference::ShapeHandle output1 =
@@ -48,10 +48,10 @@ REGISTER_OP("GroupPoint")
     .SetShapeFn([](::tensorflow::shape_inference::InferenceContext *c) {
         ::tensorflow::shape_inference::ShapeHandle
             dims1;  // batch_size * ndataset * channels
-        c->WithRank(c->input(0), 3, &dims1);
+        TF_RETURN_IF_ERROR(c->WithRank(c->input(0), 3, &dims1));
         ::tensorflow::shape_inference::ShapeHandle
             dims2;  // batch_size * npoints * nsample
-        c->WithRank(c->input(1), 3, &dims2);
+        TF_RETURN_IF_ERROR(c->WithRank(c->input(1), 3, &dims2));
         // batch_size * npoints * nsample * channels
         ::tensorflow::shape_inference::ShapeHandle output =
             c->MakeShape({c->Dim(dims2, 0), c->Dim(dims2, 1), c->Dim(dims2, 2),

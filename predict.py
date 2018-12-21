@@ -58,8 +58,9 @@ class Predictor:
             pl_sparse_points = tf.placeholder(tf.float32, (None, 3))
             pl_sparse_labels = tf.placeholder(tf.int32, (None,))
             pl_dense_points = tf.placeholder(tf.float32, (None, 3))
+            pl_knn = tf.placeholder(tf.int32, ())
             sparse_indices = interpolate_label(
-                pl_sparse_points, pl_sparse_labels, pl_dense_points
+                pl_sparse_points, pl_sparse_labels, pl_dense_points, pl_knn
             )
 
         self.ops = {
@@ -69,6 +70,7 @@ class Predictor:
             "pl_sparse_points": pl_sparse_points,
             "pl_sparse_labels": pl_sparse_labels,
             "pl_dense_points": pl_dense_points,
+            "pl_knn": pl_knn,
             "sparse_indices": sparse_indices,
         }
 
@@ -122,11 +124,12 @@ class Predictor:
                 self.ops["pl_sparse_points"]: sparse_points,
                 self.ops["pl_sparse_labels"]: sparse_labels,
                 self.ops["pl_dense_points"]: dense_points,
+                self.ops["pl_knn"]: 3,
             },
         )
         print("sess.run interpolate_labels time", time.time() - s)
         dense_labels_2 = interpolate_dense_labels_simple(
-            sparse_points, sparse_labels, dense_points, k=3
+            sparse_points, sparse_labels, dense_points
         )
         np.testing.assert_array_equal(dense_labels, dense_labels_2)
         return dense_labels

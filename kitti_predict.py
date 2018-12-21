@@ -148,10 +148,10 @@ if __name__ == "__main__":
     # Init visualizer
     dense_pcd = open3d.PointCloud()
     vis = open3d.Visualizer()
-    vis.create_window()
+    vis.create_window(width=1280, height=720)
     vis.add_geometry(dense_pcd)
     render_option = vis.get_render_option()
-    render_option.point_size = 0.05
+    render_option.point_size = 0.1
 
     to_reset_view_point = True
     for kitti_file_data in dataset.list_file_data:

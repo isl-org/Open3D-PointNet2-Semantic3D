@@ -112,11 +112,6 @@ class Predictor:
         return pred_labels
 
     def interpolate_labels(self, sparse_points, sparse_labels, dense_points):
-        # sparse_points: m * 3
-        # dense_points: n * 3
-        # indices_list: 1 * n * 3
-        # print(sparse_points.shape)
-        # print(dense_points.shape)
         s = time.time()
         dense_labels = self.sess.run(
             self.ops["sparse_indices"],

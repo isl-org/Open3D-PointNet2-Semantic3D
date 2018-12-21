@@ -46,14 +46,18 @@ inline int get_most_frequent_element(const std::vector<int> &nums) {
 // InterpolateLabel
 ///////////////////////////////////////////////////////////////////////////////
 REGISTER_OP("InterpolateLabel")
-    .Input("sparse_points: float32")
-    .Input("sparse_labels: int32")
-    .Input("dense_points: float32")
-    .Output("dense_labels: int32")
+    .Input("sparse_points: float32")  // (num_sparse_points, 3)
+    .Input("sparse_labels: int32")    // (num_sparse_points, 3)
+    .Input("dense_points: float32")   // (num_dense_points, 3)
+    .Output("dense_labels: int32")    // (num_dense_points,)
     .SetShapeFn([](::tensorflow::shape_inference::InferenceContext *c) {
-        c->set_output(0, c->input(0));
-        c->set_output(1, c->input(0));
-        c->set_output(2, c->input(0));
+        // (num_dense_points, 3)
+        ::tensorflow::shape_inference::ShapeHandle dense_points_shape;
+        c->WithRank(c->input(2), 2, &dense_points_shape);
+        // (num_dense_points,)
+        ::tensorflow::shape_inference::ShapeHandle dense_labels_shape =
+            c->MakeShape({c->Dim(dense_points_shape, 0)});
+        c->set_output(0, dense_labels_shape);
         return Status::OK();
     });
 

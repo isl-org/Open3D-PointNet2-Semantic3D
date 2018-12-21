@@ -38,11 +38,12 @@ class KittiFileData(SemanticFileData):
         self.colors = self.colors[sort_idx]
 
     def get_batch_of_one_z_box_from_origin(self, num_points_per_sample):
-        extract_mask = self._extract_z_box(np.array([0, 0, 0]))
-        points = self.points[extract_mask]
+        # This point cloud has already been cropped near the origin
+        # extract_mask = self._extract_z_box(np.array([0, 0, 0]))
+        # points = self.points[extract_mask]
 
-        sample_mask = self._get_fix_sized_sample_mask(points, num_points_per_sample)
-        points = points[sample_mask]
+        sample_mask = self._get_fix_sized_sample_mask(self.points, num_points_per_sample)
+        points = self.points[sample_mask]
 
         centered_points = self._center_box(points)
 

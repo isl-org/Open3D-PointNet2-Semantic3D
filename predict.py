@@ -128,11 +128,11 @@ class Predictor:
             },
         )
         print("sess.run interpolate_labels time", time.time() - s)
-        dense_labels_2 = interpolate_dense_labels_simple(
-            sparse_points, sparse_labels, dense_points, k=3
-        )
-        print("num_equal:", np.sum(dense_labels == dense_labels_2))
-        print("num_not_equal:", np.sum(dense_labels != dense_labels_2))
+        # dense_labels_2 = interpolate_dense_labels_simple(
+        #     sparse_points, sparse_labels, dense_points, k=3
+        # )
+        # print("num_equal:", np.sum(dense_labels == dense_labels_2))
+        # print("num_not_equal:", np.sum(dense_labels != dense_labels_2))
         return dense_labels
 
 

@@ -18,13 +18,19 @@ def interpolate_dense_labels_simple(sparse_points, sparse_labels, dense_points, 
     sparse_pcd_tree = open3d.KDTreeFlann(sparse_pcd)
 
     dense_labels = []
+    counter = 0
     for dense_point in dense_points:
         result_k, sparse_indexes, _ = sparse_pcd_tree.search_knn_vector_3d(
             dense_point, k
         )
         knn_sparse_labels = sparse_labels[sparse_indexes]
-        dense_label = np.bincount(knn_sparse_labels).argmax()
+        if len(np.unique(knn_sparse_labels)) == len(knn_sparse_labels):
+            # Fix skew, since bincount+argmax output smallest value if all unique
+            dense_label = knn_sparse_labels[0]
+        else:
+            dense_label = np.bincount(knn_sparse_labels).argmax()
         dense_labels.append(dense_label)
+        counter += 1
     return dense_labels
 
 
@@ -119,19 +125,9 @@ class Predictor:
             },
         )
         print("sess.run interpolate_labels time", time.time() - s)
-
-        # # todo: put this in TF
-        # dense_labels = [
-        #     np.bincount(sparse_labels[indices]).argmax() for indices in indices_list
-        # ]
-
         dense_labels_2 = interpolate_dense_labels_simple(
             sparse_points, sparse_labels, dense_points, k=3
         )
-
-        print("num_equal", np.sum(dense_labels == dense_labels_2))
-        print("num_not_equal", np.sum(dense_labels != dense_labels_2))
-
         np.testing.assert_array_equal(dense_labels, dense_labels_2)
         return dense_labels
 

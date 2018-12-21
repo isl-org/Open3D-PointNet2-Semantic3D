@@ -29,16 +29,17 @@ std::vector<Eigen::Vector3d> buffer_to_eigen_vector(const float *buffer,
 
 inline int get_most_frequent_element(const std::vector<int> &nums) {
     std::unordered_map<int, int> map_num_to_count;
-    for (int num : nums) {
+    for (const int &num : nums) {
         map_num_to_count[num]++;
     }
 
     int max_count = 0;
     int most_frequent_num = -1;
-    for (auto it : map_num_to_count) {
-        if (max_count < it.second) {
-            most_frequent_num = it.first;
-            max_count = it.second;
+    for (const int &num : nums) {
+        int count = map_num_to_count[num];
+        if (count > max_count) {
+            most_frequent_num = num;
+            max_count = count;
         }
     }
     return most_frequent_num;

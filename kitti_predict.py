@@ -217,4 +217,8 @@ if __name__ == "__main__":
             timer["write_data"] += time.time() - start_time
 
         timer["total"] += time.time() - global_start_time
-        print(timer)
+
+        # Print timer
+        fmt_string = "[{:5.2f} FPS] " + ": {:.04f}, ".join(timer.keys()) + ": {:.04f}"
+        fmt_values = [1.0 / timer["total"]] + list(timer.values())
+        print(fmt_string.format(*fmt_values))

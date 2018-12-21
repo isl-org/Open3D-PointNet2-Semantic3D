@@ -59,7 +59,7 @@ class PredictInterpolator:
             sparse_points = tf.reshape(pl_sparse_points_batched, [-1, 3])
             pl_dense_points = tf.placeholder(tf.float32, (None, 3))
             pl_knn = tf.placeholder(tf.int32, ())
-            dense_labels = interpolate_label(
+            dense_labels, dense_colors = interpolate_label(
                 sparse_points, sparse_labels, pl_dense_points, pl_knn
             )
 
@@ -70,6 +70,7 @@ class PredictInterpolator:
             "pl_is_training": pl_is_training,
             "pl_knn": pl_knn,
             "dense_labels": dense_labels,
+            "dense_colors": dense_colors,
         }
 
         # Restore checkpoint to session
@@ -94,8 +95,8 @@ class PredictInterpolator:
             run_metadata = tf.RunMetadata()
         if run_options is None:
             run_options = tf.RunOptions()
-        dense_labels_val = self.sess.run(
-            self.ops["dense_labels"],
+        dense_labels_val, dense_colors_val = self.sess.run(
+            [self.ops["dense_labels"], self.ops["dense_colors"]],
             feed_dict={
                 self.ops[
                     "pl_sparse_points_centered_batched"
@@ -109,7 +110,7 @@ class PredictInterpolator:
             run_metadata=run_metadata,
         )
         print("sess.run interpolate_labels time", time.time() - s)
-        return dense_labels_val
+        return dense_labels_val, dense_colors_val
 
 
 if __name__ == "__main__":
@@ -167,7 +168,6 @@ if __name__ == "__main__":
             "load_data": 0,
             "predict_interpolate": 0,
             "visualize": 0,
-            "colorize": 0,
             "write_data": 0,
             "total": 0,
         }
@@ -190,7 +190,7 @@ if __name__ == "__main__":
         # Predict and interpolate
         start_time = time.time()
         dense_points = kitti_file_data.points
-        dense_labels = predictor.predict_and_interpolate(
+        dense_labels, dense_colors = predictor.predict_and_interpolate(
             sparse_points_centered_batched=points_centered,  # (batch_size, num_sparse_points, 3)
             sparse_points_batched=points,  # (batch_size, num_sparse_points, 3)
             dense_points=dense_points,  # (num_dense_points, 3)
@@ -200,9 +200,7 @@ if __name__ == "__main__":
         # Visualize
         start_time = time.time()
         dense_pcd.points = open3d.Vector3dVector(dense_points.reshape((-1, 3)))
-        colorize_start = time.time()
-        colorize_point_cloud(dense_pcd, dense_labels)
-        timer["colorize"] = time.time() - colorize_start
+        dense_pcd.colors = open3d.Vector3dVector(dense_colors.reshape((-1, 3)))
         vis.update_geometry()
         if to_reset_view_point:
             vis.reset_view_point(True)

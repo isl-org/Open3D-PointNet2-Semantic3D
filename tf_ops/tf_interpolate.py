@@ -37,6 +37,7 @@ def interpolate_label(sparse_points, sparse_labels, dense_points, knn):
         knn: int, use k-NN for label interpolation
     Output:
         dense_labels:  (num_dense_points,) int32 array, indices
+        dense_colors:  (num_dense_points, 3) uint8 array, colors for dense_labels
     """
     return interpolate_module.interpolate_label(
         sparse_points, sparse_labels, dense_points, knn

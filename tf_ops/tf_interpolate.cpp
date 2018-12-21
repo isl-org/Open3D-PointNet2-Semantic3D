@@ -51,6 +51,7 @@ REGISTER_OP("InterpolateLabel")
     .Input("dense_points: float32")   // (num_dense_points, 3)
     .Input("knn: int32")              // (num_dense_points, 3)
     .Output("dense_labels: int32")    // (num_dense_points,)
+    .Output("dense_colors: uint8")    // (num_dense_points, 3)
     .SetShapeFn([](::tensorflow::shape_inference::InferenceContext *c) {
         // (num_dense_points, 3)
         ::tensorflow::shape_inference::ShapeHandle dense_points_shape;
@@ -59,13 +60,14 @@ REGISTER_OP("InterpolateLabel")
         ::tensorflow::shape_inference::ShapeHandle dense_labels_shape =
             c->MakeShape({c->Dim(dense_points_shape, 0)});
         c->set_output(0, dense_labels_shape);
+        c->set_output(1, dense_points_shape);
         return Status::OK();
     });
 
 void interpolate_label_cpu(int num_sparse_points, int num_dense_points,
                            const float *sparse_points, const int *sparse_labels,
                            const float *dense_points, int *dense_labels,
-                           int knn) {
+                           uint8_t *dense_colors, int knn) {
     open3d::PointCloud reference_pcd;
 
     reference_pcd.points_ =
@@ -101,6 +103,11 @@ void interpolate_label_cpu(int num_sparse_points, int num_dense_points,
             }
         }
         dense_labels[j] = most_frequent_label;
+
+        // Assign colors
+        dense_colors[j * 3] = 0;
+        dense_colors[j * 3 + 1] = 0;
+        dense_colors[j * 3 + 2] = 0;
     }
 }
 
@@ -158,9 +165,17 @@ class InterpolateLabelOp : public OpKernel {
         auto dense_labels_flat = dense_labels_tensor->flat<int>();
         int *dense_labels = &(dense_labels_flat(0));
 
+        // Output: dense_colors
+        Tensor *dense_colors_tensor = nullptr;
+        OP_REQUIRES_OK(context, context->allocate_output(
+                                    1, TensorShape{num_dense_points, 3},
+                                    &dense_colors_tensor));
+        auto dense_colors_flat = dense_colors_tensor->flat<uint8_t>();
+        uint8_t *dense_colors = &(dense_colors_flat(0));
+
         interpolate_label_cpu(num_sparse_points, num_dense_points,
                               sparse_points, sparse_labels, dense_points,
-                              dense_labels, knn);
+                              dense_labels, dense_colors, knn);
     }
 };
 REGISTER_KERNEL_BUILDER(Name("InterpolateLabel").Device(DEVICE_CPU),

@@ -54,7 +54,7 @@ REGISTER_OP("InterpolateLabel")
     .SetShapeFn([](::tensorflow::shape_inference::InferenceContext *c) {
         // (num_dense_points, 3)
         ::tensorflow::shape_inference::ShapeHandle dense_points_shape;
-        c->WithRank(c->input(2), 2, &dense_points_shape);
+        TF_RETURN_IF_ERROR(c->WithRank(c->input(2), 2, &dense_points_shape));
         // (num_dense_points,)
         ::tensorflow::shape_inference::ShapeHandle dense_labels_shape =
             c->MakeShape({c->Dim(dense_points_shape, 0)});
@@ -298,9 +298,9 @@ REGISTER_OP("ThreeInterpolate")
     .Output("out: float32")
     .SetShapeFn([](::tensorflow::shape_inference::InferenceContext *c) {
         ::tensorflow::shape_inference::ShapeHandle dims1;  // (b,m,c)
-        c->WithRank(c->input(0), 3, &dims1);
+        TF_RETURN_IF_ERROR(c->WithRank(c->input(0), 3, &dims1));
         ::tensorflow::shape_inference::ShapeHandle dims2;  // (b,n,3)
-        c->WithRank(c->input(1), 3, &dims2);
+        TF_RETURN_IF_ERROR(c->WithRank(c->input(1), 3, &dims2));
         // (b,n,c)
         ::tensorflow::shape_inference::ShapeHandle output = c->MakeShape(
             {c->Dim(dims1, 0), c->Dim(dims2, 1), c->Dim(dims1, 2)});

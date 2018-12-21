@@ -102,7 +102,7 @@ class InterpolateLabelOp : public OpKernel {
         : OpKernel(context) {}
 
     void Compute(OpKernelContext *context) override {
-        // sparse_points input
+        // Input: sparse_points
         const Tensor &sparse_points_tensor = context->input(0);
         OP_REQUIRES(context,
                     sparse_points_tensor.dims() == 2 &&
@@ -110,8 +110,10 @@ class InterpolateLabelOp : public OpKernel {
                     errors::InvalidArgument(
                         "sparse_points must be: (num_sparse_points, 3)"));
         int num_sparse_points = sparse_points_tensor.shape().dim_size(0);
+        auto sparse_points_flat = sparse_points_tensor.flat<float>();
+        const float *sparse_points = &(sparse_points_flat(0));
 
-        // sparse_labels input
+        // Input: sparse_labels
         const Tensor &sparse_labels_tensor = context->input(1);
         OP_REQUIRES(
             context,
@@ -119,8 +121,10 @@ class InterpolateLabelOp : public OpKernel {
                 sparse_labels_tensor.shape().dim_size(0) == num_sparse_points,
             errors::InvalidArgument(
                 "sparse_labels must be: (num_sparse_points, 3)"));
+        auto sparse_labels_flat = sparse_labels_tensor.flat<int>();
+        const int *sparse_labels = &(sparse_labels_flat(0));
 
-        // dense_points input
+        // Input: dense_points
         const Tensor &dense_points_tensor = context->input(2);
         OP_REQUIRES(context,
                     dense_points_tensor.dims() == 2 &&
@@ -128,37 +132,23 @@ class InterpolateLabelOp : public OpKernel {
                     errors::InvalidArgument(
                         "dense_points must be: (num_dense_points, 3)"));
         int num_dense_points = dense_points_tensor.shape().dim_size(0);
-
-        // k input
-        const Tensor &k_tensor = context->input(3);
-        OP_REQUIRES(context, k_tensor.dims() == 0,
-                    errors::InvalidArgument("k must be a scalar"));
-
-        // dense_labels output
-        Tensor *dense_labels_tensor = nullptr;
-        OP_REQUIRES_OK(
-            context, context->allocate_output(0, TensorShape{num_dense_points},
-                                              &dense_labels_tensor));
-
-        // sparse_points binding
-        auto sparse_points_flat = sparse_points_tensor.flat<float>();
-        const float *sparse_points = &(sparse_points_flat(0));
-
-        // sparse_labels binding
-        auto sparse_labels_flat = sparse_labels_tensor.flat<int>();
-        const int *sparse_labels = &(sparse_labels_flat(0));
-
-        // dense_points binding
         auto dense_points_flat = dense_points_tensor.flat<float>();
         const float *dense_points = &(dense_points_flat(0));
 
-        // k binding
+        // Input: k
+        const Tensor &k_tensor = context->input(3);
+        OP_REQUIRES(context, k_tensor.dims() == 0,
+                    errors::InvalidArgument("k must be a scalar"));
         auto k_flat = k_tensor.flat<int>();
         const int *k_ptr = &(k_flat(0));
         const int k = k_ptr[0];
         std::cout << "k in c++ " << k << std::endl;
 
-        // idx binding
+        // Output: dense_labels
+        Tensor *dense_labels_tensor = nullptr;
+        OP_REQUIRES_OK(
+            context, context->allocate_output(0, TensorShape{num_dense_points},
+                                              &dense_labels_tensor));
         auto dense_labels_flat = dense_labels_tensor->flat<int>();
         int *dense_labels = &(dense_labels_flat(0));
 

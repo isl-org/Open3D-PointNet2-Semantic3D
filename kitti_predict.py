@@ -9,6 +9,7 @@ import time
 import model
 from dataset.kitti_dataset import KittiDataset
 from tf_ops.tf_interpolate import interpolate_label
+from util.point_cloud_util import label_to_colors
 
 
 def interpolate_dense_labels(sparse_points, sparse_labels, dense_points, k=3):
@@ -68,6 +69,8 @@ class PredictInterpolator:
             "pl_dense_points": pl_dense_points,
             "pl_is_training": pl_is_training,
             "pl_knn": pl_knn,
+            "sparse_labels": sparse_labels,
+            "sparse_points": sparse_points,  # pl_sparse_points_batched reshaped
             "dense_labels": dense_labels,
             "dense_colors": dense_colors,
         }
@@ -100,8 +103,48 @@ class PredictInterpolator:
                 self.ops["pl_knn"]: 3,
                 self.ops["pl_is_training"]: False,
             },
+            options=run_options,
+            run_metadata=run_metadata,
         )
         return dense_labels_val, dense_colors_val
+
+    def predict_and_interpolate_with_python(
+        self,
+        sparse_points_centered_batched,
+        sparse_points_batched,
+        dense_points,
+        run_metadata=None,
+        run_options=None,
+    ):
+        sparse_labels, sparse_points = self.sess.run(
+            [self.ops["sparse_labels"], self.ops["sparse_points"]],
+            feed_dict={
+                self.ops[
+                    "pl_sparse_points_centered_batched"
+                ]: sparse_points_centered_batched,
+                self.ops["pl_sparse_points_batched"]: sparse_points_batched,
+                self.ops["pl_is_training"]: False,
+            },
+            options=run_options,
+            run_metadata=run_metadata,
+        )
+
+        dense_labels = interpolate_dense_labels(
+            sparse_points, sparse_labels, dense_points, k=3
+        )
+        dense_colors = label_to_colors(dense_labels)
+
+        dense_labels_cpp, dense_colors_cpp = self.predict_and_interpolate(
+            sparse_points_centered_batched,
+            sparse_points_batched,
+            dense_points,
+            run_metadata,
+            run_options,
+        )
+        np.testing.assert_allclose(dense_labels, dense_labels_cpp)
+        np.testing.assert_allclose(dense_colors, dense_colors_cpp)
+
+        return dense_labels, dense_colors
 
 
 if __name__ == "__main__":
@@ -181,7 +224,7 @@ if __name__ == "__main__":
         # Predict and interpolate
         start_time = time.time()
         dense_points = kitti_file_data.points
-        dense_labels, dense_colors = predictor.predict_and_interpolate(
+        dense_labels, dense_colors = predictor.predict_and_interpolate_with_python(
             sparse_points_centered_batched=points_centered,  # (batch_size, num_sparse_points, 3)
             sparse_points_batched=points,  # (batch_size, num_sparse_points, 3)
             dense_points=dense_points,  # (num_dense_points, 3)

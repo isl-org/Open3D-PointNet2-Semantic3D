@@ -3,22 +3,25 @@ import numpy as np
 import tensorflow as tf
 import time
 
-from predict import Predictor
+from kitti_predict import PredictInterpolator
 
 
 if __name__ == "__main__":
-    checkpoint = "logs/semantic_backup_full_submit_dec_10/best_model_epoch_275.ckpt"
-    hyper_params = json.loads(open("semantic.json").read())
-    predictor = Predictor(
+    checkpoint = "log/semantic/best_model_epoch_060.ckpt"
+    hyper_params = json.loads(open("semantic_no_color.json").read())
+    predictor = PredictInterpolator(
         checkpoint_path=checkpoint, num_classes=9, hyper_params=hyper_params
     )
 
-    batch_size = 64
+    batch_size = 1
+
     # Init data
-    points_with_colors = np.random.randn(batch_size, hyper_params["num_point"], 6)
+    sparse_points_centered_batched = np.random.randn(
+        batch_size, hyper_params["num_point"], 3
+    )
 
     # Warm up
-    pd_labels = predictor.predict(points_with_colors)
+    pd_labels = predictor.predict(sparse_points_centered_batched)
 
     # Benchmark
     s = time.time()
@@ -28,7 +31,9 @@ if __name__ == "__main__":
     run_metadata = tf.RunMetadata()
 
     _ = predictor.predict(
-        points_with_colors, run_options=run_options, run_metadata=run_metadata
+        sparse_points_centered_batched,
+        run_options=run_options,
+        run_metadata=run_metadata,
     )
 
     profiler.add_step(0, run_metadata)
@@ -50,23 +55,24 @@ if __name__ == "__main__":
         .order_by("micros")
         .build()
     )
+
     # Profiling info about ops are saved in 'test-%s.txt' % FLAGS.out
     profiler.profile_operations(options=opts)
 
-    for batch_size in [2 ** n for n in range(8)]:
-        # Init data
-        points_with_colors = np.random.randn(batch_size, hyper_params["num_point"], 6)
-
-        # Warm up
-        pd_labels = predictor.predict(points_with_colors)
-
-        # Benchmark
-        s = time.time()
-        _ = predictor.predict(points_with_colors)
-        batch_time = time.time() - s
-        sample_time = batch_time / batch_size
-        print(
-            "Batch size: {}, batch_time: {}, sample_time: {}".format(
-                batch_size, batch_time, sample_time
-            )
-        )
+    # for batch_size in [2 ** n for n in range(8)]:
+    #     # Init data
+    #     sparse_points_centered_batched = np.random.randn(batch_size, hyper_params["num_point"], 6)
+    #
+    #     # Warm up
+    #     pd_labels = predictor.predict(sparse_points_centered_batched)
+    #
+    #     # Benchmark
+    #     s = time.time()
+    #     _ = predictor.predict(sparse_points_centered_batched)
+    #     batch_time = time.time() - s
+    #     sample_time = batch_time / batch_size
+    #     print(
+    #         "Batch size: {}, batch_time: {}, sample_time: {}".format(
+    #             batch_size, batch_time, sample_time
+    #         )
+    #     )

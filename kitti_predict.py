@@ -108,6 +108,22 @@ class PredictInterpolator:
         )
         return dense_labels_val, dense_colors_val
 
+    def predict(
+        self, sparse_points_centered_batched, run_metadata=None, run_options=None
+    ):
+        sparse_labels = self.sess.run(
+            self.ops["sparse_labels"],
+            feed_dict={
+                self.ops[
+                    "pl_sparse_points_centered_batched"
+                ]: sparse_points_centered_batched,
+                self.ops["pl_is_training"]: False,
+            },
+            options=run_options,
+            run_metadata=run_metadata,
+        )
+        return sparse_labels
+
     def predict_and_interpolate_with_python(
         self,
         sparse_points_centered_batched,
@@ -116,18 +132,15 @@ class PredictInterpolator:
         run_metadata=None,
         run_options=None,
     ):
-        sparse_labels, sparse_points = self.sess.run(
-            [self.ops["sparse_labels"], self.ops["sparse_points"]],
-            feed_dict={
-                self.ops[
-                    "pl_sparse_points_centered_batched"
-                ]: sparse_points_centered_batched,
-                self.ops["pl_sparse_points_batched"]: sparse_points_batched,
-                self.ops["pl_is_training"]: False,
-            },
-            options=run_options,
+        import ipdb
+
+        ipdb.set_trace()
+        sparse_labels = self.predict(
+            sparse_points_centered_batched,
             run_metadata=run_metadata,
+            run_options=run_options,
         )
+        sparse_points = np.reshape(sparse_points_batched, (-1, 3))
 
         dense_labels = interpolate_dense_labels(
             sparse_points, sparse_labels, dense_points, k=3
@@ -141,8 +154,8 @@ class PredictInterpolator:
         #     sparse_points_centered_batched,
         #     sparse_points_batched,
         #     dense_points,
-        #     run_metadata,
-        #     run_options,
+        #     run_metadata=run_metadata,
+        #     run_options=run_options,
         # )
         # num_same = np.sum(dense_labels == dense_labels_cpp)
         # num_diff = np.sum(dense_labels != dense_labels_cpp)

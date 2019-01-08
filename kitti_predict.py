@@ -132,9 +132,6 @@ class PredictInterpolator:
         run_metadata=None,
         run_options=None,
     ):
-        import ipdb
-
-        ipdb.set_trace()
         sparse_labels = self.predict(
             sparse_points_centered_batched,
             run_metadata=run_metadata,

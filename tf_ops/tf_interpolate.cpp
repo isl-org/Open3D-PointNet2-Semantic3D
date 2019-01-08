@@ -211,7 +211,7 @@ REGISTER_OP("ThreeNN")
 // - indices (b, n, 3): (64, 8192, 3), for each input point in target_points,
 //   find 3 nearest neighbors in base_points and return the indexes in
 //   base_points, the "3" means "3" nearest neighbors
-void threenn_cpu_fast(int b, int n, int m, const float *xyz1, const float *xyz2,
+void threenn_cpu(int b, int n, int m, const float *xyz1, const float *xyz2,
                       float *dists, int *indices) {
     // OPENMP only sees benefits if b is large, e.g. b == 64
     // #ifdef _OPENMP
@@ -243,7 +243,7 @@ void threenn_cpu_fast(int b, int n, int m, const float *xyz1, const float *xyz2,
     }
 }
 
-void threenn_cpu(int b, int n, int m, const float *xyz1, const float *xyz2,
+void threenn_cpu_slow(int b, int n, int m, const float *xyz1, const float *xyz2,
                  float *dist, int *idx) {
     for (int i = 0; i < b; ++i) {
         for (int j = 0; j < n; ++j) {

@@ -241,7 +241,7 @@ if __name__ == "__main__":
         # Predict and interpolate
         start_time = time.time()
         dense_points = kitti_file_data.points
-        dense_labels, dense_colors = predictor.predict_and_interpolate_with_python(
+        dense_labels, dense_colors = predictor.predict_and_interpolate(
             sparse_points_centered_batched=points_centered,  # (batch_size, num_sparse_points, 3)
             sparse_points_batched=points,  # (batch_size, num_sparse_points, 3)
             dense_points=dense_points,  # (num_dense_points, 3)

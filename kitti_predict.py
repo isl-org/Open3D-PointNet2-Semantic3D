@@ -53,12 +53,18 @@ class PredictInterpolator:
             # Saver
             saver = tf.train.Saver()
 
-            # Graph for interpolating labels
+            # Get label-colored sparse point cloud, a hacky way to use interpolate_label
+            # This can be replaced with a dedicated colorization op
             # Assuming batch_size == 1 for simplicity
             pl_sparse_points_batched = tf.placeholder(tf.float32, (None, None, 3))
-            sparse_points = tf.reshape(pl_sparse_points_batched, [-1, 3])
-            pl_dense_points = tf.placeholder(tf.float32, (None, 3))
             pl_knn = tf.placeholder(tf.int32, ())
+            sparse_points = tf.reshape(pl_sparse_points_batched, [-1, 3])
+            _, sparse_colors = interpolate_label(
+                sparse_points, sparse_labels, sparse_points, pl_knn
+            )
+
+            # Graph for interpolating labels
+            pl_dense_points = tf.placeholder(tf.float32, (None, 3))
             dense_labels, dense_colors = interpolate_label(
                 sparse_points, sparse_labels, pl_dense_points, pl_knn
             )
@@ -71,6 +77,7 @@ class PredictInterpolator:
             "pl_knn": pl_knn,
             "sparse_labels": sparse_labels,
             "sparse_points": sparse_points,  # pl_sparse_points_batched reshaped
+            "sparse_colors": sparse_colors,
             "dense_labels": dense_labels,
             "dense_colors": dense_colors,
         }
@@ -92,7 +99,7 @@ class PredictInterpolator:
         run_metadata=None,
         run_options=None,
     ):
-        dense_labels_val, dense_colors_val = self.sess.run(
+        return self.sess.run(
             [self.ops["dense_labels"], self.ops["dense_colors"]],
             feed_dict={
                 self.ops[
@@ -106,7 +113,34 @@ class PredictInterpolator:
             options=run_options,
             run_metadata=run_metadata,
         )
-        return dense_labels_val, dense_colors_val
+
+    def predict_and_interpolate_with_sparse_output(
+        self,
+        sparse_points_centered_batched,
+        sparse_points_batched,
+        dense_points,
+        run_metadata=None,
+        run_options=None,
+    ):
+        return self.sess.run(
+            [
+                self.ops["sparse_labels"],
+                self.ops["sparse_colors"],
+                self.ops["dense_labels"],
+                self.ops["dense_colors"],
+            ],
+            feed_dict={
+                self.ops[
+                    "pl_sparse_points_centered_batched"
+                ]: sparse_points_centered_batched,
+                self.ops["pl_sparse_points_batched"]: sparse_points_batched,
+                self.ops["pl_dense_points"]: dense_points,
+                self.ops["pl_knn"]: 3,
+                self.ops["pl_is_training"]: False,
+            },
+            options=run_options,
+            run_metadata=run_metadata,
+        )
 
     def predict(
         self, sparse_points_centered_batched, run_metadata=None, run_options=None
@@ -241,7 +275,7 @@ if __name__ == "__main__":
         # Predict and interpolate
         start_time = time.time()
         dense_points = kitti_file_data.points
-        dense_labels, dense_colors = predictor.predict_and_interpolate(
+        sparse_labels, sparse_colors, dense_labels, dense_colors = predictor.predict_and_interpolate_with_sparse_output(
             sparse_points_centered_batched=points_centered,  # (batch_size, num_sparse_points, 3)
             sparse_points_batched=points,  # (batch_size, num_sparse_points, 3)
             dense_points=dense_points,  # (num_dense_points, 3)
@@ -260,13 +294,18 @@ if __name__ == "__main__":
         vis.update_renderer()
         timer["visualize"] += time.time() - start_time
 
-        # Save dense point cloud with predicted labels
+        # Save sparse and dense point cloud with predicted labels
         if flags.save:
             start_time = time.time()
             file_prefix = os.path.basename(kitti_file_data.file_path_without_ext)
 
-            dense_pcd = open3d.PointCloud()
-            dense_pcd.points = open3d.Vector3dVector(dense_points.reshape((-1, 3)))
+            sparse_pcd = open3d.PointCloud()
+            sparse_pcd.points = open3d.Vector3dVector(points_centered.reshape((-1, 3)))
+            sparse_pcd.colors = open3d.Vector3dVector(sparse_colors.astype(np.float64))
+            sparse_pcd_path = os.path.join(sparse_output_dir, file_prefix + ".pcd")
+            open3d.write_point_cloud(sparse_pcd_path, sparse_pcd)
+            print("Exported sparse_pcd to {}".format(sparse_pcd_path))
+
             dense_pcd_path = os.path.join(dense_output_dir, file_prefix + ".pcd")
             open3d.write_point_cloud(dense_pcd_path, dense_pcd)
             print("Exported dense_pcd to {}".format(dense_pcd_path))
@@ -282,3 +321,5 @@ if __name__ == "__main__":
         fmt_string = "[{:5.2f} FPS] " + ": {:.04f}, ".join(timer.keys()) + ": {:.04f}"
         fmt_values = [1.0 / timer["total"]] + list(timer.values())
         print(fmt_string.format(*fmt_values))
+
+        time.sleep(1)

@@ -117,6 +117,9 @@ if __name__ == "__main__":
     )
     parser.add_argument("--ckpt", default="", help="Checkpoint file")
     parser.add_argument("--save", action="store_true", default=False)
+    parser.add_argument(
+        "--kitti_root", default="", help="Checkpoint file", required=True
+    )
     flags = parser.parse_args()
     hyper_params = json.loads(open("semantic_no_color.json").read())
 
@@ -129,7 +132,7 @@ if __name__ == "__main__":
     # Dataset
     dataset = KittiDataset(
         num_points_per_sample=hyper_params["num_point"],
-        base_dir="/home/ylao/data/kitti",
+        base_dir=flags.kitti_root,
         dates=["2011_09_26"],
         # drives=["0095", "0001"],
         drives=["0095"],

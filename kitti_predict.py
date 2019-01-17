@@ -8,7 +8,7 @@ import time
 
 import model
 from dataset.kitti_dataset import KittiDataset
-from tf_ops.tf_interpolate import interpolate_label
+from tf_ops.tf_interpolate import interpolate_label_with_color
 
 
 def interpolate_dense_labels(sparse_points, sparse_labels, dense_points, k=3):
@@ -58,7 +58,7 @@ class PredictInterpolator:
             sparse_points = tf.reshape(pl_sparse_points_batched, [-1, 3])
             pl_dense_points = tf.placeholder(tf.float32, (None, 3))
             pl_knn = tf.placeholder(tf.int32, ())
-            dense_labels, dense_colors = interpolate_label(
+            dense_labels, dense_colors = interpolate_label_with_color(
                 sparse_points, sparse_labels, pl_dense_points, pl_knn
             )
 

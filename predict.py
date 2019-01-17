@@ -37,7 +37,7 @@ class Predictor:
             pl_sparse_labels = tf.placeholder(tf.int32, (None,))
             pl_dense_points = tf.placeholder(tf.float32, (None, 3))
             pl_knn = tf.placeholder(tf.int32, ())
-            sparse_indices = interpolate_label_with_color(
+            dense_labels, dense_colors = interpolate_label_with_color(
                 pl_sparse_points, pl_sparse_labels, pl_dense_points, pl_knn
             )
 
@@ -49,7 +49,8 @@ class Predictor:
             "pl_sparse_labels": pl_sparse_labels,
             "pl_dense_points": pl_dense_points,
             "pl_knn": pl_knn,
-            "sparse_indices": sparse_indices,
+            "dense_labels": dense_labels,
+            "dense_colors": dense_colors,
         }
 
         # Restore checkpoint to session
@@ -91,7 +92,7 @@ class Predictor:
 
     def interpolate_labels(self, sparse_points, sparse_labels, dense_points):
         s = time.time()
-        dense_labels = self.sess.run(
+        dense_labels, dense_colors = self.sess.run(
             self.ops["sparse_indices"],
             feed_dict={
                 self.ops["pl_sparse_points"]: sparse_points,
@@ -101,7 +102,7 @@ class Predictor:
             },
         )
         print("sess.run interpolate_labels time", time.time() - s)
-        return dense_labels
+        return dense_labels, dense_colors
 
 
 if __name__ == "__main__":
@@ -113,7 +114,7 @@ if __name__ == "__main__":
         "--num_samples",
         type=int,
         default=8,
-        help="# samples, each contains num_point points",
+        help="# samples, each contains num_point points_centered",
     )
     parser.add_argument("--ckpt", default="", help="Checkpoint file")
     parser.add_argument("--set", default="validation", help="train, validation, test")
@@ -149,7 +150,7 @@ if __name__ == "__main__":
         print("Processing {}".format(semantic_file_data))
 
         # Predict for num_samples times
-        points_raw_collector = []
+        points_collector = []
         pd_labels_collector = []
 
         # If flags.num_samples < batch_size, will predict one batch
@@ -159,26 +160,28 @@ if __name__ == "__main__":
             )
 
             # Get data
-            points, points_raw, gt_labels, colors = semantic_file_data.sample_batch(
+            points_centered, points, gt_labels, colors = semantic_file_data.sample_batch(
                 batch_size=current_batch_size,
                 num_points_per_sample=hyper_params["num_point"],
             )
 
             # (bs, 8192, 3) concat (bs, 8192, 3) -> (bs, 8192, 6)
             if hyper_params["use_color"]:
-                points_with_colors = np.concatenate((points, colors), axis=-1)
+                points_centered_with_colors = np.concatenate(
+                    (points_centered, colors), axis=-1
+                )
             else:
-                points_with_colors = points
+                points_centered_with_colors = points_centered
 
             # Predict
             s = time.time()
-            pd_labels = predictor.predict(points_with_colors)
+            pd_labels = predictor.predict(points_centered_with_colors)
             print(
                 "Batch size: {}, time: {}".format(current_batch_size, time.time() - s)
             )
 
             # Save to collector for file output
-            points_raw_collector.extend(points_raw)
+            points_collector.extend(points)
             pd_labels_collector.extend(pd_labels)
 
             # Increment confusion matrix
@@ -187,16 +190,16 @@ if __name__ == "__main__":
         # Save sparse point cloud and predicted labels
         file_prefix = os.path.basename(semantic_file_data.file_path_without_ext)
 
-        points_raw_collector = np.array(points_raw_collector)
+        sparse_points = np.array(points_collector).reshape((-1, 3))
         pcd = open3d.PointCloud()
-        pcd.points = open3d.Vector3dVector(points_raw_collector.reshape((-1, 3)))
+        pcd.points = open3d.Vector3dVector(sparse_points)
         pcd_path = os.path.join(output_dir, file_prefix + ".pcd")
         open3d.write_point_cloud(pcd_path, pcd)
-        print("Exported pcd to {}".format(pcd_path))
+        print("Exported sparse pcd to {}".format(pcd_path))
 
-        pd_labels_collector = np.array(pd_labels_collector).astype(int)
+        sparse_labels = np.array(pd_labels_collector).astype(int).flatten()
         pd_labels_path = os.path.join(output_dir, file_prefix + ".labels")
-        np.savetxt(pd_labels_path, pd_labels_collector.flatten(), fmt="%d")
-        print("Exported labels to {}".format(pd_labels_path))
+        np.savetxt(pd_labels_path, sparse_labels, fmt="%d")
+        print("Exported sparse labels to {}".format(pd_labels_path))
 
     cm.print_metrics()

@@ -64,7 +64,7 @@ if __name__ == "__main__":
     cm_global = ConfusionMatrix(9)
     interpolator = Interpolator()
 
-    for file_prefix in map_name_to_file_prefixes[flags.set][-1:]:
+    for file_prefix in map_name_to_file_prefixes[flags.set]:
         print("Interpolating:", file_prefix, flush=True)
 
         # Paths
@@ -105,7 +105,7 @@ if __name__ == "__main__":
         dense_labels, dense_colors = interpolator.interpolate_labels(
             sparse_points, sparse_labels, dense_points
         )
-        print("knn match time: ", time.time() - start, flush=True)
+        print("KNN interpolation time: ", time.time() - start, "seconds", flush=True)
 
         # Write dense labels
         write_labels(dense_labels_path, dense_labels)

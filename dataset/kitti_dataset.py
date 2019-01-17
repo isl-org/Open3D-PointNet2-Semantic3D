@@ -42,7 +42,9 @@ class KittiFileData(SemanticFileData):
         # extract_mask = self._extract_z_box(np.array([0, 0, 0]))
         # points = self.points[extract_mask]
 
-        sample_mask = self._get_fix_sized_sample_mask(self.points, num_points_per_sample)
+        sample_mask = self._get_fix_sized_sample_mask(
+            self.points, num_points_per_sample
+        )
         points = self.points[sample_mask]
 
         centered_points = self._center_box(points)

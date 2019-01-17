@@ -25,7 +25,7 @@ def three_nn(xyz1, xyz2):
 ops.NoGradient("ThreeNN")
 
 
-def interpolate_label(sparse_points, sparse_labels, dense_points, knn):
+def interpolate_label_with_color(sparse_points, sparse_labels, dense_points, knn):
     """
     Input:
         sparse_points: (num_sparse_points, 3) float32 array, points
@@ -39,12 +39,12 @@ def interpolate_label(sparse_points, sparse_labels, dense_points, knn):
         dense_labels:  (num_dense_points,) int32 array, indices
         dense_colors:  (num_dense_points, 3) uint8 array, colors for dense_labels
     """
-    return interpolate_module.interpolate_label(
+    return interpolate_module.interpolate_label_with_color(
         sparse_points, sparse_labels, dense_points, knn
     )
 
 
-ops.NoGradient("InterpolateLabel")
+ops.NoGradient("InterpolateLabelWithColor")
 
 
 def three_interpolate(points, idx, weight):

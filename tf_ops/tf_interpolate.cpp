@@ -47,9 +47,9 @@ static const std::vector<std::vector<uint8_t>> map_label_to_color{
     {255, 0, 0},     {128, 0, 128}, {0, 0, 128}, {128, 128, 0}};
 
 ///////////////////////////////////////////////////////////////////////////////
-// InterpolateLabel
+// InterpolateLabelWithColor
 ///////////////////////////////////////////////////////////////////////////////
-REGISTER_OP("InterpolateLabel")
+REGISTER_OP("InterpolateLabelWithColor")
     .Input("sparse_points: float32")  // (num_sparse_points, 3)
     .Input("sparse_labels: int32")    // (num_sparse_points, 3)
     .Input("dense_points: float32")   // (num_dense_points, 3)
@@ -68,12 +68,11 @@ REGISTER_OP("InterpolateLabel")
         return Status::OK();
     });
 
-void interpolate_label_cpu(int num_sparse_points, int num_dense_points,
-                           const float *sparse_points, const int *sparse_labels,
-                           const float *dense_points, int *dense_labels,
-                           uint8_t *dense_colors, int knn) {
+void interpolate_label_with_color_cpu(
+    int num_sparse_points, int num_dense_points, const float *sparse_points,
+    const int *sparse_labels, const float *dense_points, int *dense_labels,
+    uint8_t *dense_colors, int knn) {
     open3d::PointCloud reference_pcd;
-
     reference_pcd.points_ =
         buffer_to_eigen_vector(sparse_points, num_sparse_points * 3);
     open3d::KDTreeFlann reference_kd_tree(reference_pcd);
@@ -115,9 +114,9 @@ void interpolate_label_cpu(int num_sparse_points, int num_dense_points,
     }
 }
 
-class InterpolateLabelOp : public OpKernel {
+class InterpolateLabelWithColorOp : public OpKernel {
    public:
-    explicit InterpolateLabelOp(OpKernelConstruction *context)
+    explicit InterpolateLabelWithColorOp(OpKernelConstruction *context)
         : OpKernel(context) {}
 
     void Compute(OpKernelContext *context) override {
@@ -177,13 +176,13 @@ class InterpolateLabelOp : public OpKernel {
         auto dense_colors_flat = dense_colors_tensor->flat<uint8_t>();
         uint8_t *dense_colors = &(dense_colors_flat(0));
 
-        interpolate_label_cpu(num_sparse_points, num_dense_points,
-                              sparse_points, sparse_labels, dense_points,
-                              dense_labels, dense_colors, knn);
+        interpolate_label_with_color_cpu(
+            num_sparse_points, num_dense_points, sparse_points, sparse_labels,
+            dense_points, dense_labels, dense_colors, knn);
     }
 };
-REGISTER_KERNEL_BUILDER(Name("InterpolateLabel").Device(DEVICE_CPU),
-                        InterpolateLabelOp);
+REGISTER_KERNEL_BUILDER(Name("InterpolateLabelWithColor").Device(DEVICE_CPU),
+                        InterpolateLabelWithColorOp);
 
 ///////////////////////////////////////////////////////////////////////////////
 // ThreeNN

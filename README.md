@@ -34,8 +34,10 @@ original authors for sharing their methods.
 
 ### 1. Download
 
-Download the dataset from [Semantic3D](http://www.semantic3d.net/view_dbase.php)
-and extract to `dataset/semantic_raw`.
+Download the dataset [Semantic3D](http://www.semantic3d.net/view_dbase.php) and extract it by running the following commands: 
+
+`cd dataset/semantic_raw`
+`bash download_semantic3d.sh`
 
 ```shell
 Open3D-PointNet2-Semantic3D/dataset/semantic_raw

@@ -1,7 +1,7 @@
 import os
 import subprocess
 import shutil
-import open3d
+import open3d as o3d
 
 from dataset.semantic_dataset import all_file_prefixes
 
@@ -50,8 +50,8 @@ def point_cloud_txt_to_pcd(raw_dir, file_prefix):
     print("[pts->pcd]")
     print("pts: {}".format(pts_file))
     print("pcd: {}".format(pcd_file))
-    point_cloud = open3d.read_point_cloud(pts_file)
-    open3d.write_point_cloud(pcd_file, point_cloud)
+    point_cloud = o3d.io.read_point_cloud(pts_file)
+    o3d.io.write_point_cloud(pcd_file, point_cloud)
     os.remove(pts_file)
 
 

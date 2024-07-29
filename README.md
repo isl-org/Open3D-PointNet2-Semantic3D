@@ -1,3 +1,5 @@
+## Moved to https://github.com/isl-org/Open3D-ML
+
 # Semantic3D semantic segmentation with Open3D and PointNet++
 
 ## Intro
